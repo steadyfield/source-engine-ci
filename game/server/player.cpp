@@ -69,6 +69,7 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
+#include "sandbox.h"
 
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
@@ -6162,6 +6163,11 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "weapon_rpg" );
 		GiveNamedItem( "weapon_357" );
 		GiveNamedItem( "weapon_crossbow" );
+		if ( beta_weapons.GetBool() )
+		{
+			GiveNamedItem("weapon_cguard");
+		}
+
 #ifdef HL2_EPISODIC
 		// GiveNamedItem( "weapon_magnade" );
 #endif

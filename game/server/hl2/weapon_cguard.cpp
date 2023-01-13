@@ -184,9 +184,6 @@ void CreateConcussiveBlast( const Vector &origin, const Vector &surfaceNormal, C
 }
 
 // Combine Guard weapon
-
-#if 0
-
 class CWeaponCGuard : public CBaseHLCombatWeapon
 {
 	DECLARE_DATADESC();
@@ -351,6 +348,8 @@ void CWeaponCGuard::UpdateLasers( void )
 
 		AngleVectors( v_ang, &v_dir );
 
+		
+		//TODO: A normal hit line.....
 		trace_t	tr;
 		UTIL_TraceLine( ofs, ofs + ( v_dir * MAX_TRACE_LENGTH ), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
 
@@ -383,7 +382,7 @@ void CWeaponCGuard::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponCGuard::ItemPostFrame( void )
 {
-	//FIXME: UpdateLasers();
+	UpdateLasers();
 
 	if ( ( m_flChargeTime < gpGlobals->curtime ) && ( m_bFired == false ) )
 	{
@@ -477,5 +476,3 @@ void CWeaponCGuard::AddViewKick( void )
 	
 	pPlayer->ViewPunch( QAngle( random->RandomInt( -8, -12 ), random->RandomInt( -2, 2 ), random->RandomInt( -8, 8 ) ) );
 }
-
-#endif

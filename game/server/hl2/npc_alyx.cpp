@@ -117,7 +117,7 @@ void CNPC_Alyx::Spawn()
 		CapabilitiesClear();
 
 		CapabilitiesAdd( bits_CAP_ANIMATEDFACE | bits_CAP_TURN_HEAD );
-		CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
+//		CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
 	}
 	else
 	{
@@ -125,7 +125,7 @@ void CNPC_Alyx::Spawn()
 		CreateEmpTool( );
 	}
 
-	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL | EFL_NO_PHYSCANNON_INTERACTION );
+//	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL | EFL_NO_PHYSCANNON_INTERACTION );
 
 	m_iHealth			= 80;
 

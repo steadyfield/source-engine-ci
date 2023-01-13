@@ -1,5 +1,6 @@
 #include "cbase.h"
 #include "toolgun_menu.h"
+#include "sandbox.h"
 using namespace vgui;
 #include <vgui/IVGui.h>
 #include <vgui_controls/Frame.h>

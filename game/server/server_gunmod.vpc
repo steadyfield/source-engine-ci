@@ -27,6 +27,7 @@ $Project "Client (Gunmod)"
 		$File       "$SRCDIR/game/shared/gunmod/weapon_toolgun.cpp"
 		$File       "$SRCDIR/game/shared/gunmod/weapon_hopwire.cpp"
 		$File       "gunmod/grenade_hopwire.cpp"
+		$File 		"gunmod/weapon_gauss.cpp"
 		
 	}
 

@@ -1,4 +1,5 @@
 #include "cbase.h"
+#include "sandbox.h"
 
 #ifdef CLIENT_DLL
 #include "c_basehlcombatweapon.h"
@@ -15,8 +16,6 @@
 #include "EntityFlame.h"
 #endif
 
-#include "tier0/memdbgon.h"
-
 ConVar toolmode("toolmode", "0");
 
 //for setcolor
@@ -26,6 +25,8 @@ ConVar blue("blue", "0");
 
 //for modelscale
 ConVar duration("duration", "0");
+
+#include "tier0/memdbgon.h"
 
 #define BEAM_SPRITE "sprites/bluelaser1.vmt"
 
@@ -189,6 +190,11 @@ void CWeaponToolGun::PrimaryAttack()
 			{
 				UTIL_Remove(m_pIgniter);
 				m_pIgniter = CEntityFlame::Create(tr.m_pEnt, true);
+			}
+			break;
+		case 4:
+			if (tr.m_pEnt->IsNPC() || tr.m_pEnt->VPhysicsGetObject() )
+			{
 			}
 			break;
 	}

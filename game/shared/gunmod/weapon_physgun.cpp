@@ -51,6 +51,7 @@
 static int g_physgunBeam1;
 static int g_physgunBeam;
 static int g_physgunGlow;
+
 #define PHYSGUN_BEAM_SPRITE1	"sprites/physbeam1.vmt"
 #define PHYSGUN_BEAM_SPRITE		"sprites/physbeam.vmt"
 #define PHYSGUN_BEAM_GLOW		"sprites/physglow.vmt"

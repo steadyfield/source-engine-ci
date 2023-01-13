@@ -114,6 +114,14 @@ ConVar cl_forwardspeed( "cl_forwardspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT
 ConVar cl_backspeed( "cl_backspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 #endif // CSTRIKE_DLL
 
+//For Ultimate Deathmatch and maybe for gunmod
+static ConVar beta_weapons("beta_weapons", "0");
+static ConVar dod_weapons("dod_weapons", "0");
+static ConVar cs_weapons("cs_weapons", "0");
+static ConVar hl1_weapons("hl1_weapons", "0");
+//Like a Hopwire from Episodic
+static ConVar cut_weapons("cut_weapons", "0");
+
 // This is declared in the engine, too
 ConVar	sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
 
@@ -6163,9 +6171,15 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "weapon_rpg" );
 		GiveNamedItem( "weapon_357" );
 		GiveNamedItem( "weapon_crossbow" );
+		GiveNamedItem( "weapon_toolgun");
+		GiveNamedItem( "weapon_physgun");
+		
 		if ( beta_weapons.GetBool() )
 		{
-			GiveNamedItem("weapon_cguard");
+			GiveNamedItem( "weapon_cguard" );
+			GiveAmmo(5, "AR2AltFire");
+			GiveNamedItem( "weapon_gauss" );
+			GiveAmmo(100, "GaussEnergy");
 		}
 
 #ifdef HL2_EPISODIC

@@ -58,7 +58,8 @@ CCreateMultiplayerGameDialog::CCreateMultiplayerGameDialog(vgui::Panel *parent) 
 	m_pBotPage = NULL;
 
 	AddPage(m_pServerPage, "#GameUI_Server");
-	AddPage(m_pGameplayPage, "#GameUI_Game");
+//	I dont need it now xd
+//	AddPage(m_pGameplayPage, "#GameUI_Game"); 
 
 	// create KeyValues object to load/save config options
 	m_pSavedData = new KeyValues( "ServerConfig" );
@@ -137,18 +138,32 @@ bool CCreateMultiplayerGameDialog::OnOK(bool applyOnly)
 		m_pSavedData->SaveToFile( g_pFullFileSystem, "ServerConfig.vdf", "GAME" );
 	}
 
-	char szMapCommand[1024];
-
 	// create the command to execute
-	Q_snprintf(szMapCommand, sizeof( szMapCommand ), "disconnect\nwait\nwait\nsv_lan 1\nsetmaster enable\nmaxplayers %i\nsv_password \"%s\"\nhostname \"%s\"\nprogress_enable\nmap %s\n",
-		m_pGameplayPage->GetMaxPlayers(),
-		szPassword,
-		szHostName,
-		szMapName
-	);
-
-	// exec
-	engine->ClientCmd_Unrestricted(szMapCommand);
+	// also я гений
+	if ( ModInfo().IsSinglePlayerOnly() )
+	{
+		char szSingeplayerCommand[1024];
+		
+		Q_snprintf(szSingeplayerCommand, sizeof( szSingeplayerCommand ), "disconnect\nmaxplayer 1\nwait\nwait\nmap %s\n",
+		szMapName);
+		
+		engine->ClientCmd_Unrestricted(szSingeplayerCommand);
+	}
+	
+	if( ModInfo().IsMultiplayerOnly())
+	{
+		char szMapCommand[1024];
+		
+		Q_snprintf(szMapCommand, sizeof( szMapCommand ), "disconnect\nwait\nwait\nsv_lan 1\nsetmaster enable\nmaxplayers %i\nsv_password \"%s\"\nhostname \"%s\"\nprogress_enable\nmap %s\n",
+			m_pGameplayPage->GetMaxPlayers(),
+			szPassword,
+			szHostName,
+			szMapName
+		);	
+		
+		// exec
+		engine->ClientCmd_Unrestricted(szMapCommand);
+	}
 
 	return true;
 }

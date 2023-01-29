@@ -6157,9 +6157,6 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveAmmo( 5,	"grenade");
 		GiveAmmo( 32,	"357" );
 		GiveAmmo( 16,	"XBowBolt" );
-#ifdef HL2_EPISODIC
-		GiveAmmo( 5,	"Hopwire" );
-#endif		
 		GiveNamedItem( "weapon_smg1" );
 		GiveNamedItem( "weapon_frag" );
 		GiveNamedItem( "weapon_crowbar" );
@@ -6180,6 +6177,12 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 			GiveAmmo(5, "AR2AltFire");
 			GiveNamedItem( "weapon_gauss" );
 			GiveAmmo(100, "GaussEnergy");
+			GiveNamedItem( "weapon_hopwire");		
+#ifdef HL2_EPISODIC
+			GiveAmmo( 5,	"Hopwire" );
+#endif
+			GiveNamedItem( "weapon_flaregun");
+			GiveAmmo( 5, "FlareRound");
 		}
 
 #ifdef HL2_EPISODIC
@@ -6187,7 +6190,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 #endif
 		if ( GetHealth() < 100 )
 		{
-			TakeHealth( 25, DMG_GENERIC );
+			TakeHealth( 100, DMG_GENERIC );
 		}
 		
 		gEvilImpulse101		= false;

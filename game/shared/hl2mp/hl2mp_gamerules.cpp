@@ -2208,5 +2208,3 @@ void CHL2MPRules::InitDefaultAIRelationships(void)
 }
 
 #endif
-
-#endif

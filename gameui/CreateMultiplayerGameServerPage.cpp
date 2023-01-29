@@ -42,17 +42,6 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage(vgui::Panel *
 	m_pEnableBotsCheck->SetVisible( false );
 	m_pEnableBotsCheck->SetEnabled( false );
 
-	m_pEnableCheats = new CheckButton( this, "EnableCheats");
-	m_pEnableCheats->SetVisible( true );
-	m_pEnableCheats->SetEnabled( false );
-	
-	bool enabledCheats = m_pEnableCheats->IsSelected();
-	
-	if ( enabledCheats )
-	{
-		engine->ClientCmd_Unrestricted("sv_cheats 1");
-	}
-
 	LoadControlSettings("Resource/CreateMultiplayerGameServerPage.res");
 
 	LoadMapList();

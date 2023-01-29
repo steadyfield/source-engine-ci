@@ -130,6 +130,7 @@ void CNPC_Alyx::Spawn()
 	m_iHealth			= 80;
 
 	NPCInit();
+	SetBloodColor(BLOOD_COLOR_RED);
 }
 
 //=========================================================
@@ -165,6 +166,7 @@ void CNPC_Alyx::SetupAlyxWithoutParent( void )
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
+	SetBloodColor( BLOOD_COLOR_RED );
 
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_DOORS_GROUP | bits_CAP_TURN_HEAD | bits_CAP_DUCK | bits_CAP_SQUAD );
 	CapabilitiesAdd( bits_CAP_USE_WEAPONS );

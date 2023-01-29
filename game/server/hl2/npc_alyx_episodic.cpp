@@ -335,7 +335,7 @@ void CNPC_Alyx::Spawn()
 //	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL | EFL_NO_PHYSCANNON_INTERACTION );
 
 	m_iHealth			= 80;
-	m_bloodColor		= DONT_BLEED;
+	m_bloodColor		= BLOOD_COLOR_RED;
 
 	NPCInit();
 
@@ -461,6 +461,7 @@ void CNPC_Alyx::SetupAlyxWithoutParent( void )
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 	SetMoveType( MOVETYPE_STEP );
+	SetBloodColor( BLOOD_COLOR_RED );
 
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_DOORS_GROUP | bits_CAP_TURN_HEAD | bits_CAP_DUCK | bits_CAP_SQUAD );
 	CapabilitiesAdd( bits_CAP_USE_WEAPONS );

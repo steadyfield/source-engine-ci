@@ -5,6 +5,10 @@ using namespace vgui;
 #include <vgui/IVGui.h>
 #include <vgui_controls/Frame.h>
 #include <vgui_controls/Button.h>
+#include <vgui_controls/TextEntry.h>
+
+char szColorCommand[64];
+char szDurationCommand[64];
 
 class CToolMenu : public vgui::Frame
 {
@@ -15,6 +19,11 @@ class CToolMenu : public vgui::Frame
 protected:
 	virtual void OnTick();
 	virtual void OnCommand(const char* pcCommand);
+private:
+	vgui::TextEntry* m_Red;
+	vgui::TextEntry* m_Green;
+	vgui::TextEntry* m_Blue;
+	vgui::TextEntry* m_Modelscale;
 };
 
 CToolMenu::CToolMenu(vgui::VPANEL parent)
@@ -25,16 +34,7 @@ CToolMenu::CToolMenu(vgui::VPANEL parent)
 	SetKeyBoardInputEnabled(true);
 	SetMouseInputEnabled(true);
 
-	SetProportional(true);
-
-	int w = 500;
-	int h = 500;
-	if (IsProportional())
-	{
-		w = scheme()->GetProportionalScaledValueEx(GetScheme(), w);
-		h = scheme()->GetProportionalScaledValueEx(GetScheme(), h);
-	}
-	SetSize(w, h);
+	//SetProportional(true);
 
 	SetTitleBarVisible(true);
 	SetMinimizeButtonVisible(false);
@@ -43,13 +43,44 @@ CToolMenu::CToolMenu(vgui::VPANEL parent)
 	SetSizeable(false);
 	SetMoveable(false);
 	SetVisible(true);
-	SetTitle("ToolGun Menu", this);
+	SetTitle("SMenu", this);
 
 	SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/SourceScheme.res", "SourceScheme"));
 
 	LoadControlSettings("resource/ui/toolmenu.res");
 
 	vgui::ivgui()->AddTickSignal(GetVPanel(), 100);
+
+	if ( m_Modelscale && m_Red && m_Green && m_Blue )
+	{
+		char duration[256];
+		m_Modelscale = new vgui::TextEntry(this, "Duration");
+		m_Modelscale->SetPos(358, 260);
+		m_Modelscale->SetSize( 100, 50 );
+		m_Modelscale->GetText(duration, sizeof(duration));
+	
+		char red[256];
+		m_Red = new vgui::TextEntry(this, "Red (RGB Format)");
+		m_Red->SetPos(7, 260 );
+		m_Red->SetSize( 100, 50 );
+		m_Red->GetText( red, sizeof(red));
+		
+		char green[256];
+		m_Green = new vgui::TextEntry(this, "Green (RGB Format)");
+		m_Green->SetPos(124, 260 );
+		m_Green->SetSize(100, 50 );
+		m_Green->GetText( green, sizeof(green) );
+		
+		char blue[256];
+		m_Blue = new vgui::TextEntry(this, "Blue (RGB Format)");
+		m_Blue->SetPos(238, 260 );
+		m_Blue->SetSize(100, 50 );
+		m_Blue->GetText( blue, sizeof(blue) );
+		
+		Q_snprintf(szColorCommand, sizeof( szColorCommand ), "red %i\n;green %i\n;blue %i\n", red, green, blue );
+		Q_snprintf(szDurationCommand, sizeof( szDurationCommand ), "duration %s\n", duration );
+	}
+	
 }
 
 class CToolMenuInterface : public ToolMenu
@@ -84,7 +115,7 @@ public:
 static CToolMenuInterface g_ToolMenu;
 ToolMenu* toolmenu = (ToolMenu*)&g_ToolMenu;
 
-ConVar cl_toolmenu("toolmenu", "0", FCVAR_CLIENTDLL, "ToolGun Menu");
+ConVar cl_toolmenu("toolmenu", "0", FCVAR_CLIENTDLL, "Open SMenu");
 
 void CToolMenu::OnTick()
 {
@@ -115,5 +146,13 @@ void CToolMenu::OnCommand(const char* pcCommand)
 	else if(!Q_stricmp(pcCommand, "igniter"))
 	{
 		engine->ClientCmd("toolmode 3");
+	}
+	else if(!Q_stricmp(pcCommand, "apply_color"))
+	{
+		engine->ClientCmd(szColorCommand);
+	}
+	else if(!Q_stricmp(pcCommand, "apply_duration"))
+	{
+		engine->ClientCmd( szDurationCommand );
 	}
 }

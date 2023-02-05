@@ -78,7 +78,7 @@ void CC_Neofetch(void)
 		"@@@@@@@@@@@@@@@@@@@@@@&P?!!!Y&@@@@@@@@@@\n"
 		"@@@@@@@@@@@@@@@@@@@@@@P!!7JB@@@@@@@@@@@@\n"
 		"@@@@@@@@@@@@@@@@@@@@@@@BGB@@@@@@@@@@@@@@\n");*/
-	Msg("Engine Version: Source Engine %f\n", 1.15f);
+	Msg("Engine Version: Source Engine 1.15\n");
 	Msg("Platform: %s\n", GetPlatformName());
 	Msg("Arch: %s\n", GetProcessorArchName());
 	Msg("Game: %s\n", GetGame());

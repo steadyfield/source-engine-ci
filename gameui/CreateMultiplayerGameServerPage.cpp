@@ -42,6 +42,14 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage(vgui::Panel *
 	m_pEnableBotsCheck->SetVisible( false );
 	m_pEnableBotsCheck->SetEnabled( false );
 
+	m_pServerCheck = new CheckButton( this, "EnableServer", "Enable Server Mode" );
+	m_pServerCheck->SetVisible( true );
+	m_pServerCheck->SetEnabled( true );
+
+	m_pCheatCheck = new CheckButton( this, "EnableCheats", "Enable Cheats");
+	m_pCheatCheck->SetEnabled( true );
+	m_pCheatCheck->SetVisible( true );
+
 	LoadControlSettings("Resource/CreateMultiplayerGameServerPage.res");
 
 	LoadMapList();
@@ -94,6 +102,21 @@ void CCreateMultiplayerGameServerPage::OnKeyCodePressed( vgui::KeyCode code )
 	{
 		BaseClass::OnKeyCodePressed(code);
 	}
+}
+
+int CCreateMultiplayerGameServerPage::IsCheatsEnabled()
+{
+	if ( m_pCheatCheck->IsSelected() ) 
+	{ 
+		return 1; 
+	}
+	return 0;
+}
+
+bool CCreateMultiplayerGameServerPage::IsServerEnabled()
+{
+	if( m_pServerCheck->IsSelected() )
+		return true;
 }
 
 //-----------------------------------------------------------------------------

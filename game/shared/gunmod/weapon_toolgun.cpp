@@ -14,7 +14,10 @@
 #include "ammodef.h"
 #include "baseanimating.h"
 #include "EntityFlame.h"
+#include "grenade_frag.h"
 #endif
+
+#include "tier0/memdbgon.h"
 
 ConVar toolmode("toolmode", "0");
 
@@ -25,8 +28,6 @@ ConVar blue("blue", "0");
 
 //for modelscale
 ConVar duration("duration", "0");
-
-#include "tier0/memdbgon.h"
 
 #define BEAM_SPRITE "sprites/bluelaser1.vmt"
 
@@ -158,12 +159,10 @@ void CWeaponToolGun::PrimaryAttack()
 			if (tr.m_pEnt->IsNPC())
 			{
 				UTIL_Remove(tr.m_pEnt);
-				DevMsg("Deleted NPC\n");
 			}
 			else if(tr.m_pEnt->VPhysicsGetObject())
 			{
 				UTIL_Remove(tr.m_pEnt);
-				DevMsg("Deleted VPhysics\n");
 			}
 			break; 
 
@@ -193,9 +192,6 @@ void CWeaponToolGun::PrimaryAttack()
 			}
 			break;
 		case 4:
-			if (tr.m_pEnt->IsNPC() || tr.m_pEnt->VPhysicsGetObject() )
-			{
-			}
 			break;
 	}
 #endif
@@ -225,4 +221,5 @@ void CWeaponToolGun::DoImpactEffect( trace_t &tr, int nDamageType )
 {
 	DrawBeam( tr.startpos, tr.endpos, 4 );
 }
+
 #endif

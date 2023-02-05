@@ -70,48 +70,6 @@ CLIENTEFFECT_REGISTER_END()
 
 #endif
 
-//From weapon_physcannon
-IPhysicsObject *GetChildRagdoll( CBaseEntity *pTarget, const Vector &position )
-{
-#ifndef CLIENT_DLL
-	// Check for a ragdoll
-	if ( dynamic_cast<CRagdollProp*>( pTarget ) == NULL )
-		return NULL;
-#else
-	if ( dynamic_cast<CRagdoll*>( pTarget ) == NULL )
-		return NULL;	
-#endif
-	// Get the root
-	IPhysicsObject *pList[VPHYSICS_MAX_OBJECT_LIST_COUNT];
-	int count = pTarget->VPhysicsGetObjectList( pList, ARRAYSIZE( pList ) );
-	
-	IPhysicsObject *pBestChild = NULL;
-	float			flBestDist = 99999999.0f;
-	float			flDist;
-	Vector			vPos;
-
-	// Find the nearest child to where we're looking
-	for ( int i = 0; i < count; i++ )
-	{
-		pList[i]->GetPosition( &vPos, NULL );
-		
-		flDist = ( position - vPos ).LengthSqr();
-
-		if ( flDist < flBestDist )
-		{
-			pBestChild = pList[i];
-			flBestDist = flDist;
-		}
-	}
-
-#ifndef CLIENT_DLL
-	// Make this our base now
-	pTarget->VPhysicsSwapObject( pBestChild );
-#endif
-
-	return pTarget->VPhysicsGetObject();
-}
-
 IPhysicsObject *GetPhysObjFromPhysicsBone( CBaseEntity *pEntity, short physicsbone )
 {
 	if( pEntity->IsNPC() )

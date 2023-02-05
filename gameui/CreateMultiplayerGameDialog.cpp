@@ -142,12 +142,22 @@ bool CCreateMultiplayerGameDialog::OnOK(bool applyOnly)
 	// also я гений
 	if ( ModInfo().IsSinglePlayerOnly() )
 	{
-		char szSingeplayerCommand[1024];
+		if ( m_pServerPage->IsServerEnabled() )
+		{
+			char szSingeplayerCommand[1024];
 		
-		Q_snprintf(szSingeplayerCommand, sizeof( szSingeplayerCommand ), "disconnect\nmaxplayer 1\nwait\nwait\nmap %s\n",
-		szMapName);
+			Q_snprintf(szSingeplayerCommand, sizeof( szSingeplayerCommand ), "wait\nwait\nmaxplayers%i\nprogress_enable\nmap %s\nsv_cheats%i\n",
+			m_pGameplayPage->GetMaxPlayers(), szMapName, m_pServerPage->IsCheatsEnabled() );
+			engine->ClientCmd_Unrestricted(szSingeplayerCommand);
+		}
+		else
+		{
+			char szSingeplayerCommand[1024];
 		
-		engine->ClientCmd_Unrestricted(szSingeplayerCommand);
+			Q_snprintf(szSingeplayerCommand, sizeof( szSingeplayerCommand ), "wait\nwait\nprogress_enable\nmap %s\nsv_cheats %i\n",
+			szMapName ,m_pServerPage->IsCheatsEnabled() );
+			engine->ClientCmd_Unrestricted(szSingeplayerCommand);
+		}
 	}
 	
 	if( ModInfo().IsMultiplayerOnly())
@@ -159,8 +169,7 @@ bool CCreateMultiplayerGameDialog::OnOK(bool applyOnly)
 			szPassword,
 			szHostName,
 			szMapName
-		);	
-		
+		);
 		// exec
 		engine->ClientCmd_Unrestricted(szMapCommand);
 	}

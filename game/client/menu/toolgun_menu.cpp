@@ -51,36 +51,32 @@ CToolMenu::CToolMenu(vgui::VPANEL parent)
 
 	vgui::ivgui()->AddTickSignal(GetVPanel(), 100);
 
-	if ( m_Modelscale && m_Red && m_Green && m_Blue )
-	{
-		char duration[256];
-		m_Modelscale = new vgui::TextEntry(this, "Duration");
-		m_Modelscale->SetPos(358, 260);
-		m_Modelscale->SetSize( 100, 50 );
-		m_Modelscale->GetText(duration, sizeof(duration));
+	char duration[256];
+	m_Modelscale = new vgui::TextEntry(this, "Duration");
+	m_Modelscale->SetPos(358, 260);
+	m_Modelscale->SetSize( 100, 50 );
+	m_Modelscale->GetText(duration, sizeof(duration));
 	
-		char red[256];
-		m_Red = new vgui::TextEntry(this, "Red (RGB Format)");
-		m_Red->SetPos(7, 260 );
-		m_Red->SetSize( 100, 50 );
-		m_Red->GetText( red, sizeof(red));
+	char red[256];
+	m_Red = new vgui::TextEntry(this, "Red (RGB Format)");
+	m_Red->SetPos(7, 260 );
+	m_Red->SetSize( 100, 50 );
+	m_Red->GetText( red, sizeof(red));
 		
-		char green[256];
-		m_Green = new vgui::TextEntry(this, "Green (RGB Format)");
-		m_Green->SetPos(124, 260 );
-		m_Green->SetSize(100, 50 );
-		m_Green->GetText( green, sizeof(green) );
+	char green[256];
+	m_Green = new vgui::TextEntry(this, "Green (RGB Format)");
+	m_Green->SetPos(124, 260 );
+	m_Green->SetSize(100, 50 );
+	m_Green->GetText( green, sizeof(green) );
 		
-		char blue[256];
-		m_Blue = new vgui::TextEntry(this, "Blue (RGB Format)");
-		m_Blue->SetPos(238, 260 );
-		m_Blue->SetSize(100, 50 );
-		m_Blue->GetText( blue, sizeof(blue) );
+	char blue[256];
+	m_Blue = new vgui::TextEntry(this, "Blue (RGB Format)");
+	m_Blue->SetPos(238, 260 );
+	m_Blue->SetSize(100, 50 );
+	m_Blue->GetText( blue, sizeof(blue) );
 		
-		Q_snprintf(szColorCommand, sizeof( szColorCommand ), "red %i\n;green %i\n;blue %i\n", red, green, blue );
-		Q_snprintf(szDurationCommand, sizeof( szDurationCommand ), "duration %s\n", duration );
-	}
-	
+	Q_snprintf(szColorCommand, sizeof( szColorCommand ), "red %i\n;green %i\n;blue %i\n", red, green, blue );
+	Q_snprintf(szDurationCommand, sizeof( szDurationCommand ), "duration %s\n", duration );
 }
 
 class CToolMenuInterface : public ToolMenu

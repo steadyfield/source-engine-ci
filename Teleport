@@ -1,0 +1,202 @@
+game/client/c_baseentity.cpp:		// them into entity-space, and call it a day.
+game/client/c_baseentity.cpp:		// Construct the entity-to-world matrix
+game/client/c_baseentity.cpp:		// Start with making an entity-to-parent matrix
+game/client/c_baseentity.cpp:	// Construct the entity-to-world matrix
+game/client/c_baseentity.cpp:	// Start with making an entity-to-parent matrix
+game/client/c_baseentity.h:	// Returns the entity-to-world transform
+game/client/c_baseentity.h:	// Specifies the entity-to-world transform
+game/client/c_recipientfilter.h:		CPASFilter( entity->GetAbsOrigin() )
+game/client/c_recipientfilter.h:		CPASFilter( entity->GetAbsOrigin() )
+game/client/c_recipientfilter.h:		CPASFilter( entity->GetAbsOrigin() )
+game/client/c_te_legacytempents.cpp:	sInfo.entity_index = entity->index;
+game/client/c_te_legacytempents.cpp:	sInfo.pModel = entity->GetModel();
+game/client/c_te_legacytempents.cpp:	sInfo.origin = entity->GetRenderOrigin();
+game/client/c_te_legacytempents.cpp:	sInfo.angles = entity->GetRenderAngles();
+game/client/c_te_legacytempents.cpp:	sInfo.skin = entity->m_nSkin;
+game/client/c_te_legacytempents.cpp:	sInfo.body = entity->m_nBody;
+game/client/c_te_legacytempents.cpp:	sInfo.hitboxset = entity->m_nHitboxSet;
+game/client/cdll_util.cpp:	entity->SetLocalOrigin( vecOrigin );
+game/client/game_controls/MapOverview.cpp:		obj->position = entity->GetAbsOrigin();
+game/client/game_controls/MapOverview.cpp:		obj->angle = entity->GetAbsAngles();
+game/client/movehelper_client.cpp:		entity->PhysicsImpact( pPlayer, m_TouchList[i].trace );
+game/client/prediction.cpp:			entity->m_nSimulationTick = -1;
+game/client/prediction.cpp:		if ( entity->GetFlags() & FL_STATICPROP )
+game/client/prediction.cpp:		if ( entity->IsPlayerSimulated() )
+game/client/prediction.cpp:		if ( AddDataChangeEvent( entity, DATA_UPDATE_DATATABLE_CHANGED, &entity->m_DataChangeEventRef ) )
+game/client/prediction.cpp:			entity->OnPreDataChanged( DATA_UPDATE_DATATABLE_CHANGED );
+game/client/prediction.cpp:		if ( entity->IsClientCreated() )
+game/client/prediction.cpp:			entity->PhysicsSimulate();
+game/client/prediction.cpp:			entity->PhysicsSimulate();
+game/client/prediction.cpp:		entity->OnLatchInterpolatedVariables( LATCH_SIMULATION_VAR | LATCH_ANIMATION_VAR | INTERPOLATE_OMIT_UPDATE_LAST_NETWORKED );
+game/client/prediction.cpp:		if ( !entity->GetCheckUntouch() )
+game/client/prediction.cpp:		entity->PhysicsCheckForEntityUntouch();
+game/client/prediction.cpp:		if ( !entity->GetPredictable() )
+game/client/prediction.cpp:		entity->SaveData( "StorePredictionResults", predicted_frame, PC_EVERYTHING );
+game/client/prediction.cpp:						entity->ResetLatched();
+game/client/prediction.cpp:	while ( entity && entity->entindex() > 0)
+game/client/prediction.cpp:		entity->MoveToLastReceivedPosition();
+game/client/prediction.cpp:		entity = entity->GetMoveParent();
+game/server/NextBot/NextBot.cpp:	return ( entity->MyCombatCharacterPointer() == NULL );	// includes all bots, npcs, players, and TF2 buildings
+game/server/NextBot/NextBot.cpp:	return ( entity->MyCombatCharacterPointer() == NULL && entity->BlocksLOS() );
+game/server/NextBot/NextBot.cpp:		int caps = entity->ObjectCaps();
+game/server/NextBot/NextBot.cpp:		entity->AcceptInput( "Use", this, this, emptyVariant, useType );
+game/server/NextBot/NextBotUtil.h:			return ( entity->MyNextBotPointer() == NULL );
+game/server/NextBot/NextBotUtil.h:		m_passBot = entity->MyNextBotPointer();
+game/server/NextBot/NextBotUtil.h:			if ( entity->IsPlayer() && m_passBot && m_passBot->GetEntity() &&
+game/server/NextBot/NextBotUtil.h:				m_passBot->GetEntity()->GetTeamNumber() == entity->GetTeamNumber() )
+game/server/NextBot/NextBotUtil.h:			INextBot *bot = entity->MyNextBotPointer();
+game/server/NextBot/NextBotUtil.h:			return ( entity->MyNextBotPointer() || entity->IsPlayer() );
+game/server/NextBot/NextBotVisionInterface.cpp:		if ( known.GetEntity() && known.GetEntity()->entindex() == entity->entindex() && !known.IsObsolete() )
+game/server/NextBot/NextBotVisionInterface.cpp:	if ( entity == NULL || entity->IsWorld() )
+game/server/NextBot/NextBotVisionInterface.cpp:			 entity->IsAlive() &&
+game/server/NextBot/NextBotVisionInterface.cpp:			if ( entity->entindex() == m_recognized[ i ]->entindex() )
+game/server/baseentity.cpp:	if ( !entity->UseStepSimulationNetworkOrigin( &v ) )
+game/server/baseentity.cpp:		v = &entity->GetLocalOrigin();
+game/server/baseentity.cpp:	if ( !entity->UseStepSimulationNetworkOrigin( &v ) )
+game/server/baseentity.cpp:		v = &entity->GetLocalOrigin();
+game/server/baseentity.cpp:	if ( !entity->UseStepSimulationNetworkOrigin( &v ) )
+game/server/baseentity.cpp:		v = &entity->GetLocalOrigin();
+game/server/baseentity.cpp:	if ( !entity->UseStepSimulationNetworkAngles( &a ) )
+game/server/baseentity.cpp:		a = &entity->GetLocalAngles();
+game/server/baseentity.cpp:	// Plop the entity->parent matrix into m_rgflCoordinateFrame
+game/server/baseentity.cpp:		entity->Precache();
+game/server/baseentity.cpp:			entity->KeyValue( pKeyName, pValue );
+game/server/baseentity.cpp:			entity->Teleport( &tr.endpos, NULL, NULL );
+game/server/baseentity.cpp:		entity->Activate();
+game/server/baseentity.h:	// Returns the entity-to-world transform
+game/server/baseentity.h:// Returns the entity-to-world transform
+game/server/bmodels.cpp:	if ( entity->HasSpawnFlags(SF_BRUSH_ROTATE_CLIENTSIDE) )
+game/server/bmodels.cpp:		const Vector *v = &entity->m_vecClientOrigin;
+game/server/bmodels.cpp:	if ( entity->HasSpawnFlags(SF_BRUSH_ROTATE_CLIENTSIDE) )
+game/server/bmodels.cpp:		const QAngle *a = &entity->m_vecClientAngles;
+game/server/bmodels.cpp:	vec_t const *ea = entity->GetLocalAngles().Base();
+game/server/bmodels.cpp:	if ( entity->HasSpawnFlags(SF_BRUSH_ROTATE_CLIENTSIDE) )
+game/server/bmodels.cpp:		const QAngle *a = &entity->m_vecClientAngles;
+game/server/bmodels.cpp:	if ( entity->HasSpawnFlags(SF_BRUSH_ROTATE_CLIENTSIDE) )
+game/server/buttons.cpp:// Purpose: Cache user-entity-field values until spawn is called.
+game/server/cstrike/bot/cs_bot.cpp://		if (FNullEnt( entity->pev ))
+game/server/cstrike/bot/cs_bot.cpp://		if (FStrEq( STRING( entity->pev->netname ), "" ))
+game/server/cstrike/bot/cs_bot.cpp:		if (!entity->IsPlayer())
+game/server/cstrike/bot/cs_bot_event_bomb.cpp:		if ((myOrigin - entity->GetAbsOrigin()).LengthSqr() < bombBeepHearRangeSq)
+game/server/cstrike/bot/cs_bot_event_bomb.cpp:				const CCSBotManager::Zone *zone = TheCSBots()->GetZone( entity->GetAbsOrigin() );
+game/server/cstrike/bot/cs_bot_event_bomb.cpp:			GetGameState()->UpdatePlantedBomb( entity->GetAbsOrigin() );
+game/server/cstrike/bot/cs_bot_manager.cpp:	if ( FBitSet( entity->GetFlags(), FL_FAKECLIENT ) )
+game/server/cstrike/bot/cs_bot_manager.cpp:				entity->CollisionProp()->WorldSpaceAABB( &absmin, &absmax );
+game/server/cstrike/bot/cs_bot_manager.cpp:				m_zone[ m_zoneCount ].m_center = (isLegacy) ? entity->GetAbsOrigin() : (absmin + absmax)/2.0f;
+game/server/cstrike/bot/cs_bot_manager.cpp:			 entity && !FNullEnt( entity->edict() );
+game/server/cstrike/bot/cs_bot_manager.cpp:				m_zone[ m_zoneCount ].m_center = entity->GetAbsOrigin();
+game/server/cstrike/bot/cs_bot_manager.cpp:			zone->m_entity->CollisionProp()->WorldSpaceAABB( &absmin, &absmax );
+game/server/cstrike/bot/cs_bot_manager.h:	Vector centroid = entity->GetAbsOrigin();
+game/server/cstrike/bot/cs_bot_nav.cpp:	if ( entity && !IsVisible( entity->WorldSpaceCenter(), false, entity ) )
+game/server/cstrike/bot/cs_bot_vision.cpp:			if (!entity->IsPlayer())
+game/server/cstrike/bot/cs_bot_vision.cpp:				if (IsVisible( entity->WorldSpaceCenter(), false, this ))
+game/server/cstrike/bot/states/cs_bot_use_entity.cpp:	Vector pos = m_entity->EyePosition();
+game/server/cstrike/cs_nav.h:	if (FClassnameIs( entity, "func_breakable" ) && entity->GetHealth() && entity->m_takedamage == DAMAGE_YES)
+game/server/cstrike/cs_nav.h:	if (FClassnameIs( entity, "func_breakable_surf" ) && entity->m_takedamage == DAMAGE_YES)
+game/server/doors.cpp:// Purpose: Cache user-entity-field values until spawn is called.
+game/server/episodic/npc_hunter.cpp:		entity->Precache();
+game/server/episodic/npc_hunter.cpp:		entity->Shoot( forward, false );
+game/server/gameinterface.cpp:		tr.endpos = (entity->GetAbsOrigin() + entityTouched->GetAbsOrigin()) * 0.5;
+game/server/gameinterface.cpp:		entity->PhysicsMarkEntitiesAsTouching( entityTouched, tr );
+game/server/gameinterface.cpp:	g_pMsgBuffer = engine->EntityMessageBegin( entity->entindex(), entity->GetServerClass(), reliable );
+game/server/lights.cpp:// Cache user-entity-field values until spawn is called.
+game/server/movehelper_server.cpp:		entity->PhysicsImpact( m_pHostPlayer, m_TouchList[i].trace );
+game/server/nav.h:		entity->CollisionProp()->WorldSpaceSurroundingBounds( &lo, &hi );
+game/server/nav.h:		if ( !entity->HasSpawnFlags( SF_DOOR_PTOUCH ) )
+game/server/nav.h:	if (FClassnameIs( entity, "func_breakable" ) && entity->GetHealth() && entity->m_takedamage == DAMAGE_YES)
+game/server/nav.h:	if (FClassnameIs( entity, "func_breakable_surf" ) && entity->m_takedamage == DAMAGE_YES)
+game/server/player_command.cpp:		if ( groundentity && ( groundentity->GetFlags() & FL_CONVEYOR) )
+game/server/player_command.cpp:			groundentity->GetGroundVelocityToApply( vecNewVelocity );
+game/server/recipientfilter.h:		CPASFilter( static_cast<const Vector&>(entity->GetSoundEmissionOrigin()) )
+game/server/recipientfilter.h:		Filter( entity->GetSoundEmissionOrigin(), SNDLVL_TO_ATTN( soundlevel ) );
+game/server/recipientfilter.h:		CPASFilter( static_cast<const Vector&>(entity->GetSoundEmissionOrigin()) )
+game/server/recipientfilter.h:		Filter( entity->GetSoundEmissionOrigin(), attenuation );
+game/server/recipientfilter.h:		CPASFilter( static_cast<const Vector&>(entity->GetSoundEmissionOrigin()) )
+game/server/recipientfilter.h:		Filter( entity->GetSoundEmissionOrigin(), attenuation );
+game/server/recipientfilter.h:		CPASFilter( static_cast<const Vector&>(entity->GetSoundEmissionOrigin()) )
+game/server/recipientfilter.h:		Filter( entity->GetSoundEmissionOrigin(), attenuation );
+game/server/te_fizz.cpp:	g_TEFizz.m_nEntity		= ENTINDEX( (edict_t *)entity->edict() );
+game/server/triggers.cpp:// Cache user-entity-field values until spawn is called.
+game/server/util.cpp:	entity->SetLocalOrigin( vecOrigin );
+game/server/util.cpp:		entity->PhysicsTouchTriggers();
+game/server/util.cpp:	if ( !entity || !entity->edict() )
+game/server/util.cpp:	((VMatrix *)this)->SetupMatrixOrgAngles( entity->GetLocalOrigin(), entity->GetLocalAngles() );
+game/server/util.cpp:		if ( entity->GetFlags() & FL_NOTARGET )
+game/server/util.cpp:	// Construct the entity-to-world matrix
+game/server/util.cpp:	// Start with making an entity-to-parent matrix
+game/server/util.cpp:	// Construct the entity-to-world matrix
+game/server/util.cpp:	// Start with making an entity-to-parent matrix
+game/server/util.h:// Conversion among the three types of "entity", including identity-conversions.
+game/shared/gunmod/weapon_toolgun.cpp:			entity->Teleport(&tr.endpos, NULL, NULL );
+game/shared/basecombatcharacter_shared.cpp:	Vector vecToTarget = entity->GetAbsOrigin() - vecEyePosition;
+game/shared/basecombatcharacter_shared.cpp:	vecToTarget = entity->WorldSpaceCenter() - vecEyePosition;
+game/shared/basecombatcharacter_shared.cpp:	vecToTarget = entity->EyePosition() - vecEyePosition;
+game/shared/basecombatcharacter_shared.cpp:	if ( entity->MyCombatCharacterPointer() )
+game/shared/basecombatcharacter_shared.cpp:		return IsLineOfSightClear( entity->EyePosition(), checkType, entity );
+game/shared/basecombatcharacter_shared.cpp:	return IsLineOfSightClear( entity->WorldSpaceCenter(), checkType, entity );
+game/shared/basecombatcharacter_shared.cpp:	return IsLineOfSightClear( entity->WorldSpaceCenter(), checkType, entity ) || IsLineOfSightClear( entity->EyePosition(), checkType, entity ) || IsLineOfSightClear( entity->GetAbsOrigin(), checkType, entity );
+game/shared/basecombatcharacter_shared.cpp:	return ( entity->MyCombatCharacterPointer() == NULL && !entity->MyCombatWeaponPointer() && entity->BlocksLOS() );
+game/shared/baseplayer_shared.cpp:			IPhysicsObject *pObj = entity->VPhysicsGetObject();
+game/shared/baseplayer_shared.cpp:				Vector vPushAway = (entity->WorldSpaceCenter() - WorldSpaceCenter());
+game/shared/cstrike/bot/bot.cpp:		m_detonationPosition = m_entity->GetAbsOrigin();
+game/shared/cstrike/bot/bot.cpp:	return m_entity->GetAbsOrigin();
+game/shared/cstrike/bot/bot_util.h:	if (FNullEnt( entity->edict() ))
+game/shared/cstrike/cs_gamerules.cpp:			if ( entity && !FNullEnt( entity->edict() ) )
+game/shared/cstrike/cs_gamerules.cpp:				if ( FStrEq( entity->GetPlayerName(), "" ) )
+game/shared/cstrike/cs_gamerules.cpp:				if ( FBitSet( entity->GetFlags(), FL_FAKECLIENT ) )
+game/shared/cstrike/cs_gamerules.cpp:				if ( ignoreSpectators && entity->GetTeamNumber() != TEAM_TERRORIST && entity->GetTeamNumber() != TEAM_CT )
+game/shared/cstrike/cs_gamerules.cpp:				if ( ignoreSpectators && entity->State_Get() == STATE_PICKINGCLASS )
+game/shared/cstrike/cs_gamerules.cpp:		if (!(entity->IsPlayer()))
+game/shared/cstrike/cs_gamerules.cpp:			vecTarget = entity->BodyTarget(vecSrc, false);
+game/shared/death_pose.cpp:	entity->InvalidateBoneCache();
+game/shared/death_pose.cpp:	Vector vPrevOrigin = entity->GetAbsOrigin();
+game/shared/death_pose.cpp:	entity->Interpolate( flTime );
+game/shared/death_pose.cpp:		Vector vNewOrigin = entity->GetAbsOrigin();
+game/shared/death_pose.cpp:		int iTempSequence = entity->GetSequence();
+game/shared/death_pose.cpp:		float flTempCycle = entity->GetCycle();
+game/shared/death_pose.cpp:		entity->SetSequence( activity );
+game/shared/death_pose.cpp:		entity->SetCycle( (float)frame / MAX_DEATHPOSE_FRAMES );
+game/shared/death_pose.cpp:		entity->SetAbsOrigin( vAdjustedOrigin );
+game/shared/death_pose.cpp:		entity->SetupBones( curBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, flTime );
+game/shared/death_pose.cpp:		entity->SetAbsOrigin( vNewOrigin );
+game/shared/death_pose.cpp:		entity->InvalidateBoneCache();
+game/shared/death_pose.cpp:		entity->SetSequence( iTempSequence );
+game/shared/death_pose.cpp:		entity->SetCycle( flTempCycle );
+game/shared/death_pose.cpp:		entity->Interpolate( gpGlobals->curtime );
+game/shared/death_pose.cpp:		entity->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
+game/shared/death_pose.cpp:		entity->SetupBones( curBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, flTime );
+game/shared/death_pose.cpp:		entity->InvalidateBoneCache();
+game/shared/death_pose.cpp:		entity->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, flTime );
+game/shared/death_pose.cpp:	entity->GetVectors( &vForward, &vRight, NULL );
+game/shared/death_pose.cpp:	if ( !entity->GetModelPtr() )
+game/shared/dod/dod_gamerules.cpp:		if (!(entity->IsPlayer()))
+game/shared/dod/dod_gamerules.cpp:			vecTarget = entity->BodyTarget(vecSrc, false);
+game/shared/physics_main_shared.cpp:			if ( groundentity->GetFlags() & FL_CONVEYOR )
+game/shared/physics_main_shared.cpp:				groundentity->GetGroundVelocityToApply( vecNewBaseVelocity );
+game/shared/physics_main_shared.cpp:			if ( link->entity && link->entity->MyNPCPointer() )
+game/shared/portal/portal_gamerules.cpp:		entity->PrecacheModel( PORTAL_WEIGHT_BOX_MODEL_NAME );
+game/shared/portal/portal_gamerules.cpp:		entity->SetModel( PORTAL_WEIGHT_BOX_MODEL_NAME );
+game/shared/portal/portal_gamerules.cpp:		entity->SetName( MAKE_STRING("box") );
+game/shared/portal/portal_gamerules.cpp:		entity->AddSpawnFlags( SF_PHYSPROP_ENABLE_PICKUP_OUTPUT );
+game/shared/portal/portal_gamerules.cpp:		entity->Precache();
+game/shared/portal/portal_gamerules.cpp:			entity->Teleport( &tr.endpos, NULL, NULL );
+game/shared/portal/portal_gamerules.cpp:		entity->PrecacheModel( PORTAL_METAL_SPHERE_MODEL_NAME );
+game/shared/portal/portal_gamerules.cpp:		entity->SetModel( PORTAL_METAL_SPHERE_MODEL_NAME );
+game/shared/portal/portal_gamerules.cpp:		entity->SetName( MAKE_STRING("sphere") );
+game/shared/portal/portal_gamerules.cpp:		entity->AddSpawnFlags( SF_PHYSPROP_ENABLE_PICKUP_OUTPUT );
+game/shared/portal/portal_gamerules.cpp:		entity->Precache();
+game/shared/portal/portal_gamerules.cpp:			entity->Teleport( &tr.endpos, NULL, NULL );
+ivp/havana/havok/hk_physics/constraint/local_constraint_system/local_constraint_system.cpp:	if (!entity->get_core()->physical_unmoveable)
+ivp/havana/havok/hk_physics/constraint/local_constraint_system/local_constraint_system.cpp:		actuator_controlled_cores.remove(entity->get_core());
+ivp/ivp_physics/ivp_betterstatisticsmanager.cxx:	    if ( entity->get_state() ) {
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:    switch ( entity->type ) {
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:	switch ( entity->type ) {
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:	    printf("%s%d\n", entity->text, entity->data.int_value);
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:	    printf("%s%f\n", entity->text, entity->data.double_value);
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx: 	    printf("%s\n", entity->text);
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:	    for (i=0; i<entity->data.int_array.size; i++) {
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:		int value     = entity->data.int_array.array[i];
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx: 	    printf("%s\n", entity->text);
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:	    for (i=0; i<entity->data.int_array.size; i++) {
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx:		IVP_DOUBLE value     = entity->data.double_array.array[i];
+ivp/ivp_physics/ivp_stat_manager_cback_con.cxx: 	    printf("%s\n", entity->text);

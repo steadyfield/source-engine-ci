@@ -1,5 +1,9 @@
 #include "cbase.h"
 #include "sandbox.h"
+#include "in_buttons.h"
+#include "basegrenade_shared.h"
+#include "KeyValues.h"
+#include "filesystem.h"
 
 #ifdef CLIENT_DLL
 #include "c_basehlcombatweapon.h"
@@ -14,7 +18,7 @@
 #include "ammodef.h"
 #include "baseanimating.h"
 #include "EntityFlame.h"
-#include "grenade_frag.h"
+#include "explode.h"
 #endif
 
 #include "tier0/memdbgon.h"
@@ -28,6 +32,10 @@ ConVar blue("blue", "0");
 
 //for modelscale
 ConVar duration("duration", "0");
+
+//grenade
+ConVar exp_magnitude("exp_magnitude", "0");
+ConVar exp_radius("exp_radius", "0");
 
 #define BEAM_SPRITE "sprites/bluelaser1.vmt"
 
@@ -54,11 +62,12 @@ public:
 
 private:	
 	virtual void PrimaryAttack();
-	virtual void Precache();
+	virtual void Precache(KeyValues *kv);
 	virtual bool HasAnyAmmo() { return true; }
 	virtual bool HasPrimaryAmmo() { return true; }
 	virtual bool HasSecondaryAmmo() { return true; }
 	virtual void ItemPostFrame();
+	virtual void InitKeyValues();
 #ifndef CLIENT_DLL
 	virtual void DrawBeam( const Vector &startPos, const Vector &endPos, float width );
 	virtual void DoImpactEffect( trace_t &tr, int nDamageType );
@@ -69,6 +78,7 @@ private:
 	CHandle<CEntityFlame> m_pIgniter;
 #endif	
 	CNetworkVar( int, m_iMode );
+	wchar_t modelName;
 };
 
 
@@ -111,19 +121,36 @@ BEGIN_DATADESC(CWeaponToolGun)
 	DEFINE_FIELD(m_iMode, FIELD_INTEGER),
 END_DATADESC()
 
-CWeaponToolGun::CWeaponToolGun()
-	: BaseClass()
+CWeaponToolGun::CWeaponToolGun() : BaseClass()
 {
 #ifndef CLIENT_DLL
 	m_pIgniter = NULL;
 #endif
+	InitKeyValues();
 }
 
 CWeaponToolGun::~CWeaponToolGun()
 {
 }
 
-void CWeaponToolGun::Precache()
+void CWeaponToolGun::InitKeyValues()
+{
+	KeyValues *kv = new KeyValues( "SMenu" );
+	if ( kv )
+	{
+		if ( kv->LoadFromFile(g_pFullFileSystem, "addons/menu/spawnmenu.txt") )
+		{
+			for (KeyValues *control = kv->GetFirstSubKey(); control != NULL; control = control->GetNextKey())
+			{
+				//parse modelname
+				modelName = control->GetString("modelname", "");
+			}
+		}
+		kv->deleteThis();
+	}
+}
+
+void CWeaponToolGun::Precache( KeyValues *kv )
 {
 	BaseClass::Precache();
 }
@@ -192,6 +219,24 @@ void CWeaponToolGun::PrimaryAttack()
 			}
 			break;
 		case 4:
+			int magnitude = exp_magnitude.GetInt();
+			int radius = exp_radius.GetInt();
+
+			CBaseEntity *pEntity = CreateEntityByName( "npc_grenade_frag" );
+			if( pEntity )
+			{
+				Vector vecOrigin = GetAbsOrigin() + vForward * 256 + Vector(0,0,64);
+				QAngle vecAngles( 0, GetAbsAngles().y - 90, 0 );
+				//pEntity->SetModel( modelName );
+				Msg("%s", modelName );
+				pEntity->SetAbsOrigin( vecOrigin );
+				pEntity->SetAbsAngles( vecAngles );
+				pEntity->Spawn();
+				pEntity->Activate();
+				pEntity->Teleport(&tr.endpos, NULL, NULL );
+			}
+			
+			ExplosionCreate( vForward, vec3_angle, pEntity, magnitude, true, SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this );
 			break;
 	}
 #endif

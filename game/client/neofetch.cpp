@@ -59,6 +59,7 @@ const tchar* GetGunmodVersion()
 
 void CC_Neofetch(void)
 {
+	//Use a monospaced fonts for this ASCII art!!!!!
 	/*Msg("@@@@@@&#BBGGGGGGGGGGGGGGGGGGGGGGGGG#&@@@\n"
 		"@&BPY?77!!!!!!!!!!!!!!!!!!!!!!!!!!!7?5#@\n"
 		"Y7!!!7?JY55555YJ?77!!!77777777777777!!7G\n"

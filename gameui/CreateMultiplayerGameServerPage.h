@@ -30,6 +30,8 @@ public:
 	// returns currently entered information about the server
 	void SetMap(const char *name);
 	bool IsRandomMapSelected();
+	bool IsServerEnabled();
+	int IsCheatsEnabled();
 	const char *GetMapName();
 
 	vgui::ComboBox *GetMapList( void ) { return m_pMapList; }
@@ -49,9 +51,12 @@ private:
 
 	vgui::ComboBox *m_pMapList;
 	vgui::CheckButton *m_pEnableBotsCheck;
+	vgui::CheckButton *m_pServerCheck;
+	vgui::CheckButton *m_pCheatCheck;
+
 	CCvarToggleCheckButton *m_pEnableTutorCheck;
 	KeyValues *m_pSavedData;
-
+	
 	enum { DATA_STR_LENGTH = 64 };
 	char m_szMapName[DATA_STR_LENGTH];
 };

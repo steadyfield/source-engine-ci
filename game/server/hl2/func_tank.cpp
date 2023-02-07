@@ -4155,7 +4155,7 @@ void CFuncTankCombineCannon::DestroyBeam()
 void CFuncTankCombineCannon::AdjustRateOfFire()
 {
 	// Maintain 1.5 rounds per second rate of fire.
-	m_fireRate = 1.5;
+	//m_fireRate = 1.5;
 /*
 	if( m_hTarget.Get() != NULL && m_hTarget->IsPlayer() )
 	{
@@ -4321,8 +4321,8 @@ void CFuncTankCombineCannon::FuncTankPostThink()
 void CFuncTankCombineCannon::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
 	// Specifically do NOT fire in aim at pos mode. This is just for show.
-	if( HasSpawnFlags(SF_TANK_AIM_AT_POS) )
-		return;
+	//if( HasSpawnFlags(SF_TANK_AIM_AT_POS) )
+	//	return;
 
 	Vector vecAdjustedForward = forward;
 

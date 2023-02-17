@@ -4270,7 +4270,7 @@ void CFuncTankCombineCannon::FuncTankPostThink()
 	{
 		if( gpGlobals->curtime > m_flTimeNextSweep )
 		{
-			AddSpawnFlags( SF_TANK_AIM_AT_POS );
+			//AddSpawnFlags( SF_TANK_AIM_AT_POS );
 
 			Vector vecTargetPosition = GetTargetPosition();
 			CBasePlayer *pPlayer = AI_GetSinglePlayer();
@@ -4379,8 +4379,8 @@ void CFuncTankCombineCannon::FuncTankPostThink()
 void CFuncTankCombineCannon::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
 	// Specifically do NOT fire in aim at pos mode. This is just for show.
-	//if( HasSpawnFlags(SF_TANK_AIM_AT_POS) )
-	//	return;
+	if( HasSpawnFlags(SF_TANK_AIM_AT_POS) )
+		return;
 
 	Vector vecAdjustedForward = forward;
 

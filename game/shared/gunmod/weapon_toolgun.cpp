@@ -297,7 +297,7 @@ void CWeaponToolGun::SecondaryAttack()
 		{
 			if ( tr.m_pEnt->VPhysicsGetObject() )
 			{
-				char *entityName = tr.m_pEnt->GetClassname();
+				const char *entityName = tr.m_pEnt->GetClassname();
 				if (entityName == NULL )
 				{
 					Msg("NULL Name!\n");

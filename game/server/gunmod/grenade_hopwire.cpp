@@ -282,8 +282,8 @@ BEGIN_DATADESC( CGrenadeHopWire )
 	DEFINE_FIELD( m_nHooksShot, FIELD_INTEGER ),
 	DEFINE_FIELD( m_pGlow, FIELD_CLASSPTR ),
 
-	DEFINE_FUNCTION( TetherThink ),
-	DEFINE_FUNCTION( CombatThink ),
+	DEFINE_THINKFUNC( TetherThink ),
+	DEFINE_THINKFUNC( CombatThink ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( npc_grenade_hopwire, CGrenadeHopWire );

@@ -43,7 +43,6 @@ public:
         return p1.m_iPanelID == p2.m_iPanelID;
     }
 
-private:
 	HPanel m_iPanelID;
 };
 
@@ -64,7 +63,6 @@ public:
 	bool operator == (VPANEL pPanel)		{ return (Get() == pPanel); }
 	operator bool ()						{ return Get() != 0; }
 
-private:
 	HPanel m_iPanelID;
 };
 

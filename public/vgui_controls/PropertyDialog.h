@@ -38,6 +38,8 @@ public:
 	virtual void ResetAllData();
 	virtual void ApplyChanges();
 
+	friend class LPropertyDialog;
+
 	// sets the text on the OK/Cancel buttons, overriding the default
 	void SetOKButtonText(const char *text);
 	void SetCancelButtonText(const char *text);

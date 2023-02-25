@@ -69,8 +69,7 @@ def build(bld):
 		'vtf',
 		'RT',
 		'ZLIB',
-		'lua',
-		'sourcelua'
+		'lua'
 	]
 
 	install_path = bld.env.PREFIX

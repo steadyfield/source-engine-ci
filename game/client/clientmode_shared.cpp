@@ -703,13 +703,6 @@ void ClientModeShared::Update()
 	UpdateReplayMessages();
 #endif
 
-#if defined( LUA_SDK )
-	if ( m_pScriptedViewport->IsVisible() != cl_drawhud.GetBool() )
-	{
-		m_pScriptedViewport->SetVisible( cl_drawhud.GetBool() );
-	}
-#endif
-
 	if ( m_pViewport->IsVisible() != cl_drawhud.GetBool() )
 	{
 		m_pViewport->SetVisible( cl_drawhud.GetBool() );
@@ -1001,57 +994,24 @@ void ClientModeShared::Enable()
 	// Add our viewport to the root panel.
 	if( pRoot != 0 )
 	{
-#ifdef LUA_SDK
-		m_pScriptedViewport->SetParent( pRoot );
-#endif
 		m_pViewport->SetParent( pRoot );
-#ifdef LUA_SDK
-		m_pClientLuaPanel->SetParent( pRoot );
-#endif
 	}
 
 	// All hud elements should be proportional
 	// This sets that flag on the viewport and all child panels
-#ifdef LUA_SDK
-	m_pScriptedViewport->SetProportional( true );
-#endif
-	m_pViewport->SetProportional( true );
-#ifdef LUA_SDK
-	m_pClientLuaPanel->SetProportional( false );
-#endif
 
-#ifdef LUA_SDK
-	m_pScriptedViewport->SetCursor( m_CursorNone );
-#endif
+	m_pViewport->SetProportional( true );
+
 	m_pViewport->SetCursor( m_CursorNone );
-#ifdef LUA_SDK
-	m_pClientLuaPanel->SetCursor( m_CursorNone );
-#endif
+
 	vgui::surface()->SetCursor( m_CursorNone );
 
-#ifdef LUA_SDK
-	m_pScriptedViewport->SetVisible( true );
-#endif
 	m_pViewport->SetVisible( true );
-#ifdef LUA_SDK
-	m_pClientLuaPanel->SetVisible( true );
-#endif
-#ifdef LUA_SDK
-	if ( m_pScriptedViewport->IsKeyBoardInputEnabled() )
-	{
-		m_pScriptedViewport->RequestFocus();
-	}
-#endif
+
 	if ( m_pViewport->IsKeyBoardInputEnabled() )
 	{
 		m_pViewport->RequestFocus();
 	}
-#ifdef LUA_SDK
-	if ( m_pClientLuaPanel->IsKeyBoardInputEnabled() )
-	{
-		m_pClientLuaPanel->RequestFocus();
-	}
-#endif
 
 	Layout();
 }
@@ -1098,11 +1058,11 @@ void ClientModeShared::Layout()
 		m_nRootSize[ 1 ] = tall;
 
 #ifdef LUA_SDK
-		m_pScriptedViewport->SetBounds(0, 0, wide, tall);
+		//m_pScriptedViewport->SetBounds(0, 0, wide, tall);
 #endif
 		m_pViewport->SetBounds(0, 0, wide, tall);
 #ifdef LUA_SDK
-		m_pClientLuaPanel->SetBounds(0, 0, wide, tall);
+		//m_pClientLuaPanel->SetBounds(0, 0, wide, tall);
 #endif
 		if ( changed )
 		{

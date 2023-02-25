@@ -11,7 +11,7 @@ PROJECT_NAME = 'server'
 games = {
 	'hl2': ['server_base.vpc', 'server_hl2.vpc'],
 	'episodic':['server_base.vpc', 'server_episodic.vpc'],
-	'hl2mp': ['server_base.vpc', 'server_hl2mp.vpc'],
+	'hl2mp': ['server_base.vpc', 'server_hl2mp.vpc', 'server_lua.vpc'],
 	'portal': ['server_base.vpc', 'server_portal.vpc'],
 	'hl1': ['server_base.vpc', 'server_hl1.vpc'],
 	'hl1mp': ['server_base.vpc', 'server_hl1mp.vpc'],
@@ -52,9 +52,12 @@ def build(bld):
 		'../../public/tier1',
 		'../../public',
 		'../../public/lua',
+		'../../public/mathlib',
+		'../../public/vphysics',
 		'../../lua/src',
 		'../../lua/etc',
-		'../shared/lua'
+		'../shared/lua',
+
 	]
 
 	defines = []

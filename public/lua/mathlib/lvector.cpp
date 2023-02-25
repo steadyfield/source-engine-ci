@@ -8,12 +8,12 @@
 
 #define lvector_cpp
 
-#include "cbase.h"
 #include "vector.h"
-#include "fmtstr.h"
+#include "tier1/fmtstr.h"
 #include "lua.hpp"
 #include "luasrclib.h"
 #include "lvector.h"
+#include "mathlib.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

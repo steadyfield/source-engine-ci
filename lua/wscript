@@ -41,7 +41,6 @@ def build(bld):
 		"src/lstring.c",
 		"src/lstrlib.c",
 		"src/ltable.c",
-		"src/ltable.c",
 		"src/ltablib.c",
 		"src/ltm.c",
 		"src/lundump.c",

@@ -10,7 +10,7 @@
 #include "luamanager.h"
 #include "luasrclib.h"
 #include "lColor.h"
-#include "lconvar.h"
+#include "tier1/lconvar.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -37,7 +37,7 @@ static int cvar_ConsolePrintf (lua_State *L) {
 }
 
 static int cvar_FindVar (lua_State *L) {
-  //lua_pushconvar(L, cvar->FindVar(luaL_checkstring(L, 1)));
+  lua_pushconvar(L, cvar->FindVar(luaL_checkstring(L, 1)));
   return 1;
 }
 
@@ -71,7 +71,7 @@ void CV_GlobalChange_Lua( IConVar *var, const char *pOldString, float flOldValue
 	lua_getfield(L, -1, "CallGlobalChangeCallbacks");
 	if (lua_isfunction(L, -1)) {
 	  lua_remove(L, -2);
-	  // /lua_pushconvar(L, cvar->FindVar(var->GetName()));
+	  lua_pushconvar(L, cvar->FindVar(var->GetName()));
 	  lua_pushstring(L, pOldString);
 	  lua_pushnumber(L, flOldValue);
 	  luasrc_pcall(L, 3, 0, 0);

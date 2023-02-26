@@ -20,6 +20,12 @@
 #include "grenade_satchel.h"
 #include "eventqueue.h"
 #include "gamestats.h"
+#ifdef LUA_SDK
+#include "luamanager.h"
+#include "lbaseentity_shared.h"
+#include "lhl2mp_player_shared.h"
+#include "ltakedamageinfo.h"
+#endif
 
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
@@ -196,6 +202,11 @@ void CHL2MP_Player::GiveAllItems( void )
 
 void CHL2MP_Player::GiveDefaultItems( void )
 {
+#if defined ( LUA_SDK )
+	BEGIN_LUA_CALL_HOOK( "GiveDefaultItems" );
+		lua_pushhl2mpplayer( L, this );
+	END_LUA_CALL_HOOK( 1, 0 );
+#else
 	EquipSuit();
 
 	CBasePlayer::GiveAmmo( 255,	"Pistol");
@@ -230,6 +241,7 @@ void CHL2MP_Player::GiveDefaultItems( void )
 	{
 		Weapon_Switch( Weapon_OwnsThisType( "weapon_physcannon" ) );
 	}
+#endif
 }
 
 void CHL2MP_Player::PickDefaultSpawnTeam( void )
@@ -335,7 +347,15 @@ void CHL2MP_Player::Spawn(void)
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 {
-	
+#ifdef LUA_SDK
+	BEGIN_LUA_CALL_HOOK( "PlayerPickupObject" );
+		lua_pushhl2mpplayer( L, this );
+		lua_pushentity( L, pObject );
+		lua_pushboolean( L, bLimitMassAndSize );
+	END_LUA_CALL_HOOK( 3, 1 );
+
+	RETURN_LUA_NONE();
+#endif
 }
 
 bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
@@ -577,6 +597,11 @@ void CHL2MP_Player::PostThink( void )
 
 void CHL2MP_Player::PlayerDeathThink()
 {
+#if defined ( LUA_SDK )
+	BEGIN_LUA_CALL_HOOK( "PlayerDeathThink" );
+		lua_pushhl2mpplayer( L, this );
+	END_LUA_CALL_HOOK( 1, 0 );
+#endif
 	if( !IsObserver() )
 	{
 		BaseClass::PlayerDeathThink();
@@ -1019,6 +1044,14 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 
 void CHL2MP_Player::CheatImpulseCommands( int iImpulse )
 {
+#if defined ( LUA_SDK )
+	BEGIN_LUA_CALL_HOOK( "CheatImpulseCommands" );
+		lua_pushhl2mpplayer( L, this );
+		lua_pushinteger( L, iImpulse );
+	END_LUA_CALL_HOOK( 2, 1 );
+
+	RETURN_LUA_NONE();
+#endif	
 	switch ( iImpulse )
 	{
 		case 101:
@@ -1280,6 +1313,17 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 {
+#if defined ( LUA_SDK )
+	CTakeDamageInfo lInfo = info;
+
+	BEGIN_LUA_CALL_HOOK( "PlayerDeathSound" );
+		lua_pushhl2mpplayer( L, this );
+		lua_pushdamageinfo( L, lInfo );
+	END_LUA_CALL_HOOK( 2, 1 );
+
+	RETURN_LUA_NONE();
+#endif	
+
 	if ( m_hRagdoll && m_hRagdoll->GetBaseAnimating()->IsDissolving() )
 		 return;
 
@@ -1312,6 +1356,13 @@ void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 
 CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 {
+#ifdef LUA_SDK
+	BEGIN_LUA_CALL_HOOK( "PlayerEntSelectSpawnPoint" );
+		lua_pushhl2mpplayer( L, this );
+	END_LUA_CALL_HOOK( 1, 1 );
+
+	RETURN_LUA_ENTITY();
+#endif
 	CBaseEntity *pSpot = NULL;
 	CBaseEntity *pLastSpawnPoint = g_pLastSpawn;
 	edict_t		*player = edict();

@@ -74,4 +74,10 @@ $Project "Server (HL2MP)"
 		$File "$SRCDIR/public/lua/vstdlib/lrandom.cpp"
 		$File "$SRCDIR/public/lua/lColor.cpp"
 	}
+
+	$Folder "Half-Life 2 Sanbox"
+	{
+		$File "$SRCDIR/game/shared/hl2sb/weapon_toolgun.cpp"
+		$File "$SRCDIR/game/shared/hl2sb/weapon_physgun.cpp"
+	}
 }

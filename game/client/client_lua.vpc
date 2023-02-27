@@ -88,4 +88,10 @@ $Project "Client (Gunmod)"
 		$File "$SRCDIR/public/lua/licvar.cpp"
 		$File "$SRCDIR/public/lua/vstdlib/lrandom.cpp"
 	}
+
+	$Folder "Half-Life 2 Sanbox"
+	{
+		$File "$SRCDIR/game/shared/hl2sb/weapon_toolgun.cpp"
+		$File "$SRCDIR/game/shared/hl2sb/weapon_physgun.cpp"
+	}
 }

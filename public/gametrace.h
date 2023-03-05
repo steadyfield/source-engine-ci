@@ -73,10 +73,11 @@ public:
 	int			hitbox;					// box hit by trace in studio
 
 	CGameTrace() = default;
-
+#if !defined ( LUA_SDK )
+	// Я гей
 private:
-	// No copy constructors allowed
 	CGameTrace(const CGameTrace& vOther);
+#endif
 };
 
 

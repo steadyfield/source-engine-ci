@@ -122,7 +122,7 @@ class CHudVote : public vgui::EditablePanel, public CHudElement
 public:
 	DECLARE_MULTIPLY_INHERITED();
 
-	CHudVote( const char *pElementName );
+	virtual CHudVote( const char *pElementName );
 
 	virtual void	LevelInit( void );
 	virtual void	Init( void );

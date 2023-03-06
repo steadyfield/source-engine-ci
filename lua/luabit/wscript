@@ -29,7 +29,7 @@ def build(bld):
 
 	defines = []
 
-	libs = ['lua']
+	libs = ['luabit']
 	
 	install_path = bld.env.LIBDIR
 

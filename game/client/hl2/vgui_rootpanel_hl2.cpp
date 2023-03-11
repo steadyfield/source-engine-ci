@@ -9,7 +9,7 @@
 #include "ienginevgui.h"
 #ifdef LUA_SDK
 #include "vgui/IVGui.h"
-//#include "vgui_rootpanel_hl2.h"
+#include "vgui_rootpanel_hl2.h"
 #include "clientmode_shared.h"
 #endif
 

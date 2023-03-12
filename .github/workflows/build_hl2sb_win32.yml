@@ -16,7 +16,7 @@ jobs:
         git submodule init;git submodule update
         ./waf.bat configure -T release --prefix=./win --disable-warns --build-game=hl2sb
         
-        ./waf.bat install -j4
+        ./waf.bat install --target=client,server -j4
         cat build/config.log > ./win/info.txt
     - uses: actions/upload-artifact@v3
       with:

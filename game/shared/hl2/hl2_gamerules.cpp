@@ -120,7 +120,10 @@ ConVar	sk_npc_dmg_smg1			( "sk_npc_dmg_smg1","0", FCVAR_REPLICATED);
 ConVar	sk_max_smg1				( "sk_max_smg1","0", FCVAR_REPLICATED);
 
 #ifdef MI
-ConVar  sk_max_oicw_grenade( "sk_max_oicw_grenade", "0", FCVAR_REPLICATED );
+ConVar  sk_max_oicw_grenade		( "sk_max_oicw_grenade", "0", FCVAR_REPLICATED );
+ConVar 	sk_plr_dmg_oicw_grenade ( "sk_plr_dmg_oicw_grenade", "0", FCVAR_REPLICATED );
+ConVar  sk_npc_dmg_oicw_grenade ( "sk_npc_dmg_oicw_grenade", "0", FCVAR_REPLICATED );
+ConVar  sk_oicw_grenade_radius	( "sk_oicw_grenade_radius", "0", FCVAR_REPLICATED );
 
 ConVar	sk_plr_dmg_flare_round	( "sk_plr_dmg_flare_round","0", FCVAR_REPLICATED);
 ConVar	sk_npc_dmg_flare_round	( "sk_npc_dmg_flare_round","0", FCVAR_REPLICATED);

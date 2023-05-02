@@ -19,11 +19,9 @@
 #include "ai_memory.h"
 #include "shake.h"
 #include "hl2_player.h"
+#include "hl2_gamerules.h"
 
-ConVar sk_plr_dmg_ar2_grenade( "sk_plr_dmg_ar2_grenade", "0", FCVAR_REPLICATED );
-extern ConVar    sk_npc_dmg_ar2_grenade;
-extern ConVar    sk_max_ar2_grenade;
-extern ConVar	 sk_ar2_grenade_radius;
+extern ConVar sk_plr_dmg_oicw_grenade;
 
 #define OICW_ZOOM_RATE	0.5f	// Interval between zoom levels in seconds.
 
@@ -145,8 +143,11 @@ void CWeaponOICW::ItemPostFrame( void )
 	if ( pOwner->m_afButtonPressed & IN_ATTACK3 )
 	{
 		if ( m_bGrenade == true )
-		{
-			Warning("Zoom Mode\n");
+		{			
+			CFmtStr hint;
+			hint.sprintf("Zoom Mode");
+			UTIL_HudHintText( pOwner, hint.Access() );
+			
 			m_bGrenade = false;
 			return;
 		}	
@@ -154,7 +155,10 @@ void CWeaponOICW::ItemPostFrame( void )
 		if ( !m_bZoomed )
 		{
 			m_bGrenade = true;
-			Warning("Grenade Mode\n");
+
+			CFmtStr hint;
+			hint.sprintf("Grenade Mode");
+			UTIL_HudHintText( pOwner, hint.Access() );
 		}
 		
 	}
@@ -229,7 +233,7 @@ void CWeaponOICW::SecondaryAttack( void )
 	pGrenade->SetLocalAngularVelocity( RandomAngle( -400, 400 ) );
 	pGrenade->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE ); 
 	pGrenade->SetThrower( GetOwner() );
-	pGrenade->SetDamage( sk_plr_dmg_ar2_grenade.GetFloat() );
+	pGrenade->SetDamage( sk_plr_dmg_oicw_grenade.GetFloat() );
 	
 	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
 	

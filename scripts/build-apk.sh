@@ -9,6 +9,6 @@ sudo apt install -y imagemagick
 wget https://raw.githubusercontent.com/ItzVladik/extras/main/mi_logo.png
 mv mi_logo.png android/
 ./android/scripts/conv.sh android/mi_logo.png
-mv res android/
+cp -r res android/
 ./waf configure -T release &&
 ./waf build

@@ -7,7 +7,7 @@ git pull
 sudo apt install -y imagemagick
 ./mod.sh
 wget https://raw.githubusercontent.com/ItzVladik/extras/main/mi_logo.png
-./android/scripts/conv.sh mi_logo.png
-mv android/scripts/res android/
+mv mi_logo.png android/
+./android/scripts/conv.sh android/mi_logo.png
 ./waf configure -T release &&
 ./waf build

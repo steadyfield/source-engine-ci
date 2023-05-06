@@ -19,7 +19,6 @@
 	#define CHalfLife2Proxy C_HalfLife2Proxy
 #endif
 
-
 class CHalfLife2Proxy : public CGameRulesProxy
 {
 public:
@@ -71,6 +70,8 @@ private:
 	virtual const char*		AIClassText(int classType);
 	virtual const char *GetGameDescription( void ) { return "Half-Life 2"; }
 
+	virtual const unsigned char *GetEncryptionKey( void ) { return (unsigned char *)"x9Ke0BY7"; }
+
 	// Ammo
 	virtual void			PlayerThink( CBasePlayer *pPlayer );
 	virtual float			GetAmmoDamage( CBaseEntity *pAttacker, CBaseEntity *pVictim, int nAmmoType );
@@ -98,6 +99,11 @@ private:
 
 	int						DefaultFOV( void ) { return 75; }
 #endif
+
+public: //SMOD: New stuff!
+
+	//SMOD: Instad of having this in, like, 30 different places lets just have it here.
+	bool IsInHL1Map();
 };
 
 
@@ -112,7 +118,5 @@ inline CHalfLife2* HL2GameRules()
 
 	return static_cast<CHalfLife2*>(g_pGameRules);
 }
-
-
 
 #endif // HL2_GAMERULES_H

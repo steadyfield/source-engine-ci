@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Projectile shot from the MP5 
 //
@@ -43,7 +43,9 @@ public:
 
 	virtual bool IsValidEnemy( CBaseEntity *pEnemy );
 
-private:
+	bool CanBecomeRagdoll() { return false; }
+
+protected:
 	Class_T	m_iMyClass;
 	float	m_flDie;
 	Vector	m_vecTarget;

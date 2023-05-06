@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -10,13 +10,13 @@
 #include "scripted.h"
 #include "soundent.h"
 #include "animation.h"
-#include "entitylist.h"
-#include "ai_navigator.h"
-#include "ai_motor.h"
+#include "EntityList.h"
+#include "AI_Navigator.h"
+#include "AI_Motor.h"
 #include "player.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
-#include "npcevent.h"
+#include "NPCevent.h"
 
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
@@ -105,6 +105,10 @@ void CHL1BaseNPC::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir
 
 bool CHL1BaseNPC::ShouldGib( const CTakeDamageInfo &info )
 {
+	//HL1 to HL2 support: Dissolve like HL2 NPCs when hit by a pulse ball
+	if ( info.GetDamageType() & DMG_DISSOLVE ) 
+		 return false;
+
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
@@ -148,8 +152,8 @@ bool CHL1BaseNPC::HasAlienGibs( void )
 
 void CHL1BaseNPC::Precache( void )
 {
-	PrecacheModel( "models/gibs/agibs.mdl" );
-	PrecacheModel( "models/gibs/hgibs.mdl" );
+	PrecacheModel( "models/gibs/aghl1.mdl" );
+	PrecacheModel( "models/gibs/hghl1.mdl" );
 
 	BaseClass::Precache();
 }
@@ -180,7 +184,7 @@ bool CHL1BaseNPC::CorpseGib( const CTakeDamageInfo &info )
 
 	CSoundEnt::InsertSound( SOUND_MEAT, GetAbsOrigin(), 256, 0.5f, this );
 
-	BaseClass::CorpseGib( info );
+///	BaseClass::CorpseGib( info );
 
 	return true;
 }

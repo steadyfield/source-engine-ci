@@ -12,9 +12,9 @@
 #pragma once
 #endif
 
-
 #include "c_baseplayer.h"
 #include "c_hl2_playerlocaldata.h"
+#include "hl2_suit_devices.h"
 
 class C_BaseHLPlayer : public C_BasePlayer
 {
@@ -75,7 +75,23 @@ private:
 
 
 friend class CHL2GameMovement;
+
+	//SMOD: HL1 Port
+public:
+	CNetworkVar( bool, m_bHasLongJump );
+	CNetworkVar( float, m_flStartCharge );
+	CNetworkVar( float, m_flAmmoStartCharge );
+	CNetworkVar( float, m_flPlayAftershock );
+	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
 };
 
 
+//SMOD: We needed a pointer directly to HL2's player (like the hl2mp player and the base player have)
+inline C_BaseHLPlayer *ToHL2Player(CBaseEntity *pEntity)
+{
+	if (!pEntity || !pEntity->IsPlayer())
+		return NULL;
+
+	return dynamic_cast<C_BaseHLPlayer*>(pEntity);
+}
 #endif

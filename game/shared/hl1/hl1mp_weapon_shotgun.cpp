@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: This is the Shotgun weapon
 //
@@ -8,8 +8,8 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
-#include "hl1mp_basecombatweapon_shared.h"
+#include "NPCEvent.h"
+#include "hl1mp_weapon_shotgun.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 #ifdef CLIENT_DLL
@@ -22,54 +22,14 @@
 //#include "soundent.h"
 #include "vstdlib/random.h"
 
-
-#ifdef CLIENT_DLL
-#define CWeaponShotgun C_WeaponShotgun
-#endif
-
 // special deathmatch shotgun spreads
 #define VECTOR_CONE_DM_SHOTGUN	Vector( 0.08716, 0.04362, 0.00  )// 10 degrees by 5 degrees
 #define VECTOR_CONE_DM_DOUBLESHOTGUN Vector( 0.17365, 0.04362, 0.00 ) // 20 degrees by 5 degrees
 
 
-class CWeaponShotgun : public CBaseHL1MPCombatWeapon
-{
-	DECLARE_CLASS( CWeaponShotgun, CBaseHL1MPCombatWeapon );
+IMPLEMENT_NETWORKCLASS_ALIASED( HL1WeaponShotgun, DT_HL1WeaponShotgun );
 
-	DECLARE_NETWORKCLASS(); 
-	DECLARE_PREDICTABLE();
-
-private:
-//	float	m_flPumpTime;
-//	int		m_fInSpecialReload;
-
-	CNetworkVar( float, m_flPumpTime);
-	CNetworkVar( int, m_fInSpecialReload );
-
-public:
-	void	Precache( void );
-
-	bool Reload( void );
-	void FillClip( void );
-	void WeaponIdle( void );
-	void PrimaryAttack( void );
-	void SecondaryAttack( void );
-	void DryFire( void );
-
-//	DECLARE_SERVERCLASS();
-//	DECLARE_DATADESC();
-
-	CWeaponShotgun(void);
-
-//#ifndef CLIENT_DLL
-//	DECLARE_ACTTABLE();
-//#endif
-};
-
-
-IMPLEMENT_NETWORKCLASS_ALIASED( WeaponShotgun, DT_WeaponShotgun );
-
-BEGIN_NETWORK_TABLE( CWeaponShotgun, DT_WeaponShotgun )
+BEGIN_NETWORK_TABLE( CHL1WeaponShotgun, DT_HL1WeaponShotgun )
 #ifdef CLIENT_DLL
 	RecvPropFloat( RECVINFO( m_flPumpTime ) ),
 	RecvPropInt( RECVINFO( m_fInSpecialReload ) ),
@@ -79,26 +39,26 @@ BEGIN_NETWORK_TABLE( CWeaponShotgun, DT_WeaponShotgun )
 #endif
 END_NETWORK_TABLE()
 
-BEGIN_PREDICTION_DATA( CWeaponShotgun )
+BEGIN_PREDICTION_DATA( CHL1WeaponShotgun )
 #ifdef CLIENT_DLL
 	DEFINE_PRED_FIELD( m_flPumpTime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_fInSpecialReload, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 #endif
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_shotgun, CWeaponShotgun );
-PRECACHE_WEAPON_REGISTER(weapon_shotgun);
+//LINK_ENTITY_TO_CLASS( hl1_shotgun, CHL1WeaponShotgun );
+//PRECACHE_WEAPON_REGISTER(hl1_shotgun);
 
-//IMPLEMENT_SERVERCLASS_ST( CWeaponShotgun, DT_WeaponShotgun )
+//IMPLEMENT_SERVERCLASS_ST( CHL1WeaponShotgun, DT_HL1WeaponShotgun )
 //END_SEND_TABLE()
 
-//BEGIN_DATADESC( CWeaponShotgun )
+//BEGIN_DATADESC( CHL1WeaponShotgun )
 //END_DATADESC()
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CWeaponShotgun::CWeaponShotgun( void )
+CHL1WeaponShotgun::CHL1WeaponShotgun( void )
 {
 	m_bReloadsSingly	= true;
 	m_bFiresUnderwater	= false;
@@ -107,12 +67,12 @@ CWeaponShotgun::CWeaponShotgun( void )
 }
 
 
-void CWeaponShotgun::Precache( void )
+void CHL1WeaponShotgun::Precache( void )
 {
 	BaseClass::Precache();
 }
 
-void CWeaponShotgun::PrimaryAttack( void )
+void CHL1WeaponShotgun::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -190,7 +150,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 }
 
 
-void CWeaponShotgun::SecondaryAttack( void )
+void CHL1WeaponShotgun::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -279,7 +239,7 @@ void CWeaponShotgun::SecondaryAttack( void )
 }
 
 
-bool CWeaponShotgun::Reload( void )
+bool CHL1WeaponShotgun::Reload( void )
 {
 	CBaseCombatCharacter *pOwner  = GetOwner();
 	
@@ -333,7 +293,7 @@ bool CWeaponShotgun::Reload( void )
 }
 
 
-void CWeaponShotgun::FillClip( void )
+void CHL1WeaponShotgun::FillClip( void )
 {
 	CBaseCombatCharacter *pOwner  = GetOwner();
 	
@@ -346,7 +306,7 @@ void CWeaponShotgun::FillClip( void )
 }
 
 
-void CWeaponShotgun::DryFire( void )
+void CHL1WeaponShotgun::DryFire( void )
 {
 	WeaponSound( EMPTY );
 	m_flNextPrimaryAttack	= gpGlobals->curtime + 0.75;
@@ -354,7 +314,7 @@ void CWeaponShotgun::DryFire( void )
 }
 
 
-void CWeaponShotgun::WeaponIdle( void )
+void CHL1WeaponShotgun::WeaponIdle( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
@@ -395,6 +355,11 @@ void CWeaponShotgun::WeaponIdle( void )
 		}
 		else
 		{
+
+			//SMOD: Ironsight fix
+			if (m_bIsIronsighted)
+				return;
+
 			int		iAnim;
 			float	flRand = random->RandomFloat( 0, 1 );
 

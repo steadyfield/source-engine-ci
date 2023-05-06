@@ -3430,3 +3430,22 @@ DEFINE_SCHEDULE
 );
 
 AI_END_CUSTOM_NPC()
+
+
+
+//SMOD: Player friendly manhack (for manhack weapon)
+ConVar	sk_manhack_friendly_health("sk_manhack_friendly_health", "0");
+
+class CNPC_ManhackAlly : public CNPC_Manhack
+{
+	void Spawn();
+};
+
+void CNPC_ManhackAlly::Spawn()
+{
+	CNPC_Manhack::Spawn();
+	m_bHackedByAlyx = true;
+	m_iHealth = sk_manhack_friendly_health.GetFloat();
+}
+
+LINK_ENTITY_TO_CLASS(npc_manhack_ally, CNPC_ManhackAlly);

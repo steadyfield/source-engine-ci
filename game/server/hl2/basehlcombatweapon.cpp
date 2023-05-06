@@ -428,6 +428,7 @@ void CHLSelectFireMachineGun::BurstThink( void )
 //-----------------------------------------------------------------------------
 void CHLSelectFireMachineGun::WeaponSound( WeaponSound_t shoot_type, float soundtime /*= 0.0f*/ )
 {
+	/*
 	if (shoot_type == SINGLE)
 	{
 		switch( m_iFireMode )
@@ -452,7 +453,7 @@ void CHLSelectFireMachineGun::WeaponSound( WeaponSound_t shoot_type, float sound
 			break;
 		}
 		return;
-	}
+	}*/
 
 	BaseClass::WeaponSound( shoot_type, soundtime );
 }

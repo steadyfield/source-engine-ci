@@ -464,7 +464,7 @@ void CNPC_Bullsquid::HandleAnimEvent( animevent_t *pEvent )
 
 		case BSQUID_AE_HOP:
 		{
-			float flGravity = GetCurrentGravity();
+			float flGravity = sv_gravity.GetFloat();
 
 			// throw the squid up into the air on this frame.
 			if ( GetFlags() & FL_ONGROUND )

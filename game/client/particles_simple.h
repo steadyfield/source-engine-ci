@@ -102,12 +102,16 @@ protected:
 private:
 	// Update the reference count.
 	void						AddRef();
-	void						Release();
+	//void						Release();
 	
 	int							m_RefCount;		// When this goes to zero and the effect has no more active
 												// particles, (and it's dynamically allocated), it will delete itself.
 
 	CParticleEffect( const CParticleEffect & ); // not defined, not accessible
+public:
+
+	//SMOD: Need to be public for 2006 Particle Fire
+	void						Release();
 };
 
 inline int CParticleEffect::GetToolParticleEffectId() const

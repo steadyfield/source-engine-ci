@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "basehlcombatweapon.h"
+#include "hl1_basecombatweapon_shared.h"
 #include "basecombatcharacter.h"
 #include "player.h"
 #include "grenade_ar2.h"
@@ -185,13 +185,13 @@ void CreateConcussiveBlast( const Vector &origin, const Vector &surfaceNormal, C
 
 // Combine Guard weapon
 
-#if 0
+#if 1
 
-class CWeaponCGuard : public CBaseHLCombatWeapon
+class CWeaponCGuard : public CBaseHL1CombatWeapon
 {
 	DECLARE_DATADESC();
 public:
-	DECLARE_CLASS( CWeaponCGuard, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponCGuard, CBaseHL1CombatWeapon );
 
 	DECLARE_SERVERCLASS();
 
@@ -283,7 +283,7 @@ void CWeaponCGuard::AlertTargets( void )
 
 	// Fire the bullets
 	Vector vecSrc	 = pPlayer->Weapon_ShootPosition( );
-	Vector vecAiming = pPlayer->GetRadialAutoVector( NEW_AUTOAIM_RADIUS, NEW_AUTOAIM_DIST );
+	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_2DEGREES );
 
 	Vector	impactPoint	= vecSrc + ( vecAiming * MAX_TRACE_LENGTH );
 
@@ -437,7 +437,7 @@ void CWeaponCGuard::DelayedFire( void )
 
 	// Fire the bullets
 	Vector vecSrc	 = pPlayer->Weapon_ShootPosition( );
-	Vector vecAiming = pPlayer->GetRadialAutoVector( NEW_AUTOAIM_RADIUS, NEW_AUTOAIM_DIST );
+	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_2DEGREES );
 
 	//Factor in the view kick
 	AddViewKick();

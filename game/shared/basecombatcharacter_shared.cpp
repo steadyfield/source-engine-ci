@@ -7,6 +7,7 @@
 
 #include "cbase.h"
 #include "ammodef.h"
+#include "hl2_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -175,11 +176,32 @@ int	CBaseCombatCharacter::GetAmmoCount( char *szName ) const
 	return GetAmmoCount( GetAmmoDef()->Index(szName) );
 }
 
+static const char *hl1weapons[][2] = {
+	{"weapon_357", "hl1_357"},
+	{"weapon_shotgun", "hl1_shotgun"},
+	{"weapon_crowbar", "hl1_crowbar"},
+	{"weapon_crossbow", "hl1_crossbow"},
+	{"weapon_snark", "hl1_snark"},
+	{"weapon_egon", "hl1_egon"},
+	{"weapon_gauss", "hl1_gauss"},
+	{"weapon_hornetgun", "hl1_hornetgun"},
+	{"weapon_rpg", "hl1_rpg"},
+};
+
 //-----------------------------------------------------------------------------
 // Purpose: Returns weapon if already owns a weapon of this class
 //-----------------------------------------------------------------------------
 CBaseCombatWeapon* CBaseCombatCharacter::Weapon_OwnsThisType( const char *pszWeapon, int iSubType ) const
 {
+	if(HL2GameRules()->IsInHL1Map()) {
+		for(int i = 0; i < ARRAYSIZE(hl1weapons); i++) {
+			if(V_stricmp(pszWeapon, hl1weapons[i][0]) == 0) {
+				pszWeapon = hl1weapons[i][1];
+				break;
+			}
+		}
+	}
+
 	// Check for duplicates
 	for (int i=0;i<MAX_WEAPONS;i++) 
 	{

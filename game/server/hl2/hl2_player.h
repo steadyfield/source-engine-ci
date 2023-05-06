@@ -14,6 +14,7 @@
 #include "hl2_playerlocaldata.h"
 #include "simtimer.h"
 #include "soundenvelope.h"
+#include "hl2_suit_devices.h"
 
 class CAI_Squad;
 class CPropCombineBall;
@@ -231,6 +232,11 @@ public:
 	void				FlashlightTurnOff( void );
 	bool				IsIlluminatedByFlashlight( CBaseEntity *pEntity, float *flReturnDot );
 	void				SetFlashlightPowerDrainScale( float flScale ) { m_flFlashlightPowerDrainScale = flScale; }
+	
+	//SMOD KICKING BITCH! >:3
+	void				KickAttack( void );
+	CNetworkVar( float, m_flNextKickAttack );
+	CNetworkVar( bool, m_bIsKicking );
 
 	// Underwater breather device
 	virtual void		SetPlayerUnderwater( bool state );
@@ -362,6 +368,27 @@ private:
 	float				m_flTimeNextLadderHint;	// Next time we're eligible to display a HUD hint about a ladder.
 	
 	friend class CHL2GameMovement;
+
+	//SMOD: New stuff!
+public:
+	bool m_bHasDualPistols;
+	bool m_bHasDualBerettas;
+	bool m_bHasDualUZIs;
+	void GiveAllItems(int whatType = 0);
+	float m_fPainDialogTime;
+	int m_iAkimboPistolAmmoLeft;
+	int m_iAkimboPistolAmmoRight;
+	int m_iAkimboBerettaAmmoLeft;
+	int m_iAkimboBerettaAmmoRight;
+	int m_iAkimboUZIAmmoLeft;
+	int m_iAkimboUZIAmmoRight;
+
+	//SMOD: HL1 Port stuff
+	CNetworkVar( float, m_flStartCharge );
+	CNetworkVar( float, m_flAmmoStartCharge );
+	CNetworkVar( float, m_flPlayAftershock );
+	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
+	CNetworkVar( bool, m_bHasLongJump );
 };
 
 
@@ -380,5 +407,12 @@ void CHL2_Player::DisableCappedPhysicsDamage()
 	m_bUseCappedPhysicsDamageTable = false;
 }
 
+//SMOD: We needed a pointer directly to HL2's player (like the hl2mp player and the base player have)
+inline CHL2_Player *ToHL2Player(CBaseEntity *pEntity)
+{
+	if ( !pEntity || !pEntity->IsPlayer() )
+		return NULL;
 
+	return dynamic_cast<CHL2_Player*>(pEntity);
+}
 #endif	//HL2_PLAYER_H

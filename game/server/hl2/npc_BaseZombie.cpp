@@ -243,6 +243,8 @@ CNPC_BaseZombie::CNPC_BaseZombie()
 	// moan loop.
 	m_iMoanSound = g_numZombies;
 
+	m_bIsNHZombie = false;
+
 	g_numZombies++;
 }
 
@@ -761,6 +763,9 @@ bool CNPC_BaseZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDa
 //-----------------------------------------------------------------------------
 HeadcrabRelease_t CNPC_BaseZombie::ShouldReleaseHeadcrab( const CTakeDamageInfo &info, float flDamageThreshold )
 {
+	if (m_bIsNHZombie)
+		return RELEASE_NO;
+
 	if ( m_iHealth <= 0 )
 	{
 		if ( info.GetDamageType() & DMG_REMOVENORAGDOLL )
@@ -869,12 +874,14 @@ int CNPC_BaseZombie::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		switch( release )
 		{
 		case RELEASE_IMMEDIATE:
-			ReleaseHeadcrab( EyePosition(), vec3_origin, true, true );
+			if (!m_bIsNHZombie)
+				ReleaseHeadcrab( EyePosition(), vec3_origin, true, true );
 			break;
 
 		case RELEASE_RAGDOLL:
 			// Go a little easy on headcrab ragdoll force. They're light!
-			ReleaseHeadcrab( EyePosition(), inputInfo.GetDamageForce() * 0.25, true, false, true );
+			if (!m_bIsNHZombie)
+				ReleaseHeadcrab( EyePosition(), inputInfo.GetDamageForce() * 0.25, true, false, true );
 			break;
 
 		case RELEASE_RAGDOLL_SLICED_OFF:
@@ -1078,7 +1085,8 @@ void CNPC_BaseZombie::DieChopped( const CTakeDamageInfo &info )
 		if( random->RandomInt( 0, 1 ) == 0 )
 		{
 			// Drop a live crab half of the time.
-			ReleaseHeadcrab( EyePosition(), forceVector * 0.005, true, false, false );
+			if (!m_bIsNHZombie)
+				ReleaseHeadcrab( EyePosition(), forceVector * 0.005, true, false, false );
 		}
 	}
 
@@ -1128,7 +1136,8 @@ void CNPC_BaseZombie::DieChopped( const CTakeDamageInfo &info )
 		CBaseAnimating *pAnimating = dynamic_cast<CBaseAnimating*>(pTorsoGib);
 		if( pAnimating )
 		{
-			pAnimating->SetBodygroup( ZOMBIE_BODYGROUP_HEADCRAB, !m_fIsHeadless );
+			if (!m_bIsNHZombie)
+				pAnimating->SetBodygroup( ZOMBIE_BODYGROUP_HEADCRAB, !m_fIsHeadless );
 		}
 
 		pTorsoGib->SetOwnerEntity( this );
@@ -1151,6 +1160,39 @@ void CNPC_BaseZombie::DieChopped( const CTakeDamageInfo &info )
 			vecSpot.z += random->RandomFloat( -4, 16 ); 
 
 			UTIL_BloodDrips( vecSpot, vec3_origin, BLOOD_COLOR_YELLOW, 50 );
+		}
+
+		for ( int i = 0 ; i < 4 ; i++ )
+		{
+			Vector vecSpot = WorldSpaceCenter();
+
+			vecSpot.x += random->RandomFloat( -12, 12 ); 
+			vecSpot.y += random->RandomFloat( -12, 12 ); 
+			vecSpot.z += random->RandomFloat( -4, 16 );
+
+			vecDir.x = random->RandomFloat(-1, 1);
+			vecDir.y = random->RandomFloat(-1, 1);
+			vecDir.z = 0;
+			VectorNormalize( vecDir );
+
+			UTIL_BloodImpact( vecSpot, vecDir, BloodColor(), 1 );
+		}
+	}
+	else if ( UTIL_ShouldShowBlood( BLOOD_COLOR_RED ) )
+	{
+		int i;
+		Vector vecSpot;
+		Vector vecDir;
+
+		for ( i = 0 ; i < 4; i++ )
+		{
+			vecSpot = WorldSpaceCenter();
+
+			vecSpot.x += random->RandomFloat( -12, 12 ); 
+			vecSpot.y += random->RandomFloat( -12, 12 ); 
+			vecSpot.z += random->RandomFloat( -4, 16 ); 
+
+			UTIL_BloodDrips( vecSpot, vec3_origin, BLOOD_COLOR_RED, 50 );
 		}
 
 		for ( int i = 0 ; i < 4 ; i++ )
@@ -2216,7 +2258,7 @@ void CNPC_BaseZombie::BecomeTorso( const Vector &vecTorsoForce, const Vector &ve
 		Ignite( 30 );
 	}
 
-	if ( !m_fIsHeadless )
+	if ( !m_fIsHeadless || m_bIsNHZombie )
 	{
 		m_iMaxHealth = ZOMBIE_TORSO_HEALTH_FACTOR * m_iMaxHealth;
 		m_iHealth = m_iMaxHealth;

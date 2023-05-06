@@ -461,6 +461,14 @@ void CNPC_MetroPolice::NotifyDeadFriend( CBaseEntity* pFriend )
 	m_Sentences.Speak( "METROPOLICE_MAN_DOWN", SENTENCE_PRIORITY_MEDIUM );
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//CNPC_MetroPolice::CNPC_MetroPolice()
+//{
+//}
+
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -637,6 +645,10 @@ void CNPC_MetroPolice::Spawn( void )
 	{
 		m_iHealth = sk_metropolice_simple_health.GetFloat();
 	}
+
+	//SMOD: We set metropolice in d1_trainstation_04 to have a huge amount of HP so the player can't kick them to death and break the scripting
+	if (!Q_strnicmp(STRING(gpGlobals->mapname), "d1_trainstation_04", 18))
+		m_iHealth = 30000;
 
 	m_flFieldOfView		= -0.2;// indicates the width of this NPC's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
@@ -3037,6 +3049,58 @@ Activity CNPC_MetroPolice::NPC_TranslateActivity( Activity newActivity )
 	{
 		newActivity = ACT_IDLE_ANGRY;
 	}
+
+	//SMOD: Shotgun/AR2 fix
+	if (newActivity == ACT_IDLE_ANGRY_SHOTGUN || newActivity == ACT_IDLE_SHOTGUN_AGITATED )
+	{
+		newActivity = ACT_IDLE_ANGRY_SMG1;
+	}
+
+	if (newActivity == ACT_RANGE_ATTACK_SHOTGUN || newActivity == ACT_RANGE_ATTACK_AR2 )
+	{
+		newActivity = ACT_RANGE_ATTACK_SMG1;
+	}
+
+	if (newActivity == ACT_RELOAD_SHOTGUN)
+	{
+		newActivity = ACT_RELOAD_SMG1;
+	}
+
+	if (newActivity == ACT_IDLE_SHOTGUN_RELAXED)
+	{
+		newActivity = ACT_IDLE_SMG1_RELAXED;
+	}
+
+	if (newActivity == ACT_IDLE_SHOTGUN_STIMULATED)
+	{
+		newActivity = ACT_IDLE_SMG1_STIMULATED;
+	}
+
+	if (newActivity == ACT_GESTURE_RANGE_ATTACK_AR2 || newActivity == ACT_GESTURE_RANGE_ATTACK_SHOTGUN)
+	{
+		newActivity = ACT_GESTURE_RANGE_ATTACK_SMG1;
+	}
+
+	if (newActivity == ACT_RANGE_ATTACK_SHOTGUN_LOW)
+	{
+		newActivity = ACT_RANGE_ATTACK_SMG1_LOW;
+	}
+
+	if (newActivity == ACT_RUN_AIM_SHOTGUN)
+	{
+		newActivity = ACT_RUN_AIM_RIFLE;
+	}
+
+	if (newActivity == ACT_WALK_AIM_SHOTGUN)
+	{
+		newActivity = ACT_WALK_AIM_RIFLE;
+	}
+
+	if (newActivity == ACT_RANGE_AIM_AR2_LOW)
+	{
+		newActivity = ACT_RANGE_AIM_SMG1_LOW;
+	}
+	//SMOD: Weapon fix end
 
 	return newActivity;
 }

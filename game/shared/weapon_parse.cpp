@@ -10,6 +10,15 @@
 #include "filesystem.h"
 #include "utldict.h"
 #include "ammodef.h"
+#if defined(CLIENT_DLL)
+	#include "hl2/c_basehlcombatweapon.h"
+	#include "SMMOD/c_weapon_custom.h"
+	#include "c_baseentity.h"
+#else
+	#include "SMMOD/weapon_custom.h"
+#endif
+
+#include <string>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -34,7 +43,9 @@ const char *pWeaponSoundCategories[ NUM_SHOOT_SOUND_TYPES ] =
 	"special2",
 	"special3",
 	"taunt",
-	"deploy"
+	"deploy",
+
+	"pump"	//SMOD
 };
 #else
 extern const char *pWeaponSoundCategories[ NUM_SHOOT_SOUND_TYPES ];
@@ -70,13 +81,13 @@ itemFlags_t g_ItemFlags[8] =
 	{ "ITEM_FLAG_NOITEMPICKUP",		ITEM_FLAG_NOITEMPICKUP }
 };
 #else
-extern itemFlags_t g_ItemFlags[7];
+extern itemFlags_t g_ItemFlags[8];
 #endif
 
 
 static CUtlDict< FileWeaponInfo_t*, unsigned short > m_WeaponInfoDatabase;
 
-#ifdef _DEBUG
+#if 1 //#ifdef _DEBUG
 // used to track whether or not two weapons have been mistakenly assigned the wrong slot
 bool g_bUsedWeaponSlots[MAX_WEAPON_SLOTS][MAX_WEAPON_POSITIONS] = { 0 };
 
@@ -143,22 +154,6 @@ WEAPON_FILE_INFO_HANDLE GetInvalidWeaponInfoHandle( void )
 {
 	return (WEAPON_FILE_INFO_HANDLE)m_WeaponInfoDatabase.InvalidIndex();
 }
-
-#if 0
-void ResetFileWeaponInfoDatabase( void )
-{
-	int c = m_WeaponInfoDatabase.Count(); 
-	for ( int i = 0; i < c; ++i )
-	{
-		delete m_WeaponInfoDatabase[ i ];
-	}
-	m_WeaponInfoDatabase.RemoveAll();
-
-#ifdef _DEBUG
-	memset(g_bUsedWeaponSlots, 0, sizeof(g_bUsedWeaponSlots));
-#endif
-}
-#endif
 
 void PrecacheFileWeaponInfoDatabase( IFileSystem *filesystem, const unsigned char *pICEKey )
 {
@@ -292,8 +287,8 @@ bool ReadWeaponDataFromFileForSlot( IFileSystem* filesystem, const char *szWeapo
 		false
 #endif
 		);
-
-	if ( !pKV )
+	
+	if ( !pKV ) //If it failed even after the custom weapon check, then don't read it
 		return false;
 
 	pFileInfo->Parse( pKV, szWeaponName );
@@ -318,7 +313,7 @@ FileWeaponInfo_t::FileWeaponInfo_t()
 	szViewModel[0] = 0;
 	szWorldModel[0] = 0;
 	szAnimationPrefix[0] = 0;
-	iSlot = 0;
+	iSlot = 17; //SMOD: To not cover up the crowbar...
 	iPosition = 0;
 	iMaxClip1 = 0;
 	iMaxClip2 = 0;
@@ -347,6 +342,7 @@ FileWeaponInfo_t::FileWeaponInfo_t()
 	bShowUsageHint = false;
 	m_bAllowFlipping = true;
 	m_bBuiltRightHanded = true;
+	m_bUsesCSMuzzleFlash = false;
 }
 
 #ifdef CLIENT_DLL
@@ -366,24 +362,73 @@ void FileWeaponInfo_t::Parse( KeyValues *pKeyValuesData, const char *szWeaponNam
 	Q_strncpy( szViewModel, pKeyValuesData->GetString( "viewmodel" ), MAX_WEAPON_STRING );
 	Q_strncpy( szWorldModel, pKeyValuesData->GetString( "playermodel" ), MAX_WEAPON_STRING );
 	Q_strncpy( szAnimationPrefix, pKeyValuesData->GetString( "anim_prefix" ), MAX_WEAPON_PREFIX );
-	iSlot = pKeyValuesData->GetInt( "bucket", 0 );
 	iPosition = pKeyValuesData->GetInt( "bucket_position", 0 );
 	
-	// Use the console (X360) buckets if hud_fastswitch is set to 2.
-#ifdef CLIENT_DLL
-	if ( hud_fastswitch.GetInt() == 2 )
-#else
-	if ( IsX360() )
-#endif
+	const char *pBucket = pKeyValuesData->GetString( "bucket", NULL );
+	if ( pBucket )
 	{
-		iSlot = pKeyValuesData->GetInt( "bucket_360", iSlot );
-		iPosition = pKeyValuesData->GetInt( "bucket_position_360", iPosition );
+		if ( Q_stricmp( pBucket, "melee" ) == 0 )
+		{
+			iSlot = 0;
+		}
+		else if ( Q_stricmp( pBucket, "pistol" ) == 0 )
+		{
+			iSlot = 1;
+		}
+		else if ( Q_stricmp( pBucket, "light" ) == 0 )
+		{
+			iSlot = 2;
+		}
+		else if ( Q_stricmp( pBucket, "heavy" ) == 0 )
+		{
+			iSlot = 3;
+		}
+		else if ( Q_stricmp( pBucket, "grenades" ) == 0 )
+		{
+			iSlot = 4;
+		}
+		else if ( Q_stricmp( pBucket, "special" ) == 0 )
+		{
+			iSlot = 5;
+		}
+		else if ( Q_stricmp( pBucket, "tool" ) == 0 )
+		{
+			iSlot = 6;
+		}
+		else if ( Q_stricmp( pBucket, "disabled" ) == 0 )
+		{
+			iSlot = 25;
+		}
+		else
+		{
+			iSlot = pKeyValuesData->GetInt("bucket", 0);
+			Msg("Weapon %s (%s) is using old-style buckets, should really be using new ones.\n", szPrintName, szClassName);
+		}
 	}
+	else
+	{
+		iSlot = pKeyValuesData->GetInt( "bucket", 17 );  //Default this to out-of-bounds so they don't cover up the crowbar...
+		Warning("WARNING: Weapon %s (%s) is missing bucket info!!\n", szPrintName, szClassName);
+	}
+
+	// Use the console (X360) buckets if hud_fastswitch is set to 2.
+	//SMOD: Our new hud does not support X360-style hudbuckets
+//#ifdef CLIENT_DLL
+//	if ( hud_fastswitch.GetInt() == 2 )
+//#else
+//	if ( IsX360() )
+//#endif
+//	{
+//		iSlot = pKeyValuesData->GetInt( "bucket_360", iSlot );
+//		iPosition = pKeyValuesData->GetInt( "bucket_position_360", iPosition );
+//	}
+
 	iMaxClip1 = pKeyValuesData->GetInt( "clip_size", WEAPON_NOCLIP );					// Max primary clips gun can hold (assume they don't use clips by default)
 	iMaxClip2 = pKeyValuesData->GetInt( "clip2_size", WEAPON_NOCLIP );					// Max secondary clips gun can hold (assume they don't use clips by default)
 	iDefaultClip1 = pKeyValuesData->GetInt( "default_clip", iMaxClip1 );		// amount of primary ammo placed in the primary clip when it's picked up
 	iDefaultClip2 = pKeyValuesData->GetInt( "default_clip2", iMaxClip2 );		// amount of secondary ammo placed in the secondary clip when it's picked up
-	iWeight = pKeyValuesData->GetInt( "weight", 0 );
+	//iWeight = pKeyValuesData->GetInt( "weight", 0 );
+	iWeight = 0; //SMOD: The autoselect for other guns when the current one is empty can get a bit fucky with 60+ weapons, better to have it always zero
 
 	iRumbleEffect = pKeyValuesData->GetInt( "rumble", -1 );
 	
@@ -412,21 +457,25 @@ void FileWeaponInfo_t::Parse( KeyValues *pKeyValuesData, const char *szWeaponNam
 	m_bAllowFlipping = ( pKeyValuesData->GetInt( "AllowFlipping", 1 ) != 0 ) ? true : false;
 	m_bMeleeWeapon = ( pKeyValuesData->GetInt( "MeleeWeapon", 0 ) != 0 ) ? true : false;
 
-#if defined(_DEBUG) && defined(HL2_CLIENT_DLL)
+#if 1 //#if defined(_DEBUG) && defined(HL2_CLIENT_DLL)
 	// make sure two weapons aren't in the same slot & position
-	if ( iSlot >= MAX_WEAPON_SLOTS ||
-		iPosition >= MAX_WEAPON_POSITIONS )
+	//SMOD: Always enable these but suppress it if it's in 25th (aka disabled) slot
+	if (!(iSlot == 25))
 	{
-		Warning( "Invalid weapon slot or position [slot %d/%d max], pos[%d/%d max]\n",
-			iSlot, MAX_WEAPON_SLOTS - 1, iPosition, MAX_WEAPON_POSITIONS - 1 );
-	}
-	else
-	{
-		if (g_bUsedWeaponSlots[iSlot][iPosition])
+		if (iSlot >= MAX_WEAPON_SLOTS ||
+			iPosition >= MAX_WEAPON_POSITIONS)
 		{
-			Warning( "Duplicately assigned weapon slots in selection hud:  %s (%d, %d)\n", szPrintName, iSlot, iPosition );
+			Warning("Invalid weapon slot or position [slot %d/%d max], pos[%d/%d max]\n",
+				iSlot, MAX_WEAPON_SLOTS - 1, iPosition, MAX_WEAPON_POSITIONS - 1);
 		}
-		g_bUsedWeaponSlots[iSlot][iPosition] = true;
+		else
+		{
+			if (g_bUsedWeaponSlots[iSlot][iPosition])
+			{
+				Warning("Duplicately assigned weapon slots in selection hud:  %s (%s, %d, %d)\n", szPrintName, szClassName, iSlot, iPosition);
+			}
+			g_bUsedWeaponSlots[iSlot][iPosition] = true;
+		}
 	}
 #endif
 
@@ -459,6 +508,149 @@ void FileWeaponInfo_t::Parse( KeyValues *pKeyValuesData, const char *szWeaponNam
 				Q_strncpy( aShootSounds[i], soundname, MAX_WEAPON_STRING );
 			}
 		}
+	}
+	
+	//SMOD custom parse stuff
+
+	m_flFovAdd = pKeyValuesData->GetFloat("addfov", 0.0f);
+	Q_strncpy( szMuzzleAttachement, pKeyValuesData->GetString( "MuzzleFlashAttachement", "muzzle" ), MAX_WEAPON_STRING );
+	m_bUsesCSMuzzleFlash = ( pKeyValuesData->GetInt( "UsesCSMuzzleFlash", 0 ) != 0 ) ? true : false;
+	Q_strncpy( szCSMuzzleFlashName, pKeyValuesData->GetString( "CSMuzzleFlashType", "CS_MUZZLEFLASH" ), MAX_WEAPON_STRING );
+	
+	m_bCanIronSight = ( pKeyValuesData->GetInt( "CanIronsight", 0 ) != 0 ) ? true : false;
+	KeyValues *pSights = pKeyValuesData->FindKey( "IronSight" );
+	if (pSights)
+	{
+		vecIronsightPosOffset.x		= pSights->GetFloat( "forward", 0.0f );
+		vecIronsightPosOffset.y		= pSights->GetFloat( "right", 0.0f );
+		vecIronsightPosOffset.z		= pSights->GetFloat( "up", 0.0f );
+ 
+		angIronsightAngOffset[PITCH]	= pSights->GetFloat( "pitch", 0.0f );
+		angIronsightAngOffset[YAW]		= pSights->GetFloat( "yaw", 0.0f );
+		angIronsightAngOffset[ROLL]		= pSights->GetFloat( "roll", 0.0f );
+ 
+		flIronsightFOVOffset		= pSights->GetFloat( "fov", 0.0f );
+	}
+	else
+	{
+		vecIronsightPosOffset = vec3_origin;
+		angIronsightAngOffset.Init();
+		flIronsightFOVOffset = 0.0f;
+	}
+
+	m_bIsScripted = (pKeyValuesData->GetInt("IsScriptedWeapon", 0) != 0) ? true : false;
+
+	KeyValues *pWeaponSettings = pKeyValuesData->FindKey( "WeaponSettings" );
+	if ( m_bIsScripted && pWeaponSettings )
+	{
+		Q_strncpy( szPrecacheEnt1, pWeaponSettings->GetString( "precache_entity" ), MAX_WEAPON_STRING );
+		Q_strncpy( szPrecacheEnt2, pWeaponSettings->GetString( "precache_entity2" ), MAX_WEAPON_STRING );
+		Q_strncpy( szGiveCheatName, pWeaponSettings->GetString( "name" ), MAX_WEAPON_STRING );
+
+		m_bReloadsSingly = ( pWeaponSettings->GetInt( "ReloadsSingly", 0 ) != 0 ) ? true : false;
+		m_bUsesShotgunReload = ( pWeaponSettings->GetInt( "UsesShotgunReload", 0 ) != 0 ) ? true : false;
+
+		KeyValues *pAnimations = pWeaponSettings->FindKey("Animations");
+		if ( pAnimations )
+		{
+			Q_strncpy(szAnimDeploy, pAnimations->GetString("deploy",	"ACT_VM_DRAW"),				MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimReload, pAnimations->GetString("reload",	"ACT_VM_RELOAD"),			MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimIdle,	pAnimations->GetString("idle",		"ACT_VM_IDLE"),				MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimPriAtk, pAnimations->GetString("primary",	"ACT_VM_PRIMARYATTACK"),	MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimPriMiss,pAnimations->GetString("primiss",	"ACT_VM_MISSCENTER"),		MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimSecAtk, pAnimations->GetString("secondary",	"ACT_VM_SECONDARYATTACK"),	MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimSecMiss,pAnimations->GetString("secmiss",	"ACT_VM_MISSCENTER2"),		MAX_WEAPON_PREFIX);
+		}
+		else
+		{
+			Warning("WARNING: Custom weapon %s (%s) is missing Animations info!\n", szPrintName, szClassName);
+			Q_strncpy(szAnimDeploy,		"ACT_VM_DRAW",				MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimReload,		"ACT_VM_RELOAD",			MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimIdle,		"ACT_VM_IDLE",				MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimPriAtk,		"ACT_VM_PRIMARYATTACK",		MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimPriMiss,	"ACT_VM_MISSCENTER",		MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimSecAtk,		"ACT_VM_SECONDARYATTACK",	MAX_WEAPON_PREFIX);
+			Q_strncpy(szAnimSecMiss,	"ACT_VM_MISSCENTER2",		MAX_WEAPON_PREFIX);
+		}
+
+		KeyValues *pPrimaryAttack = pWeaponSettings->FindKey("PrimaryAttack");
+		if (pPrimaryAttack)
+		{
+			Q_strncpy(szAttackTypePri, pPrimaryAttack->GetString("type", "bullet"), 6);
+			m_iDamagePri = pPrimaryAttack->GetInt("Damage", 0);
+			m_bUnderWtaerPri = (pPrimaryAttack->GetInt("UnderWater", 0) != 0) ? true : false;
+			m_bUsesShotgunPumpPri = (pPrimaryAttack->GetInt("Pump", 0) != 0) ? true : false;
+			m_fFireRatePri = pPrimaryAttack->GetFloat("FireRate", 0.0f);
+
+			KeyValues *pBulletPri = pPrimaryAttack->FindKey("Bullet");
+			KeyValues *pLaunchPri = pPrimaryAttack->FindKey("Launch");
+			KeyValues *pMeleePri = pPrimaryAttack->FindKey("Melee");
+			KeyValues *pGrenadePri = pPrimaryAttack->FindKey("Grenade");
+
+			if ((!Q_strnicmp(szAttackTypePri, "Bullet", 6)) && pBulletPri)
+			{
+				Q_strncpy(szFireModePri, pBulletPri->GetString("Mode", "Semi"), 5);
+
+				m_iAmountPri = pBulletPri->GetInt("Amount", 0);
+				m_iRangePri = pBulletPri->GetInt("Range", 4096);
+				Q_strncpy(szTracerPri, pBulletPri->GetString("Tracer", "0"), MAX_WEAPON_PREFIX);
+
+				KeyValues *pSpreadPri = pBulletPri->FindKey("Spread");
+				if (pSpreadPri)
+				{
+					m_vSpreadPri.x = sin((pSpreadPri->GetFloat("x", 0.0f) / 2.0f));
+					m_vSpreadPri.y = sin((pSpreadPri->GetFloat("y", 0.0f) / 2.0f));
+					m_vSpreadPri.z = sin((pSpreadPri->GetFloat("z", 0.0f) / 2.0f));
+
+					KeyValues *pSpreadPriIron = pSpreadPri->FindKey("Ironsight");
+					if (pSpreadPriIron && m_bCanIronSight)
+					{
+						m_vSpreadPri.x = sin((pSpreadPriIron->GetFloat("x", 0.0f) / 2.0f));
+						m_vSpreadPri.y = sin((pSpreadPriIron->GetFloat("y", 0.0f) / 2.0f));
+						m_vSpreadPri.z = sin((pSpreadPriIron->GetFloat("z", 0.0f) / 2.0f));
+					}
+					else
+					{
+						m_vSpreadPriIron.x = m_vSpreadPri.x;
+						m_vSpreadPriIron.y = m_vSpreadPri.y;
+						m_vSpreadPriIron.z = m_vSpreadPri.z;
+					}
+				}
+				else
+				{
+					Warning("WARNING: Custom weapon %s (%s) is using bullets (primary) but has no spread set!\n", szPrintName, szClassName);
+					m_vSpreadPri.x = 0.0f;
+					m_vSpreadPri.y = 0.0f;
+					m_vSpreadPri.z = 0.0f;
+				}	
+			}
+			else if ((!Q_strnicmp(szAttackTypePri, "Launch", 6)) && pLaunchPri)
+			{	
+				Q_strncpy(szLnchEntNamePri, pLaunchPri->GetString("Entity"), MAX_WEAPON_PREFIX);
+				Q_strncpy(szLnchTypePri, pLaunchPri->GetString("Launch_Type", "smg1"), 4);
+				m_iVelocityPri = pLaunchPri->GetInt("Velocity", 4096);
+			}
+			else if ((!V_strnicmp(szAttackTypePri, "Melee", 5)) && pMeleePri)
+			{
+
+			}
+			else if ((!Q_strnicmp(szAttackTypePri, "Grenade", 7)) && pGrenadePri)
+			{
+
+			}
+			else
+			{
+				Warning("WARNING: Custom weapon %s (%s) has a primary attack but it's set up incorrectly!\n", szPrintName, szClassName);
+			}
+		}
+		else
+		{
+			Warning("WARNING: Custom weapon %s (%s) doesn't have a primary attack!\n", szPrintName, szClassName);
+		}
+	}
+	else if (m_bIsScripted && !pWeaponSettings)
+	{
+		Warning("WARNING: Custom weapon %s (%s) is missing WeaponSettings info!!!\n", szPrintName, szClassName);
 	}
 }
 

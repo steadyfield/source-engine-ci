@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -19,11 +19,11 @@
 
 ConVar sk_bullsquid_dmg_spit ( "sk_bullsquid_dmg_spit", "0" );
 
-BEGIN_DATADESC( CGrenadeSpit )
+BEGIN_DATADESC( CHL1GrenadeSpit )
 
 	// Function pointers
 	DEFINE_THINKFUNC( SpitThink ),
-	DEFINE_ENTITYFUNC( GrenadeSpitTouch ),
+	DEFINE_ENTITYFUNC( HL1GrenadeSpitTouch ),
 
 	//DEFINE_FIELD( m_nSquidSpitSprite, FIELD_INTEGER ),
 
@@ -31,9 +31,9 @@ BEGIN_DATADESC( CGrenadeSpit )
 
 END_DATADESC()
 
-LINK_ENTITY_TO_CLASS( grenade_spit, CGrenadeSpit );
+LINK_ENTITY_TO_CLASS( hl1grenade_spit, CHL1GrenadeSpit );
 
-void CGrenadeSpit::Spawn( void )
+void CHL1GrenadeSpit::Spawn( void )
 {
 	Precache( );
 	SetSolid( SOLID_BBOX );
@@ -48,9 +48,9 @@ void CGrenadeSpit::Spawn( void )
 	SetRenderColor( 255, 255, 255, 255 );
 	m_nRenderFX		= kRenderFxNone;
 
-	SetThink( &CGrenadeSpit::SpitThink );
+	SetThink( &CHL1GrenadeSpit::SpitThink );
 	SetUse( &CBaseGrenade::DetonateUse ); 
-	SetTouch( &CGrenadeSpit::GrenadeSpitTouch );
+	SetTouch( &CHL1GrenadeSpit::HL1GrenadeSpitTouch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	m_flDamage		= sk_bullsquid_dmg_spit.GetFloat();
@@ -66,7 +66,7 @@ void CGrenadeSpit::Spawn( void )
 }
 
 
-void CGrenadeSpit::SetSpitSize(int nSize)
+void CHL1GrenadeSpit::SetSpitSize(int nSize)
 {
 	switch (nSize)
 	{
@@ -88,12 +88,12 @@ void CGrenadeSpit::SetSpitSize(int nSize)
 	}
 }
 
-void CGrenadeSpit::Event_Killed( const CTakeDamageInfo &info )
+void CHL1GrenadeSpit::Event_Killed( const CTakeDamageInfo &info )
 {
 	Detonate( );
 }
 
-void CGrenadeSpit::GrenadeSpitTouch( CBaseEntity *pOther )
+void CHL1GrenadeSpit::HL1GrenadeSpitTouch( CBaseEntity *pOther )
 {
 	if (m_fSpitDeathTime != 0)
 	{
@@ -124,7 +124,7 @@ void CGrenadeSpit::GrenadeSpitTouch( CBaseEntity *pOther )
 	Detonate();
 }
 
-void CGrenadeSpit::SpitThink( void )
+void CHL1GrenadeSpit::SpitThink( void )
 {
 	if (m_fSpitDeathTime != 0 &&
 		m_fSpitDeathTime < gpGlobals->curtime)
@@ -134,7 +134,7 @@ void CGrenadeSpit::SpitThink( void )
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
-void CGrenadeSpit::Detonate(void)
+void CHL1GrenadeSpit::Detonate(void)
 {
 	m_takedamage	= DAMAGE_NO;	
 
@@ -152,7 +152,7 @@ void CGrenadeSpit::Detonate(void)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeSpit::Precache( void )
+void CHL1GrenadeSpit::Precache( void )
 {
 	m_nSquidSpitSprite = PrecacheModel("sprites/bigspit.vmt");// client side spittle.
 
@@ -166,6 +166,6 @@ void CGrenadeSpit::Precache( void )
 }
 
 
-CGrenadeSpit::CGrenadeSpit(void)
+CHL1GrenadeSpit::CHL1GrenadeSpit(void)
 {
 }

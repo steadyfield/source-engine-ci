@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Egon
 //
@@ -6,20 +6,18 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
-#include "hl1mp_basecombatweapon_shared.h"
+#include "NPCEvent.h"
+#include "hl1mp_weapon_egon.h"
 #include "Sprite.h"
-#include "beam_shared.h"
-#include "takedamageinfo.h"
+#include "Beam_Shared.h"
+#include "Takedamageinfo.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 
 #ifdef CLIENT_DLL
-#include "c_baseplayer.h"
-#include "hl1/hl1_c_player.h"
+#include "c_basehlplayer.h"
 #else
-#include "player.h"
-#include "hl1_player.h"
+#include "hl2_player.h"
 #endif
 
 //#include "player.h"
@@ -42,9 +40,6 @@
 #include "te_effect_dispatch.h"
 #endif
 
-
-enum EGON_FIRESTATE { FIRE_OFF, FIRE_STARTUP, FIRE_CHARGE };
-
 #define EGON_PULSE_INTERVAL			0.1
 #define EGON_DISCHARGE_INTERVAL		0.1
 
@@ -52,59 +47,6 @@ enum EGON_FIRESTATE { FIRE_OFF, FIRE_STARTUP, FIRE_CHARGE };
 #define EGON_FLARE_SPRITE		"sprites/XSpark1.vmt"
 
 extern ConVar sk_plr_dmg_egon_wide;
-
-//-----------------------------------------------------------------------------
-// CWeaponEgon
-//-----------------------------------------------------------------------------
-
-#ifdef CLIENT_DLL
-#define CWeaponEgon C_WeaponEgon
-#endif
-
-class CWeaponEgon : public CBaseHL1MPCombatWeapon
-{
-	DECLARE_CLASS( CWeaponEgon, CBaseHL1MPCombatWeapon );
-public:
-
-	DECLARE_NETWORKCLASS(); 
-	DECLARE_PREDICTABLE();
-
-    CWeaponEgon(void);
-
-	virtual bool	Deploy( void );
-	void	PrimaryAttack( void );
-    virtual void    Precache( void );
-    
-	void	SecondaryAttack( void )
-	{
-		PrimaryAttack();
-	}
-
-	void	WeaponIdle( void );
-	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-
-    //	DECLARE_SERVERCLASS();
-    //	DECLARE_DATADESC();
-
-private:
-	bool	HasAmmo( void );
-	void	UseAmmo( int count );
-	void	Attack( void );
-	void	EndAttack( void );
-	void	Fire( const Vector &vecOrigSrc, const Vector &vecDir );
-	void	UpdateEffect( const Vector &startPoint, const Vector &endPoint );
-	void	CreateEffect( void );
-	void	DestroyEffect( void );
-
-	EGON_FIRESTATE		m_fireState;
-	float				m_flAmmoUseTime;	// since we use < 1 point of ammo per update, we subtract ammo on a timer.
-	float				m_flShakeTime;
-	float				m_flStartFireTime;
-	float				m_flDmgTime;
-	CHandle<CSprite>	m_hSprite;
-	CHandle<CBeam>		m_hBeam;
-	CHandle<CBeam>		m_hNoise;
-};
 
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponEgon, DT_WeaponEgon );
 
@@ -114,8 +56,8 @@ END_NETWORK_TABLE()
 BEGIN_PREDICTION_DATA( CWeaponEgon )
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_egon, CWeaponEgon );
-PRECACHE_WEAPON_REGISTER( weapon_egon );
+//LINK_ENTITY_TO_CLASS( hl1_egon, CWeaponEgon );
+//PRECACHE_WEAPON_REGISTER( hl1_egon );
 
 /*
 IMPLEMENT_SERVERCLASS_ST( CWeaponEgon, DT_WeaponEgon )
@@ -168,7 +110,14 @@ bool CWeaponEgon::Deploy( void )
 
 bool CWeaponEgon::HasAmmo( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+	
 	if ( !pPlayer )
 	{
 		return false;
@@ -182,7 +131,14 @@ bool CWeaponEgon::HasAmmo( void )
 
 void CWeaponEgon::UseAmmo( int count )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -199,7 +155,14 @@ void CWeaponEgon::UseAmmo( int count )
 //-----------------------------------------------------------------------------
 void CWeaponEgon::PrimaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -221,8 +184,10 @@ void CWeaponEgon::PrimaryAttack( void )
 		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
 		return;
 	}
+	
+	CBasePlayer *pBasePlayer = ToBasePlayer( GetOwner() );
 
-	Vector vecAiming	= pPlayer->GetAutoaimVector( 0 );
+	Vector vecAiming	= pBasePlayer->GetAutoaimVector( 0 ); //Because of cource the HL2 player does something different here that breaks this...
 	Vector vecSrc		= pPlayer->Weapon_ShootPosition( );
 
 	switch( m_fireState )
@@ -288,7 +253,14 @@ void CWeaponEgon::PrimaryAttack( void )
 
 void CWeaponEgon::Fire( const Vector &vecOrigSrc, const Vector &vecDir )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -416,7 +388,7 @@ void CWeaponEgon::UpdateEffect( const Vector &startPoint, const Vector &endPoint
 void CWeaponEgon::CreateEffect( void )
 {
 #ifndef CLIENT_DLL    
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+	CHL2_Player *pPlayer = ToHL2Player( GetOwner() );
 	if ( !pPlayer )
 	{
 		return;
@@ -502,6 +474,10 @@ bool CWeaponEgon::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 void CWeaponEgon::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
 

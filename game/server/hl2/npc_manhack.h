@@ -266,7 +266,7 @@ private:
 	bool			m_bGib;
 
 	bool			m_bHeld;
-	bool			m_bHackedByAlyx;
+	//bool			m_bHackedByAlyx;
 	Vector			m_vecLoiterPosition;
 	float			m_fTimeNextLoiterPulse;
 
@@ -276,6 +276,10 @@ private:
 	CNetworkVar( int,	m_nEnginePitch2 );
 	CNetworkVar( float,	m_flEnginePitch1Time );
 	CNetworkVar( float,	m_flEnginePitch2Time );
+	
+	//SMOD: We needed to move it from private to protected for the ally manhack
+protected:
+	bool			m_bHackedByAlyx;
 };
 
 #endif	//NPC_MANHACK_H

@@ -505,7 +505,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (ITEM_GiveAmmo( pPlayer, SIZE_BOX_SNIPER_ROUNDS, "SniperRound"))
+		if (ITEM_GiveAmmo( pPlayer, SIZE_BOX_SNIPER_ROUNDS, "AWP")) //SMOD: Changed to use player sniper ammo type
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -517,6 +517,7 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(item_box_sniper_rounds, CItem_BoxSniperRounds);
+LINK_ENTITY_TO_CLASS(item_ammo_sniper, CItem_BoxSniperRounds); //SMOD
 
 
 // ========================================================================
@@ -641,7 +642,6 @@ protected:
 
 	static const char *m_lpzModelNames[NUM_AMMO_CRATE_TYPES];
 	static const char *m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES];
-	static int m_nAmmoAmounts[NUM_AMMO_CRATE_TYPES];
 	static const char *m_pGiveWeapon[NUM_AMMO_CRATE_TYPES];
 
 	float	m_flCloseTime;
@@ -708,21 +708,6 @@ const char *CItem_AmmoCrate::m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES] =
 	"XBowBolt",
 	"AR2AltFire",
 	"SMG1_Grenade",
-};
-
-// Ammo amount given per +use
-int CItem_AmmoCrate::m_nAmmoAmounts[NUM_AMMO_CRATE_TYPES] =
-{
-	300,	// Pistol
-	300,	// SMG1
-	300,	// AR2
-	3,		// RPG rounds
-	120,	// Buckshot
-	5,		// Grenades
-	50,		// 357
-	50,		// Crossbow
-	3,		// AR2 alt-fire
-	5,
 };
 
 const char *CItem_AmmoCrate::m_pGiveWeapon[NUM_AMMO_CRATE_TYPES] =
@@ -920,7 +905,7 @@ void CItem_AmmoCrate::HandleAnimEvent( animevent_t *pEvent )
 				}
 			}
 
-			if ( m_hActivator->GiveAmmo( m_nAmmoAmounts[m_nAmmoType], m_nAmmoIndex ) != 0 )
+			if ( m_hActivator->GiveAmmo( 999, m_nAmmoIndex ) != 0 ) //SMOD: Just give them the max ammo possible on the first use, no point NOT too.
 			{
 				SetBodygroup( 1, false );
 			}

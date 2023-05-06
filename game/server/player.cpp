@@ -69,6 +69,9 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
+#include "physics_prop_ragdoll.h"
+
+#include "hl2_gamerules.h"
 
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
@@ -213,7 +216,9 @@ void CC_GiveCurrentAmmo( void )
 					pPlayer->GiveAmmo( giveAmount, GetAmmoDef()->GetAmmoOfIndex(ammoIndex)->pName );
 				}
 			}
-			if( pWeapon->UsesSecondaryAmmo() && pWeapon->HasSecondaryAmmo() )
+			//SMOD: We're not fucking xbox! Just give us the damn ammo, impulse 101 already does you cunt
+			//if( pWeapon->UsesSecondaryAmmo() && pWeapon->HasSecondaryAmmo() )
+			if( pWeapon->UsesSecondaryAmmo() )
 			{
 				// Give secondary ammo out, as long as the player already has some
 				// from a presumeably natural source. This prevents players on XBox
@@ -417,6 +422,14 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_flOldPlayerViewOffsetZ, FIELD_FLOAT ),
 	DEFINE_FIELD( m_bPlayerUnderwater, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_hViewEntity, FIELD_EHANDLE ),
+
+#if defined( ARGG )
+	// adnan
+	// set the use angles
+	// set when the player presses use
+	DEFINE_FIELD( m_vecUseAngles, FIELD_VECTOR ),
+	// end adnan
+#endif
 
 	DEFINE_FIELD( m_hConstraintEntity, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_vecConstraintCenter, FIELD_VECTOR ),
@@ -1454,7 +1467,9 @@ void CBasePlayer::PackDeadPlayerItems( void )
 	int iWeaponRules;
 	int iAmmoRules;
 	int i;
-	CBaseCombatWeapon *rgpPackWeapons[ 20 ];// 20 hardcoded for now. How to determine exactly how many weapons we have?
+	//CBaseCombatWeapon *rgpPackWeapons[ 20 ];// 20 hardcoded for now. How to determine exactly how many weapons we have?
+	//SMOD: Changed from 20 to MAX_WEAPONS 
+	CBaseCombatWeapon *rgpPackWeapons[ MAX_WEAPONS ];// 20 hardcoded for now. How to determine exactly how many weapons we have?
 	int iPackAmmo[ MAX_AMMO_SLOTS + 1];
 	int iPW = 0;// index into packweapons array
 	int iPA = 0;// index into packammo array
@@ -2814,6 +2829,10 @@ bool CBasePlayer::CanPickupObject( CBaseEntity *pObject, float massLimit, float 
 	//Must have a physics object
 	if (!count)
 		return false;
+
+	CRagdollProp *pRagdoll = dynamic_cast<CRagdollProp*>(pObject);
+	if( pRagdoll )
+		return true;
 
 	float objectMass = 0;
 	bool checkEnable = false;
@@ -4259,11 +4278,12 @@ void CBasePlayer::SetSuitUpdate(const char *name, int fgroup, int iNoRepeatTime)
 	if ( !IsSuitEquipped() )
 		return;
 
-	if ( g_pGameRules->IsMultiplayer() )
-	{
-		// due to static channel design, etc. We don't play HEV sounds in multiplayer right now.
-		return;
-	}
+//SMOD: SP still followed this for some reason???
+//	if ( g_pGameRules->IsMultiplayer() )
+//	{
+//		// due to static channel design, etc. We don't play HEV sounds in multiplayer right now.
+//		return;
+//	}
 
 	// if name == NULL, then clear out the queue
 
@@ -4534,7 +4554,7 @@ void CBasePlayer::PostThink()
 				// if they've moved too far from the gun, or deployed another weapon, unuse the gun
 				if ( m_hUseEntity->OnControls( this ) && 
 					( !GetActiveWeapon() || GetActiveWeapon()->IsEffectActive( EF_NODRAW ) ||
-					( GetActiveWeapon()->GetActivity() == ACT_VM_HOLSTER ) 
+					( GetActiveWeapon()->GetActivity() == ACT_GESTURE_RANGE_ATTACK_HMG1 ) //SMOD: Did the holster change here too
 	#ifdef PORTAL // Portalgun view model stays up when holding an object -Jeep
 					|| FClassnameIs( GetActiveWeapon(), "weapon_portalgun" ) 
 	#endif //#ifdef PORTAL			
@@ -4781,6 +4801,15 @@ CBaseEntity *FindPlayerStart(const char *pszClassName)
 	return pStartFirst;
 }
 
+LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_terrorist, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_counterterrorist, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_axis, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_allies, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_red, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_player_blue, CPointEntity );
+
 /*
 ============
 EntSelectSpawnPoint
@@ -4790,92 +4819,85 @@ Returns the entity to spawn at
 USES AND SETS GLOBAL g_pLastSpawn
 ============
 */
+//SMOD: Redid this function to support many more times of info_player_starts
+
+ConVar smod_spawnpoint("smod_spawnpoint","info_player_start",FCVAR_GAMEDLL,"Use this to set the entity the game will attempt to spawn the player on.\n");
+
 CBaseEntity *CBasePlayer::EntSelectSpawnPoint()
 {
-	CBaseEntity *pSpot;
-	edict_t		*player;
+	CBaseEntity *pSpot = NULL;
+	CBaseEntity *pLastSpawnPoint = g_pLastSpawn;
+	edict_t		*player = edict();
+	const char *pSpawnpointName = smod_spawnpoint.GetString();
 
-	player = edict();
-
-// choose a info_player_deathmatch point
-	if (g_pGameRules->IsCoOp())
+	if (gEntList.FindEntityByClassname(NULL, pSpawnpointName) == NULL)
 	{
-		pSpot = gEntList.FindEntityByClassname( g_pLastSpawn, "info_player_coop");
-		if ( pSpot )
-			goto ReturnSpot;
-		pSpot = gEntList.FindEntityByClassname( g_pLastSpawn, "info_player_start");
-		if ( pSpot ) 
-			goto ReturnSpot;
+		Warning("PutClientInServer: Tried %s, failed. Using default spawn\n", smod_spawnpoint.GetString());
+		pSpawnpointName = "info_player_start";
 	}
-	else if ( g_pGameRules->IsDeathmatch() )
+	
+	pSpot = pLastSpawnPoint;
+
+	// Randomize the start spot
+	for ( int i = random->RandomInt(1,5); i > 0; i-- )
+		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+	if ( !pSpot )  // skip over the null point
+		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+
+	CBaseEntity *pFirstSpot = pSpot;
+
+	do 
 	{
-		pSpot = g_pLastSpawn;
-		// Randomize the start spot
-		for ( int i = random->RandomInt(1,5); i > 0; i-- )
-			pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_deathmatch" );
-		if ( !pSpot )  // skip over the null point
-			pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_deathmatch" );
-
-		CBaseEntity *pFirstSpot = pSpot;
-
-		do 
+		if ( pSpot )
 		{
-			if ( pSpot )
+			// check if pSpot is valid
+			if ( g_pGameRules->IsSpawnPointValid( pSpot, this ) )
 			{
-				// check if pSpot is valid
-				if ( g_pGameRules->IsSpawnPointValid( pSpot, this ) )
+				if ( pSpot->GetLocalOrigin() == vec3_origin )
 				{
-					if ( pSpot->GetLocalOrigin() == vec3_origin )
-					{
-						pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_deathmatch" );
-						continue;
-					}
-
-					// if so, go to pSpot
-					goto ReturnSpot;
+					pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+					continue;
 				}
-			}
-			// increment pSpot
-			pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_deathmatch" );
-		} while ( pSpot != pFirstSpot ); // loop if we're not back to the start
 
-		// we haven't found a place to spawn yet,  so kill any guy at the first spawn point and spawn there
-		if ( pSpot )
-		{
-			CBaseEntity *ent = NULL;
-			for ( CEntitySphereQuery sphere( pSpot->GetAbsOrigin(), 128 ); (ent = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
-			{
-				// if ent is a client, kill em (unless they are ourselves)
-				if ( ent->IsPlayer() && !(ent->edict() == player) )
-					ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
+				// if so, go to pSpot
+				goto ReturnSpot;
 			}
-			goto ReturnSpot;
 		}
+		// increment pSpot
+		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+	} while ( pSpot != pFirstSpot ); // loop if we're not back to the start
+
+	// we haven't found a place to spawn yet,  so kill any guy at the first spawn point and spawn there
+	if ( pSpot )
+	{
+		CBaseEntity *ent = NULL;
+		for ( CEntitySphereQuery sphere( pSpot->GetAbsOrigin(), 128 ); (ent = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
+		{
+			// if ent is a client, kill em (unless they are ourselves)
+			if ( ent->IsPlayer() && !(ent->edict() == player) )
+				ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
+		}
+		goto ReturnSpot;
 	}
 
-	// If startspot is set, (re)spawn there.
-	if ( !gpGlobals->startspot || !strlen(STRING(gpGlobals->startspot)))
+	if ( !pSpot  )
 	{
-		pSpot = FindPlayerStart( "info_player_start" );
-		if ( pSpot )
-			goto ReturnSpot;
+		pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_start" );
 	}
-	else
-	{
-		pSpot = gEntList.FindEntityByName( NULL, gpGlobals->startspot );
-		if ( pSpot )
-			goto ReturnSpot;
-	}
+
 
 ReturnSpot:
 	if ( !pSpot  )
 	{
-		Warning( "PutClientInServer: no info_player_start on level\n");
+		Warning("PutClientInServer: Tried info_player_start, failed.\n");
+		Warning("PutClientInServer: No valid player spawn points in the entire level.\n");
 		return CBaseEntity::Instance( INDEXENT( 0 ) );
 	}
 
 	g_pLastSpawn = pSpot;
+
 	return pSpot;
+
 }
 
 //-----------------------------------------------------------------------------
@@ -4995,6 +5017,7 @@ void CBasePlayer::Spawn( void )
 	enginesound->SetPlayerDSP( user, 0, false );
 
 	CreateViewModel();
+	CreateViewModel(VM_LEGS);
 
 	SetCollisionGroup( COLLISION_GROUP_PLAYER );
 
@@ -6029,7 +6052,7 @@ static void CreateJeep( CBasePlayer *pPlayer )
 	// Cheat to create a jeep in front of the player
 	Vector vecForward;
 	AngleVectors( pPlayer->EyeAngles(), &vecForward );
-	CBaseEntity *pJeep = (CBaseEntity *)CreateEntityByName( "prop_vehicle_jeep" );
+	CBaseEntity *pJeep = (CBaseEntity *)CreateEntityByName( "prop_vehicle_buggy" );
 	if ( pJeep )
 	{
 		Vector vecOrigin = pPlayer->GetAbsOrigin() + vecForward * 256 + Vector(0,0,64);
@@ -6040,6 +6063,7 @@ static void CreateJeep( CBasePlayer *pPlayer )
 		pJeep->KeyValue( "solid", "6" );
 		pJeep->KeyValue( "targetname", "jeep" );
 		pJeep->KeyValue( "vehiclescript", "scripts/vehicles/jeep_test.txt" );
+
 		DispatchSpawn( pJeep );
 		pJeep->Activate();
 		pJeep->Teleport( &vecOrigin, &vecAngles, NULL );
@@ -6052,11 +6076,49 @@ void CC_CH_CreateJeep( void )
 	CBasePlayer *pPlayer = UTIL_GetCommandClient();
 	if ( !pPlayer )
 		return;
+
 	CreateJeep( pPlayer );
 }
 
-static ConCommand ch_createjeep("ch_createjeep", CC_CH_CreateJeep, "Spawn jeep in front of the player.", FCVAR_CHEAT);
+static ConCommand ch_createjeep("ch_createjeep", CC_CH_CreateJeep, "Spawn jeep in front of the player.\n", FCVAR_CHEAT);
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+static void CreateEliteJeep( CBasePlayer *pPlayer)
+{
+	// Cheat to create a jeep in front of the player
+	Vector vecForward;
+	AngleVectors( pPlayer->EyeAngles(), &vecForward );
+	CBaseEntity *pJeep = (CBaseEntity *)CreateEntityByName( "prop_vehicle_buggyelite" );
+	if ( pJeep )
+	{
+		Vector vecOrigin = pPlayer->GetAbsOrigin() + vecForward * 256 + Vector(0,0,64);
+		QAngle vecAngles( 0, pPlayer->GetAbsAngles().y - 90, 0 );
+		pJeep->SetAbsOrigin( vecOrigin );
+		pJeep->SetAbsAngles( vecAngles );
+		pJeep->KeyValue( "model", "models/vehicles/buggy_elite.mdl" );
+		pJeep->KeyValue( "solid", "6" );
+		pJeep->KeyValue( "targetname", "elitejeep" );
+		pJeep->KeyValue( "vehiclescript", "scripts/vehicles/jeep_elite.txt" );
+		
+		DispatchSpawn( pJeep );
+		pJeep->Activate();
+		pJeep->Teleport( &vecOrigin, &vecAngles, NULL );
+	}
+}
+
+
+void CC_CH_CreateEliteJeep( const CCommand &args )
+{
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
+	CreateEliteJeep(pPlayer);
+}
+
+static ConCommand ch_createelitejeep("ch_createelitejeep", CC_CH_CreateEliteJeep, "Spawn elite jeep in front of the player.\n", FCVAR_CHEAT);
 
 //-----------------------------------------------------------------------------
 // Create an airboat in front of the specified player
@@ -6096,7 +6158,52 @@ void CC_CH_CreateAirboat( void )
 
 }
 
-static ConCommand ch_createairboat( "ch_createairboat", CC_CH_CreateAirboat, "Spawn airboat in front of the player.", FCVAR_CHEAT );
+static ConCommand ch_createairboat( "ch_createairboat", CC_CH_CreateAirboat, "Spawn airboat in front of the player.\n", FCVAR_CHEAT );
+
+
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+static void CreateGenericVehicle( CBasePlayer *pPlayer, const char *szModel, const char *szTargetName, const char *szScript )
+{
+	if (!szModel || szModel[0] == '\0' || !szTargetName || szTargetName[0] == '\0' || !szScript || szScript[0] == '\0')
+	{
+		Msg("Invaild use of command. Proper command use: model targetname script.\nExample: models/vehicles/combine_apc.mdl player_apc scripts/vehicles/apc.txt");
+		return;
+	}
+
+	// Cheat to create a jeep in front of the player
+	Vector vecForward;
+	AngleVectors( pPlayer->EyeAngles(), &vecForward );
+	CBaseEntity *pJeep = (CBaseEntity *)CreateEntityByName( "prop_vehicle_jeep" );
+	if ( pJeep )
+	{
+		Vector vecOrigin = pPlayer->GetAbsOrigin() + vecForward * 256 + Vector(0,0,64);
+		QAngle vecAngles( 0, pPlayer->GetAbsAngles().y - 90, 0 );
+		pJeep->SetAbsOrigin( vecOrigin );
+		pJeep->SetAbsAngles( vecAngles );
+		pJeep->KeyValue( "model", szModel );
+		pJeep->KeyValue( "solid", "6" );
+		pJeep->KeyValue( "targetname", szTargetName );
+		pJeep->KeyValue( "vehiclescript", szScript );
+		DispatchSpawn( pJeep );
+		pJeep->Activate();
+		pJeep->Teleport( &vecOrigin, &vecAngles, NULL );
+	}
+}
+
+
+void CC_CH_CreateGenericVehicle(const CCommand &args)
+{
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
+	CreateGenericVehicle(pPlayer, args.Arg(1), args.Arg(2), args.Arg(3));
+}
+
+static ConCommand ch_createvehicle("ch_createvehicle", CC_CH_CreateGenericVehicle, "Spawn a vehicle with the selected settings.\norder: model targetname script.\n", FCVAR_CHEAT);
 
 
 //=========================================================
@@ -6313,7 +6420,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 bool CBasePlayer::ClientCommand( const CCommand &args )
 {
 	const char *cmd = args[0];
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	if( stricmp( cmd, "test_SmokeGrenade" ) == 0 )
 	{
 		if ( sv_cheats && sv_cheats->GetBool() )
@@ -6337,7 +6444,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		}
 	}
 	else
-#endif // _DEBUG
+//#endif // _DEBUG
 	if( stricmp( cmd, "vehicleRole" ) == 0 )
 	{
 		// Get the vehicle role value.
@@ -6554,6 +6661,16 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		{
 			pl->DumpPerfToRecipient( this, nRecords );
 		}
+		return true;
+	}
+
+	//SMOD: Ironsight
+	else if( stricmp( cmd, "toggle_ironsight" ) == 0 )
+	{
+		CBaseCombatWeapon *pWeapon = GetActiveWeapon();
+		if( pWeapon != NULL )
+			pWeapon->ToggleIronsights();
+ 
 		return true;
 	}
 
@@ -7638,11 +7755,11 @@ public:
 	//Inputs
 	void InputReload(inputdata_t &data);
 
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
 	void	MessageThink( void );
 	inline	float	MessageTime( void ) { return m_messageTime; }
 	inline	void	SetMessageTime( float time ) { m_messageTime = time; }
-#endif
+//#endif
 
 private:
 
@@ -7650,22 +7767,22 @@ private:
 	float	m_Duration;
 	float	m_HoldTime;
 
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
 	string_t m_iszMessage;
 	float	m_messageTime;
-#endif
+//#endif
 };
 
 LINK_ENTITY_TO_CLASS( player_loadsaved, CRevertSaved );
 
 BEGIN_DATADESC( CRevertSaved )
 
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
 	DEFINE_KEYFIELD( m_iszMessage, FIELD_STRING, "message" ),
 	DEFINE_KEYFIELD( m_messageTime, FIELD_FLOAT, "messagetime" ),	// These are not actual times, but durations, so save as floats
 
 	DEFINE_FUNCTION( MessageThink ),
-#endif
+//#endif
 
 	DEFINE_KEYFIELD( m_loadTime, FIELD_FLOAT, "loadtime" ),
 	DEFINE_KEYFIELD( m_Duration, FIELD_FLOAT, "duration" ),
@@ -7722,13 +7839,16 @@ void CRevertSaved::InputReload( inputdata_t &inputdata )
 {
 	UTIL_ScreenFadeAll( m_clrRender, Duration(), HoldTime(), FFADE_OUT );
 
-#ifdef HL1_DLL
-	SetNextThink( gpGlobals->curtime + MessageTime() );
-	SetThink( &CRevertSaved::MessageThink );
-#else
-	SetNextThink( gpGlobals->curtime + LoadTime() );
-	SetThink( &CRevertSaved::LoadThink );
-#endif
+	if(HL2GameRules()->IsInHL1Map())
+	{
+		SetNextThink( gpGlobals->curtime + MessageTime() );
+		SetThink( &CRevertSaved::MessageThink );
+	}
+	else
+	{
+		SetNextThink( gpGlobals->curtime + LoadTime() );
+		SetThink( &CRevertSaved::LoadThink );
+	}
 
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 
@@ -7744,7 +7864,7 @@ void CRevertSaved::InputReload( inputdata_t &inputdata )
 	}
 }
 
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
 void CRevertSaved::MessageThink( void )
 {
 	UTIL_ShowMessageAll( STRING( m_iszMessage ) );
@@ -7757,7 +7877,7 @@ void CRevertSaved::MessageThink( void )
 	else
 		LoadThink();
 }
-#endif
+//#endif
 
 
 void CRevertSaved::LoadThink( void )
@@ -7956,6 +8076,14 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_COORD ),
 #else
 		SendPropVector		( SENDINFO( m_vecBaseVelocity ), 20, 0, -1000, 1000 ),
+#endif
+
+#ifdef ARGG
+		// adnan
+		// send the use angles
+		// set when the player presses use
+		SendPropVector		( SENDINFO( m_vecUseAngles), 0, SPROP_NOSCALE ),
+		// end adnan
 #endif
 
 		SendPropEHandle		( SENDINFO( m_hConstraintEntity)),

@@ -1,20 +1,20 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifndef NPC_HEADCRAB_H
-#define NPC_HEADCRAB_H
+#ifndef HL1NPC_Headcrab_H
+#define HL1NPC_Headcrab_H
 #pragma once
 
 
 #include "hl1_ai_basenpc.h"
 
-class CNPC_Headcrab : public CHL1BaseNPC
+class CHL1NPC_Headcrab : public CHL1BaseNPC
 {
-	DECLARE_CLASS( CNPC_Headcrab, CHL1BaseNPC );
+	DECLARE_CLASS( CHL1NPC_Headcrab, CHL1BaseNPC );
 public:
 
 	void Spawn( void );
@@ -41,10 +41,6 @@ public:
 	void PrescheduleThink( void );
 	int RangeAttack1Conditions ( float flDot, float flDist );
 	float GetDamageAmount( void );
-	virtual void PainSound( const CTakeDamageInfo &info );
-	virtual void DeathSound( const CTakeDamageInfo &info );
-	virtual void IdleSound();
-	virtual void AlertSound();
 
 	virtual int		GetVoicePitch( void ) { return 100; }
 	virtual float	GetSoundVolume( void ) { return 1.0; }
@@ -55,9 +51,7 @@ public:
 	DECLARE_DATADESC();
 
 protected:
-	void HeadCrabSound( const char *pchSound );
-
 	Vector	m_vecJumpVel;
 };
 
-#endif //NPC_HEADCRAB_H
+#endif //HL1NPC_Headcrab_H

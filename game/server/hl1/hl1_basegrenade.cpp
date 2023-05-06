@@ -30,7 +30,7 @@ void CHL1BaseGrenade::Precache()
 {
 	BaseClass::Precache();
 
-	PrecacheScriptSound( "BaseGrenade.Explode" );
+	PrecacheScriptSound( "HL1BaseGrenade.Explode" );
 }
 
 
@@ -94,7 +94,7 @@ void CHL1BaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 
 	flRndSound = random->RandomFloat( 0 , 1 );
 
-	EmitSound( "BaseGrenade.Explode" );
+	EmitSound( "HL1BaseGrenade.Explode" );
 
 	SetTouch( NULL );
 	

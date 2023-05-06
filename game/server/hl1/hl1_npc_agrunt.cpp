@@ -131,7 +131,8 @@ public:
 	int TranslateSchedule( int scheduleType ); //GetScheduleOfType
 	int SelectSchedule( void ); // GetSchedule
 
-	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+	//void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+	void	TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
 	int		IRelationPriority( CBaseEntity *pTarget );
 /*
 	int IRelationship( CBaseEntity *pTarget );
@@ -890,7 +891,7 @@ int CNPC_AlienGrunt::TranslateSchedule( int scheduleType )
 	return BaseClass::TranslateSchedule( scheduleType );
 }
 
-void CNPC_AlienGrunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+void CNPC_AlienGrunt::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
 {
 	CTakeDamageInfo ainfo = info;
 	

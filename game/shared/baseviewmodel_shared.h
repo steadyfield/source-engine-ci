@@ -28,6 +28,11 @@ class CVGuiScreen;
 
 #define VIEWMODEL_INDEX_BITS 1
 
+//For viewmodels, better than remembering the numbers and then messing up afterwards!
+#define VM_LEGS 1
+#define VM_ARMS 2
+#define VM_CAM 3
+
 class CBaseViewModel : public CBaseAnimating, public IHasOwner
 {
 	DECLARE_CLASS( CBaseViewModel, CBaseAnimating );
@@ -145,7 +150,8 @@ public:
 	// Should this object receive shadows?
 	virtual bool			ShouldReceiveProjectedTextures( int flags )
 	{
-		return false;
+		//return false;
+		return true;
 	}
 
 	// Add entity to visible view models list?
@@ -205,6 +211,11 @@ private:
 	// Control panel
 	typedef CHandle<CVGuiScreen>	ScreenHandle_t;
 	CUtlVector<ScreenHandle_t>	m_hScreens;
+
+	//SMOD: new stuff
+public:
+	bool m_bIsTheKick; // kicking FOV fix
+	void CalcIronsights( Vector &pos, QAngle &ang );
 };
 
 #endif // BASEVIEWMODEL_SHARED_H

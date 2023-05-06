@@ -12,6 +12,7 @@
 #include "engine/IEngineSound.h"
 #include "globals.h"
 #include "filters.h"
+#include "hl2_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -811,17 +812,15 @@ void CFuncRotating::HurtTouch ( CBaseEntity *pOther )
 	// calculate damage based on rotation speed
 	m_flBlockDamage = GetLocalAngularVelocity().Length() / 10;
 
-#ifdef HL1_DLL
-	if( m_flBlockDamage > 0 )
-#endif
-	{
-		pOther->TakeDamage( CTakeDamageInfo( this, this, m_flBlockDamage, DMG_CRUSH ) );
+	if( HL2GameRules()->IsInHL1Map() && m_flBlockDamage <= 0 )
+		return;
+
+	pOther->TakeDamage( CTakeDamageInfo( this, this, m_flBlockDamage, DMG_CRUSH ) );
 	
-		Vector vecNewVelocity = pOther->GetAbsOrigin() - WorldSpaceCenter();
-		VectorNormalize(vecNewVelocity);
-		vecNewVelocity *= m_flBlockDamage;
-		pOther->SetAbsVelocity( vecNewVelocity );
-	}
+	Vector vecNewVelocity = pOther->GetAbsOrigin() - WorldSpaceCenter();
+	VectorNormalize(vecNewVelocity);
+	vecNewVelocity *= m_flBlockDamage;
+	pOther->SetAbsVelocity( vecNewVelocity );
 }
 
 
@@ -1337,10 +1336,10 @@ void CFuncRotating::InputToggle( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CFuncRotating::Blocked( CBaseEntity *pOther )
 {
-#ifdef HL1_DLL
-	if( m_flBlockDamage > 0 )
-#endif
-		pOther->TakeDamage( CTakeDamageInfo( this, this, m_flBlockDamage, DMG_CRUSH ) );
+	if( HL2GameRules()->IsInHL1Map() && m_flBlockDamage <= 0 )
+		return;
+
+	pOther->TakeDamage( CTakeDamageInfo( this, this, m_flBlockDamage, DMG_CRUSH ) );
 }
 
 

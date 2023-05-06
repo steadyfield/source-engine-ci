@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Hornetgun
 //
@@ -6,16 +6,16 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
-#include "hl1mp_basecombatweapon_shared.h"
+#include "NPCEvent.h"
+#include "hl1mp_weapon_hornetgun.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 #include "gamerules.h"
 #include "in_buttons.h"
 #ifdef CLIENT_DLL
-#include "hl1/c_hl1mp_player.h"
+#include "c_basehlplayer.h"
 #else
-#include "hl1mp_player.h"
+#include "hl2_player.h"
 #include "soundent.h"
 #include "game.h"
 #endif
@@ -25,45 +25,6 @@
 #include "hl1_npc_hornet.h"
 #endif
 
-
-//-----------------------------------------------------------------------------
-// CWeaponHgun
-//-----------------------------------------------------------------------------
-
-#ifdef CLIENT_DLL
-#define CWeaponHgun C_WeaponHgun
-#endif
-
-class CWeaponHgun : public CBaseHL1MPCombatWeapon
-{
-	DECLARE_CLASS( CWeaponHgun, CBaseHL1MPCombatWeapon );
-public:
-
-	DECLARE_NETWORKCLASS(); 
-	DECLARE_PREDICTABLE();
-
-	CWeaponHgun( void );
-
-	void	Precache( void );
-	void	PrimaryAttack( void );
-	void	SecondaryAttack( void );
-	void	WeaponIdle( void );
-	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-	bool	Reload( void );
-
-	virtual void ItemPostFrame( void );
-
-//	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-
-private:
-
-//	float	m_flRechargeTime;
-//	int		m_iFirePhase;
-
-	CNetworkVar( float,	m_flRechargeTime );
-	CNetworkVar( int,	m_iFirePhase );
-};
 
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponHgun, DT_WeaponHgun );
 
@@ -84,9 +45,8 @@ BEGIN_PREDICTION_DATA( CWeaponHgun )
 #endif
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_hornetgun, CWeaponHgun );
-
-PRECACHE_WEAPON_REGISTER( weapon_hornetgun );
+//LINK_ENTITY_TO_CLASS( hl1_hornetgun, CWeaponHgun );
+//PRECACHE_WEAPON_REGISTER( hl1_hornetgun);
 
 //IMPLEMENT_SERVERCLASS_ST( CWeaponHgun, DT_WeaponHgun )
 //END_SEND_TABLE()
@@ -125,7 +85,14 @@ void CWeaponHgun::Precache( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::PrimaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -177,7 +144,14 @@ void CWeaponHgun::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponHgun::SecondaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -261,6 +235,10 @@ void CWeaponHgun::SecondaryAttack( void )
 
 void CWeaponHgun::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
 
@@ -286,7 +264,14 @@ bool CWeaponHgun::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 	if ( bRet )
 	{
-		CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+		C_BaseHLPlayer *pPlayer;
+#else
+		CHL2_Player *pPlayer;
+#endif
+
+		pPlayer = ToHL2Player( GetOwner() );
+
 		if ( pPlayer )
 		{
 #if !defined(CLIENT_DLL)            
@@ -309,8 +294,15 @@ bool CWeaponHgun::Reload( void )
 	{
 		return true;
 	}
+	
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
 
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return true;

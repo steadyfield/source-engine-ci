@@ -42,6 +42,7 @@ enum PhysGunForce_t
 };
 
 void PlayerPickupObject( CBasePlayer *pPlayer, CBaseEntity *pObject );
+void PlayerPickupRagdoll( CBasePlayer *pPlayer, CBaseEntity *pObject );
 void Pickup_ForcePlayerToDropThisObject( CBaseEntity *pTarget );
 
 void Pickup_OnPhysGunDrop( CBaseEntity *pDroppedObject, CBasePlayer *pPlayer, PhysGunDrop_t reason );
@@ -83,7 +84,7 @@ public:
 	virtual QAngle			PreferredCarryAngles( void ) { return vec3_angle; }
 	virtual bool			ForcePhysgunOpen( CBasePlayer *pPlayer ) { return false; }
 	virtual AngularImpulse	PhysGunLaunchAngularImpulse() { return RandomAngularImpulse( -600, 600 ); }
-	virtual bool			ShouldPuntUseLaunchForces( PhysGunForce_t reason ) { return reason == PHYSGUN_FORCE_LAUNCHED; }
+	virtual bool			ShouldPuntUseLaunchForces( PhysGunForce_t reason ) { return false; }
 	virtual Vector			PhysGunLaunchVelocity( const Vector &vecForward, float flMass )
 	{
 		return Pickup_DefaultPhysGunLaunchVelocity( vecForward, flMass );

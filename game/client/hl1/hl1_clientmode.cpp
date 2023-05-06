@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -13,7 +13,6 @@
 
 // default FOV for HL1
 ConVar default_fov( "default_fov", "90", FCVAR_CHEAT );
-ConVar fov_desired( "fov_desired", "90", FCVAR_ARCHIVE | FCVAR_USERINFO, "Sets the base field-of-view.", true, 75.0, true, 110.0 );
 
 // The current client mode. Always ClientModeNormal in HL.
 IClientMode *g_pClientMode = NULL;
@@ -144,16 +143,14 @@ ClientModeHL1Normal* GetClientModeHL1Normal()
 
 IViewPortPanel* CHudViewport::CreatePanelByName( const char *szPanelName )
 {
-
-#ifdef HL1MP_CLIENT_DLL
 	IViewPortPanel* newpanel = NULL;
+
 	if ( Q_strcmp( PANEL_SCOREBOARD, szPanelName) == 0 )
 	{
 		newpanel = new CHL1MPClientScoreBoardDialog( this );
 		return newpanel;
 	}
-#endif
-	/*	else if ( Q_strcmp(PANEL_INFO, szPanelName) == 0 )
+/*	else if ( Q_strcmp(PANEL_INFO, szPanelName) == 0 )
 	{
 		newpanel = new CHL2MPTextWindow( this );
 		return newpanel;

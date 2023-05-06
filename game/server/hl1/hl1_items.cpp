@@ -23,10 +23,10 @@ void CHL1Item::Spawn( void )
 
 	SetTouch( &CItem::ItemTouch );
 
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
     if ( g_pGameRules->IsMultiplayer() )
         AddEffects( EF_NOSHADOW );
-#endif
+//#endif
 
 
 }

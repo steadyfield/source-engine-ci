@@ -367,7 +367,7 @@ bool C_BaseCombatWeapon::GetShootPosition( Vector &vOrigin, QAngle &vAngles )
 		C_BaseViewModel *vm = player ? player->GetViewModel( 0 ) : NULL;
 		if ( vm )
 		{
-			int iAttachment = vm->LookupAttachment( "muzzle" );
+			int iAttachment = vm->LookupAttachment( GetWpnData().szMuzzleAttachement );
 			if ( vm->GetAttachment( iAttachment, vOrigin, vDummy ) )
 			{
 				return true;

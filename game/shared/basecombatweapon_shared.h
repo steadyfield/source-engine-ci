@@ -336,6 +336,8 @@ public:
 
 public:
 
+	virtual const char *GetScriptName() { return GetClassname(); }
+
 	// Weapon info accessors for data in the weapon's data file
 	const FileWeaponInfo_t	&GetWpnData( void ) const;
 	virtual const char		*GetViewModel( int viewmodelindex = 0 ) const;
@@ -488,6 +490,12 @@ public:
 	virtual bool			ShouldDraw( void );
 	virtual bool			ShouldDrawPickup( void );
 	virtual void			HandleInput( void ) { return; };
+#ifdef ARGG
+	// adnan
+	// does this weapon need to override the setting of view angles?
+	virtual bool			OverrideViewAngles( void ) { return false; };
+	// end adnan
+#endif
 	virtual void			OverrideMouseInput( float *x, float *y ) { return; };
 	virtual int				KeyInput( int down, ButtonCode_t keynum, const char *pszCurrentBinding ) { return 1; }
 	virtual bool			AddLookShift( void ) { return true; };
@@ -633,6 +641,22 @@ protected:
 	int						m_iOldState;
 
 #endif // End Client .dll only
+
+	//SMOD: New stuff
+public:
+	Vector					GetIronsightPositionOffset( void ) const;
+	QAngle					GetIronsightAngleOffset( void ) const;
+	float					GetIronsightFOVOffset( void ) const;
+	virtual bool			HasIronsights( void ) { return GetWpnData().m_bCanIronSight; }
+	bool					IsIronsighted( void );
+	void					ToggleIronsights( void );
+	void					EnableIronsights( void );
+	void					DisableIronsights( void );
+	void					SetIronsightTime( void );
+	
+	CNetworkVar( bool, m_bIsIronsighted );
+	CNetworkVar( float, m_flIronsightedTime );
+
 };
 
 #endif // COMBATWEAPON_SHARED_H

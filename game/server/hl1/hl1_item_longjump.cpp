@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -10,7 +10,7 @@
 #include "gamerules.h"
 #include "items.h"
 #include "hl1_items.h"
-#include "hl1_player.h"
+#include "hl2_player.h"
 
 
 class CItemLongJump : public CHL1Item
@@ -32,12 +32,13 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		CHL1_Player *pHL1Player = (CHL1_Player*)pPlayer;
+		CHL2_Player *pHL1Player = (CHL2_Player*)pPlayer;
 
-		if ( pHL1Player->m_bHasLongJump == true )
-		{
-			return false;
-		}
+		//Player may need to pick up more then 1 longjump
+//		if ( pHL1Player->m_bHasLongJump == true )
+//		{
+//			return false;
+//		}
 
 		if ( pHL1Player->IsSuitEquipped() )
 		{

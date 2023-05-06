@@ -1,19 +1,19 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifndef NPC_HGRUNT_H
-#define NPC_HGRUNT_H
+#ifndef NPC_HL1HGrunt_H
+#define NPC_HL1HGrunt_H
 
 #include "ai_squad.h"
 #include "hl1_ai_basenpc.h"
 
-class CNPC_HGrunt : public CHL1BaseNPC
+class CNPC_HL1HGrunt : public CHL1BaseNPC
 {
-	DECLARE_CLASS( CNPC_HGrunt, CHL1BaseNPC );
+	DECLARE_CLASS( CNPC_HL1HGrunt, CHL1BaseNPC );
 public:
 
 	void	Precache( void );

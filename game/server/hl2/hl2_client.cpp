@@ -80,7 +80,7 @@ const char *GetGameDescription()
 	if ( g_pGameRules ) // this function may be called before the world has spawned, and the game rules initialized
 		return g_pGameRules->GetGameDescription();
 	else
-		return "Half-Life 2";
+		return "SMOD13";
 }
 
 //-----------------------------------------------------------------------------
@@ -105,9 +105,11 @@ CBaseEntity* FindEntity( edict_t *pEdict, char *classname)
 //-----------------------------------------------------------------------------
 void ClientGamePrecache( void )
 {
-	CBaseEntity::PrecacheModel("models/player.mdl");
+	CBaseEntity::PrecacheModel( "models/player.mdl" );
 	CBaseEntity::PrecacheModel( "models/gibs/agibs.mdl" );
-	CBaseEntity::PrecacheModel ("models/weapons/v_hands.mdl");
+	CBaseEntity::PrecacheModel( "models/weapons/v_hands.mdl" );
+	CBaseEntity::PrecacheModel( "models/error.mdl" );
+	CBaseEntity::PrecacheModel( "models/null.mdl" );
 
 	CBaseEntity::PrecacheScriptSound( "HUDQuickInfo.LowAmmo" );
 	CBaseEntity::PrecacheScriptSound( "HUDQuickInfo.LowHealth" );
@@ -122,20 +124,27 @@ void ClientGamePrecache( void )
 	CBaseEntity::PrecacheScriptSound( "Geiger.BeepLow" );
 }
 
+ConVar smod_respawnondeath("smod_respawnondeath","0",FCVAR_NONE,"If true, you will respawn when you die instead of the game reloading your most recent autosave. This is very buggy and should not be used.\n");
 
 // called by ClientKill and DeadThink
 void respawn( CBaseEntity *pEdict, bool fCopyCorpse )
 {
-	if (gpGlobals->coop || gpGlobals->deathmatch)
+	if (gpGlobals->coop || gpGlobals->deathmatch || smod_respawnondeath.GetBool() )
 	{
-		if ( fCopyCorpse )
-		{
-			// make a copy of the dead body for appearances sake
-			((CHL2_Player *)pEdict)->CreateCorpse();
-		}
+		CHL2_Player *pPlayer = ToHL2Player( pEdict );
 
-		// respawn player
-		pEdict->Spawn();
+		if ( pPlayer )
+		{
+			if ( gpGlobals->curtime > pPlayer->GetDeathTime() + DEATH_ANIMATION_TIME )
+			{		
+				// respawn player
+				pPlayer->Spawn();			
+			}
+			else
+			{
+				pPlayer->SetNextThink( gpGlobals->curtime + 0.1f );
+			}
+		}
 	}
 	else
 	{       // restart the entire server

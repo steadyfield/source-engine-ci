@@ -28,6 +28,8 @@ public:
 
 	DECLARE_SERVERCLASS();
 
+	int GetMaxClip1() const; //SMOD
+
 private:
 	bool	m_bNeedPump;		// When emptied completely
 	bool	m_bDelayedFire1;	// Fire primary when finished reloading
@@ -48,10 +50,6 @@ public:
 	virtual int				GetMaxBurst() { return 3; }
 
 	void ItemHolsterFrame( void );
-	bool StartReload( void );
-	bool Reload( void );
-	void FillClip( void );
-	void FinishReload( void );
 	void CheckHolsterReload( void );
 	void Pump( void );
 	void DryFire( void );
@@ -106,6 +104,18 @@ void CWeaponAnnabelle::Precache( void )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int CWeaponAnnabelle::GetMaxClip1(void) const
+{
+	CBasePlayer *player = ToBasePlayer( GetOwner() );
+	if (player)
+		return 6;
+	else
+		return 2;
+}
+
+//-----------------------------------------------------------------------------
 // Purpose:
 // Input  :
 // Output :
@@ -132,134 +142,6 @@ void CWeaponAnnabelle::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseComba
 		default:
 			CBaseCombatWeapon::Operator_HandleAnimEvent( pEvent, pOperator );
 			break;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Override so only reload one shell at a time
-// Input  :
-// Output :
-//-----------------------------------------------------------------------------
-bool CWeaponAnnabelle::StartReload( void )
-{
-	CBaseCombatCharacter *pOwner  = GetOwner();
-	
-	if ( pOwner == NULL )
-		return false;
-
-	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
-		return false;
-
-	if (m_iClip1 >= GetMaxClip1())
-		return false;
-
-	// If shotgun totally emptied then a pump animation is needed
-	if (m_iClip1 <= 0)
-	{
-		m_bNeedPump = true;
-	}
-
-	int j = MIN(1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));
-
-	if (j <= 0)
-		return false;
-
-	SendWeaponAnim( ACT_SHOTGUN_RELOAD_START );
-
-	// Make shotgun shell visible
-	SetBodygroup(1,0);
-
-	pOwner->m_flNextAttack = gpGlobals->curtime;
-	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
-
-	m_bInReload = true;
-	return true;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Override so only reload one shell at a time
-// Input  :
-// Output :
-//-----------------------------------------------------------------------------
-bool CWeaponAnnabelle::Reload( void )
-{
-	// Check that StartReload was called first
-	if (!m_bInReload)
-	{
-		Warning("ERROR: Shotgun Reload called incorrectly!\n");
-	}
-
-	CBaseCombatCharacter *pOwner  = GetOwner();
-	
-	if ( pOwner == NULL )
-		return false;
-
-	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
-		return false;
-
-	if (m_iClip1 >= GetMaxClip1())
-		return false;
-
-	int j = MIN(1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));
-
-	if (j <= 0)
-		return false;
-
-	FillClip();
-	// Play reload on different channel as otherwise steals channel away from fire sound
-	WeaponSound(RELOAD);
-	SendWeaponAnim( ACT_VM_RELOAD );
-
-	pOwner->m_flNextAttack = gpGlobals->curtime;
-	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
-
-	return true;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Play finish reload anim and fill clip
-// Input  :
-// Output :
-//-----------------------------------------------------------------------------
-void CWeaponAnnabelle::FinishReload( void )
-{
-	// Make shotgun shell invisible
-	SetBodygroup(1,1);
-
-	CBaseCombatCharacter *pOwner  = GetOwner();
-	
-	if ( pOwner == NULL )
-		return;
-
-	m_bInReload = false;
-
-	// Finish reload animation
-	SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH );
-
-	pOwner->m_flNextAttack = gpGlobals->curtime;
-	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Play finish reload anim and fill clip
-// Input  :
-// Output :
-//-----------------------------------------------------------------------------
-void CWeaponAnnabelle::FillClip( void )
-{
-	CBaseCombatCharacter *pOwner  = GetOwner();
-	
-	if ( pOwner == NULL )
-		return;
-
-	// Add them to the clip
-	if ( pOwner->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
-	{
-		if ( Clip1() < GetMaxClip1() )
-		{
-			m_iClip1++;
-			pOwner->RemoveAmmo( 1, m_iPrimaryAmmoType );
-		}
 	}
 }
 
@@ -313,7 +195,8 @@ void CWeaponAnnabelle::ItemHolsterFrame( void )
 		return;
 
 	// If it's been longer than three seconds, reload
-	if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
+	//SMOD: Die.
+	/*if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
 	{
 		// Reset the timer
 		m_flHolsterTime = gpGlobals->curtime;
@@ -329,7 +212,7 @@ void CWeaponAnnabelle::ItemHolsterFrame( void )
 		
 		GetOwner()->RemoveAmmo( ammoFill, GetPrimaryAmmoType() );
 		m_iClip1 += ammoFill;
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------
@@ -337,7 +220,7 @@ void CWeaponAnnabelle::ItemHolsterFrame( void )
 //-----------------------------------------------------------------------------
 CWeaponAnnabelle::CWeaponAnnabelle( void )
 {
-	m_bReloadsSingly = true;
+	m_bReloadsSingly = false;
 
 	m_bNeedPump		= false;
 	m_bDelayedFire1 = false;

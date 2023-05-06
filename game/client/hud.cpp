@@ -386,6 +386,9 @@ CHud::CHud()
 	SetDefLessFunc( m_RenderGroups );
 
 	m_flScreenShotTime = -1;
+#ifdef ARGG
+	m_bSkipClear = false;
+#endif
 }
 
 //-----------------------------------------------------------------------------

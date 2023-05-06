@@ -50,4 +50,54 @@ void RegisterUserMessages( void )
 	// NVNT register haptic user messages
 	RegisterHapticMessages();
 #endif
+
+	//SMOD User Messages
+	usermessages->Register( "ShowScope", 1 ); // show the sniper scope
+
+	//ASW Port Messages
+	usermessages->Register( "CurrentTimescale", 4 );	// Send one float for the new timescale
+	usermessages->Register( "DesiredTimescale", 13 );	// Send timescale and some blending vars
+	usermessages->Register( "ASWMapLine", 10 ); // send 2 bytes payload
+	usermessages->Register( "ASWBlur", 2 ); // send 2 bytes payload
+	usermessages->Register( "ASWCampaignCompleted", 2 );
+	usermessages->Register( "ASWReconnectAfterOutro", 0 );	
+	usermessages->Register( "ASWUTracer", -1 );
+	usermessages->Register( "ASWUTracerless", -1 );
+	usermessages->Register( "ASWUTracerDual", -1 );
+	usermessages->Register( "ASWUTracerDualLeft", -1 );
+	usermessages->Register( "ASWUTracerDualRight", -1 );
+	usermessages->Register( "ASWUTracerRG", -1 );
+	usermessages->Register( "ASWEnvExplosionFX", -1 );
+	usermessages->Register( "ASWGrenadeExplosion", -1 );	
+	usermessages->Register( "ASWBarrelExplosion", -1 );	
+	usermessages->Register( "ASWUTracerUnattached", -1 );
+	usermessages->Register( "ASWSentryTracer", -1 );
+	usermessages->Register( "ASWRemoteTurretTracer", -1 );
+	usermessages->Register( "ASWScannerNoiseEnt", -1 );	
+	usermessages->Register( "LaunchCainMail", 0 );
+	usermessages->Register( "LaunchCredits", 0 );
+	usermessages->Register( "LaunchCampaignMap", 0 );	
+	usermessages->Register( "ASWTechFailure", 0 );
+	usermessages->Register( "ASWSkillSpent", 2 );
+	usermessages->Register( "ASWStopInfoMessageSound", 0 );
+	usermessages->Register( "BroadcastAudio", -1 );
+	usermessages->Register( "BroadcastStopAudio", -1 );
+	usermessages->Register( "BroadcastPatchAudio", -1 );
+	usermessages->Register( "BroadcastStopPatchAudio", -1 );
+	usermessages->Register( "ASWMarineHitByMelee", -1 );
+	usermessages->Register( "ASWMarineHitByFF", -1 );
+	usermessages->Register( "ASWEnemyZappedByThorns", -1 );
+	usermessages->Register( "ASWEnemyZappedByTesla", -1 );
+	usermessages->Register( "ASWEnemyTeslaGunArcShock", -1 );
+	usermessages->Register( "ASWMiningLaserZap", -1 );
+	usermessages->Register( "ASWDamageNumber", -1 );
+	usermessages->Register( "ASWOrderUseItemFX", -1 );
+	usermessages->Register( "ASWOrderStopItemFX", -1 );
+	usermessages->Register( "ASWInvalidDesination", -1 );
+	usermessages->Register( "ASWNewHoldoutWave", -1 );
+	usermessages->Register( "ASWShowHoldoutResupply", -1 );
+	usermessages->Register( "ASWShowHoldoutWaveEnd", -1 );
+	usermessages->Register( "ShowObjectives", -1 );
+	usermessages->Register( "ASWBuzzerDeath", -1 );	
+	usermessages->Register( "ASWEggEffects", -1 );	
 }

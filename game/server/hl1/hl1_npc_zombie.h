@@ -1,12 +1,12 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifndef NPC_ZOMBIE_H
-#define NPC_ZOMBIE_H
+#ifndef HL1NPC_Zombie_H
+#define HL1NPC_Zombie_H
 
 
 #include	"hl1_ai_basenpc.h"
@@ -21,9 +21,9 @@
 
 //=========================================================
 //=========================================================
-class CNPC_Zombie : public CHL1BaseNPC
+class CHL1NPC_Zombie : public CHL1BaseNPC
 {
-	DECLARE_CLASS( CNPC_Zombie, CHL1BaseNPC );
+	DECLARE_CLASS( CHL1NPC_Zombie, CHL1BaseNPC );
 public:
 
 	void Spawn( void );
@@ -49,4 +49,4 @@ public:
 	int MeleeAttack1Conditions ( float flDot, float flDist );
 };
 
-#endif //NPC_ZOMBIE_H
+#endif //HL1NPC_Zombie_H

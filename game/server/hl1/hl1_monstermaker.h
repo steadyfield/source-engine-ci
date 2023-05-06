@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -16,19 +16,19 @@
 //-----------------------------------------------------------------------------
 // Spawnflags
 //-----------------------------------------------------------------------------
-#define	SF_NPCMAKER_START_ON	1	// start active ( if has targetname )
-#define SF_NPCMAKER_NPCCLIP		8	// Children are blocked by NPCclip
-#define SF_NPCMAKER_FADE		16	// Children's corpses fade
-#define SF_NPCMAKER_INF_CHILD	32	// Infinite number of children
-#define	SF_NPCMAKER_NO_DROP		64	// Do not adjust for the ground's position when checking for spawn
+#define	SF_MonsterMaker_START_ON	1	// start active ( if has targetname )
+#define SF_MonsterMaker_NPCCLIP		8	// Children are blocked by NPCclip
+#define SF_MonsterMaker_FADE		16	// Children's corpses fade
+#define SF_MonsterMaker_INF_CHILD	32	// Infinite number of children
+#define	SF_MonsterMaker_NO_DROP		64	// Do not adjust for the ground's position when checking for spawn
 
 
-class CNPCMaker : public CBaseEntity
+class CMonsterMaker : public CBaseEntity
 {
 public:
-	DECLARE_CLASS( CNPCMaker, CBaseEntity );
+	DECLARE_CLASS( CMonsterMaker, CBaseEntity );
 
-	CNPCMaker(void) {}
+	CMonsterMaker(void) {}
 
 	void Spawn( void );
 	void Precache( void );

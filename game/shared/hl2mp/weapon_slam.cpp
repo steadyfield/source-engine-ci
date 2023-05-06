@@ -11,11 +11,11 @@
 #include "engine/IEngineSound.h"
 
 #if defined( CLIENT_DLL )
-	#include "c_hl2mp_player.h"
+	#include "c_basehlplayer.h"
 #else
-	#include "hl2mp_player.h"
-	#include "grenade_tripmine.h"
-	#include "grenade_satchel.h"
+	#include "hl2_player.h"
+	#include "hl2mp/grenade_tripmine.h"
+	#include "hl2mp/grenade_satchel.h"
 	#include "entitylist.h"
 	#include "eventqueue.h"
 #endif
@@ -114,7 +114,9 @@ void CWeapon_SLAM::Spawn( )
 
 	Precache( );
 
+#ifndef CLIENT_DLL
 	FallInit();// get ready to fall down
+#endif
 
 	m_tSlamState		= (int)SLAM_SATCHEL_THROW;
 	m_flWallSwitchTime	= 0;
@@ -303,9 +305,9 @@ bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 void CWeapon_SLAM::StartSatchelDetonate()
 {
 
-	if ( GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE && !m_bDetonatorArmed )
+	if ( GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE )
 		 return;
-
+	
 	// -----------------------------------------
 	//  Play detonate animation
 	// -----------------------------------------
@@ -313,7 +315,7 @@ void CWeapon_SLAM::StartSatchelDetonate()
 	{
 		SendWeaponAnim(ACT_SLAM_DETONATOR_DETONATE);
 	}
-	else if (m_tSlamState == SLAM_SATCHEL_ATTACH || m_tSlamState == SLAM_TRIPMINE_READY)
+	else if (m_tSlamState == SLAM_SATCHEL_ATTACH)
 	{
 		SendWeaponAnim(ACT_SLAM_STICKWALL_DETONATE);
 	}
@@ -339,7 +341,14 @@ void CWeapon_SLAM::StartSatchelDetonate()
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::TripmineAttach( void )
 {
-	CHL2MP_Player *pOwner  = ToHL2MPPlayer( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pOwner;
+#else
+	CHL2_Player *pOwner;
+#endif
+
+	pOwner = ToHL2Player( GetOwner() );
+
 	if (!pOwner)
 	{
 		return;
@@ -698,7 +707,13 @@ void CWeapon_SLAM::SLAMThink( void )
 //-----------------------------------------------------------------------------
 bool CWeapon_SLAM::CanAttachSLAM( void )
 {
-	CHL2MP_Player *pOwner = ToHL2MPPlayer( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pOwner;
+#else
+	CHL2_Player *pOwner;
+#endif
+
+	pOwner = ToHL2Player( GetOwner() );
 
 	if (!pOwner)
 	{
@@ -812,6 +827,10 @@ void CWeapon_SLAM::Weapon_Switch( void )
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	// Ready to switch animations?
  	if ( HasWeaponIdleTimeElapsed() )
 	{

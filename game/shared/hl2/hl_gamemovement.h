@@ -17,6 +17,8 @@
 
 #endif
 
+#define PLAYER_LONGJUMP_SPEED 350 //SMOD: how fast we longjump
+
 struct LadderMove_t;
 class CInfoLadderDismount;
 
@@ -77,6 +79,13 @@ private:
 
 	void		SetLadder( CFuncLadder *ladder );
 	CFuncLadder *GetLadder();
+	
+	//SMOD: Longjumping
+public:
+	virtual bool	CheckJumpButton(void);
+
+protected:
+	CHL2_Player *m_pHL1Player;
 };
 
 

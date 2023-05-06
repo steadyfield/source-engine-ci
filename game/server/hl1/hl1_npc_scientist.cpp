@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -13,27 +13,25 @@
 //=============================================================================//
 
 #include	"cbase.h"
-#include	"ai_default.h"
-#include	"ai_task.h"
-#include	"ai_schedule.h"
-#include	"ai_node.h"
-#include	"ai_hull.h"
-#include	"ai_hint.h"
-#include	"ai_memory.h"
-#include	"ai_route.h"
-#include	"ai_motor.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
 #include	"hl1_npc_scientist.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"npcevent.h"
-#include	"entitylist.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"engine/IEngineSound.h"
 #include	"ai_navigator.h"
-#include	"ai_behavior_follow.h"
+#include	"AI_Behavior_Follow.h"
 #include	"AI_Criteria.h"
-#include	"SoundEmitterSystem/isoundemittersystembase.h"
+#include	"soundemittersystem/isoundemittersystembase.h"
 
 #define SC_PLFEAR	"SC_PLFEAR"
 #define SC_FEAR		"SC_FEAR"
@@ -178,7 +176,7 @@ void CNPC_Scientist::Spawn( void )
 	
 	NPCInit();
 
-	SetUse( &CNPC_Scientist::FollowerUse );
+	SetUse( &CHL1NPCTalker::FollowerUse );
 }
 
 
@@ -301,7 +299,7 @@ void CNPC_Scientist::SUB_LVFadeOut( void  )
 		dt = 0.1f;
 	}
 	m_nRenderMode = kRenderTransTexture;
-	int speed = MAX(3,256*dt); // fade out over 3 seconds
+	int speed = max(3,256*dt); // fade out over 3 seconds
 	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
 	NetworkStateChanged();
 
@@ -1155,6 +1153,62 @@ void CNPC_SittingScientist::SetAnswerQuestion( CNPCSimpleTalker *pSpeaker )
 {
 	m_flResponseDelay = gpGlobals->curtime + random->RandomFloat(3, 4);
 	SetSpeechTarget( (CNPCSimpleTalker *)pSpeaker );
+}
+
+
+//=========================================================
+// FIdleSpeak
+// ask question of nearby friend, or make statement
+//=========================================================
+int CNPC_SittingScientist::FIdleSpeak ( void )
+{ 
+	// try to start a conversation, or make statement
+	int pitch;
+	
+	if (!IsOkToSpeak())
+		return FALSE;
+
+	// set global min delay for next conversation
+	GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
+
+	pitch = GetExpresser()->GetVoicePitch();
+		
+	// if there is a friend nearby to speak to, play sentence, set friend's response time, return
+
+	// try to talk to any standing or sitting scientists nearby
+	CBaseEntity *pentFriend = FindNamedEntity( "!nearestfriend" );
+
+	if (pentFriend && random->RandomInt(0,1))
+	{
+//		CNPCSimpleTalker *pTalkMonster = (CNPCSimpleTalker *)pentFriend;
+		//pTalkMonster->SetAnswerQuestion( this );
+
+		SetSchedule( SCHED_TALKER_IDLE_RESPONSE );
+		SetSpeechTarget( this );
+		
+		Msg( "Asking some question!\n" );
+		
+		IdleHeadTurn( pentFriend );
+		SENTENCEG_PlayRndSz( edict(), TLK_PQUESTION, 1.0, SNDLVL_TALKING, 0, pitch );
+		// set global min delay for next conversation
+		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
+		return TRUE;
+	}
+
+	// otherwise, play an idle statement
+	if ( random->RandomInt(0,1))
+	{
+		Msg( "Making idle statement!\n" );
+
+		SENTENCEG_PlayRndSz( edict(), TLK_PIDLE, 1.0, SNDLVL_TALKING, 0, pitch );
+		// set global min delay for next conversation
+		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
+		return TRUE;
+	}
+
+	// never spoke
+	GetExpresser()->BlockSpeechUntil( 0 );
+	return FALSE;
 }
 
 //------------------------------------------------------------------------------

@@ -63,6 +63,8 @@
 #include "tier1/utlstring.h"
 #include "utlhashtable.h"
 
+#include "hl2_gamerules.h"
+
 #if defined( TF_DLL )
 #include "tf_gamerules.h"
 #endif
@@ -1337,9 +1339,9 @@ void CBaseEntity::Activate( void )
 		AddContext( m_iszResponseContext.ToCStr() );
 	}
 
-#ifdef HL1_DLL
-	ValidateEntityConnections();
-#endif //HL1_DLL
+//#ifdef HL1_DLL
+	//ValidateEntityConnections();
+//#endif //HL1_DLL
 }
 
 ////////////////////////////  old CBaseEntity stuff ///////////////////////////////////
@@ -2774,13 +2776,14 @@ bool CBaseEntity::FVisible( CBaseEntity *pEntity, int traceMask, CBaseEntity **p
 	if ( pEntity->GetFlags() & FL_NOTARGET )
 		return false;
 
-#if HL1_DLL
+	if(HL2GameRules()->IsInHL1Map())
+	{
 	// FIXME: only block LOS through opaque water
 	// don't look through water
 	if ((m_nWaterLevel != 3 && pEntity->m_nWaterLevel == 3) 
 		|| (m_nWaterLevel == 3 && pEntity->m_nWaterLevel == 0))
 		return false;
-#endif
+	}
 
 	Vector vecLookerOrigin = EyePosition();//look through the caller's 'eyes'
 	Vector vecTargetOrigin = pEntity->EyePosition();
@@ -2840,17 +2843,16 @@ bool CBaseEntity::FVisible( CBaseEntity *pEntity, int traceMask, CBaseEntity **p
 //=========================================================
 bool CBaseEntity::FVisible( const Vector &vecTarget, int traceMask, CBaseEntity **ppBlocker )
 {
-#if HL1_DLL
-	
-	// don't look through water
-	// FIXME: only block LOS through opaque water
-	bool inWater = ( UTIL_PointContents( vecTarget ) & (CONTENTS_SLIME|CONTENTS_WATER) ) ? true : false;
+	if(HL2GameRules()->IsInHL1Map())
+	{
+		// don't look through water
+		// FIXME: only block LOS through opaque water
+		bool inWater = ( UTIL_PointContents( vecTarget ) & (CONTENTS_SLIME|CONTENTS_WATER) ) ? true : false;
 
-	// Don't allow it if we're straddling two areas
-	if ( ( m_nWaterLevel == 3 && !inWater ) || ( m_nWaterLevel != 3 && inWater ) )
-		return false;
-
-#endif 
+		// Don't allow it if we're straddling two areas
+		if ( ( m_nWaterLevel == 3 && !inWater ) || ( m_nWaterLevel != 3 && inWater ) )
+			return false;
+	}
 
 	trace_t tr;
 	Vector vecLookerOrigin = EyePosition();// look through the caller's 'eyes'
@@ -5316,6 +5318,11 @@ void CC_Ent_FireTarget( const CCommand& args )
 }
 static ConCommand firetarget("firetarget", CC_Ent_FireTarget, 0, FCVAR_CHEAT);
 
+/*static bool UtlStringLessFunc( const CUtlString &lhs, const CUtlString &rhs )
+{
+	return Q_stricmp( lhs.String(), rhs.String() ) < 0;
+}
+*/
 class CEntFireAutoCompletionFunctor : public ICommandCallback, public ICommandCompletionCallback
 {
 public:

@@ -1,20 +1,21 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifndef NPC_BARNEY_H
-#define NPC_BARNEY_H
+#ifndef HL1NPC_Barney_H
+#define HL1NPC_Barney_H
 
 #include "hl1_npc_talker.h"
+#include "ai_sentence.h"
 
 //=========================================================
 //=========================================================
-class CNPC_Barney : public CHL1NPCTalker
+class CHL1NPC_Barney : public CHL1NPCTalker
 {
-	DECLARE_CLASS( CNPC_Barney, CHL1NPCTalker );
+	DECLARE_CLASS( CHL1NPC_Barney, CHL1NPCTalker );
 public:
 	
 	DECLARE_DATADESC();
@@ -57,7 +58,7 @@ public:
 	void	SUB_StartLVFadeOut( float delay = 10.0f, bool bNotSolid = true );
 	void	SUB_LVFadeOut( void  );
 
-	NPC_STATE SelectIdealState ( void );
+	NPC_STATE CHL1NPC_Barney::SelectIdealState ( void );
 
 	bool	m_fGunDrawn;
 	float	m_flPainTime;
@@ -78,4 +79,4 @@ public:
 	DEFINE_CUSTOM_AI;
 };
 
-#endif	//NPC_BARNEY_H
+#endif	//HL1NPC_Barney_H

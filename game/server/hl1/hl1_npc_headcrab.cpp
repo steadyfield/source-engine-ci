@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Implements the headcrab, a tiny, jumpy alien parasite.
 //
@@ -7,25 +7,25 @@
 
 #include "cbase.h"
 #include "game.h"
-#include "ai_default.h"
-#include "ai_schedule.h"
-#include "ai_hull.h"
-#include "ai_route.h"
-#include "ai_motor.h"
-#include "npcevent.h"
-#include "hl1_npc_headcrab.h"
+#include "AI_Default.h"
+#include "AI_Schedule.h"
+#include "AI_Hull.h"
+#include "AI_Route.h"
+#include "AI_Motor.h"
+#include "NPCEvent.h"
+#include "hl1_NPC_Headcrab.h"
 #include "gib.h"
 //#include "AI_Interactions.h"
 #include "ndebugoverlay.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "movevars_shared.h"
-#include "SoundEmitterSystem/isoundemittersystembase.h"
+#include "soundemittersystem/isoundemittersystembase.h"
 
 extern void ClearMultiDamage(void);
 extern void ApplyMultiDamage( void );
 
-ConVar	sk_headcrab_health( "sk_headcrab_health","20");
+ConVar	sk_hl1headcrab_health( "sk_hl1headcrab_health","20");
 ConVar	sk_headcrab_dmg_bite( "sk_headcrab_dmg_bite","10");
 
 #define CRAB_ATTN_IDLE				(float)1.5
@@ -46,7 +46,7 @@ ConVar	sk_headcrab_dmg_bite( "sk_headcrab_dmg_bite","10");
 
 #define	HC_AE_JUMPATTACK		( 2 )
 
-BEGIN_DATADESC( CNPC_Headcrab )
+BEGIN_DATADESC( CHL1NPC_Headcrab )
 	// m_nGibCount - don't save
 
 	// Function Pointers
@@ -55,13 +55,13 @@ BEGIN_DATADESC( CNPC_Headcrab )
 
 END_DATADESC()
 
-LINK_ENTITY_TO_CLASS( monster_headcrab, CNPC_Headcrab );
+LINK_ENTITY_TO_CLASS( monster_headcrab, CHL1NPC_Headcrab );
 
 
 enum
 {
 	SCHED_HEADCRAB_RANGE_ATTACK1 = LAST_SHARED_SCHEDULE,
-	SCHED_FAST_HEADCRAB_RANGE_ATTACK1,
+	SCHED_HL1_HEADCRAB_RANGE_ATTACK1,
 };
 
 
@@ -70,14 +70,14 @@ enum
 // Input  :
 // Output : 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::Spawn( void )
+void CHL1NPC_Headcrab::Spawn( void )
 {
 	Precache();
 
 	SetRenderColor( 255, 255, 255, 255 );
 
-	SetModel( "models/headcrab.mdl" );
-	m_iHealth = sk_headcrab_health.GetFloat();
+	SetModel( "models/hl1hcrab.mdl" );
+	m_iHealth = sk_hl1headcrab_health.GetFloat();
 
 	SetHullType(HULL_TINY);
 	SetHullSizeNormal();
@@ -103,75 +103,31 @@ void CNPC_Headcrab::Spawn( void )
 // Input  :
 // Output : 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::Precache( void )
+void CHL1NPC_Headcrab::Precache( void )
 {
-	PrecacheModel( "models/headcrab.mdl" );
+	PrecacheModel( "models/hl1hcrab.mdl" );
 //	PrecacheModel( "models/hc_squashed01.mdl" );
 //	PrecacheModel( "models/gibs/hc_gibs.mdl" );
 
 	PrecacheScriptSound( "Headcrab.Bite" );
 	PrecacheScriptSound( "Headcrab.Attack" );
-	PrecacheScriptSound( "Headcrab.Idle" );
-	PrecacheScriptSound( "Headcrab.Die" );
-	PrecacheScriptSound( "Headcrab.Alert" );
-	PrecacheScriptSound( "Headcrab.Pain" );
 
 	BaseClass::Precache();
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-void CNPC_Headcrab::IdleSound()
-{
-	HeadCrabSound( "Headcrab.Idle" );
-}
-
-
-void CNPC_Headcrab::AlertSound()
-{
-	HeadCrabSound(  "Headcrab.Alert" );
-}
-
-
-void CNPC_Headcrab::PainSound( const CTakeDamageInfo &info )
-{
-	HeadCrabSound( "Headcrab.Pain" );
-}
-
-
-void CNPC_Headcrab::DeathSound( const CTakeDamageInfo &info )
-{
-	HeadCrabSound( "Headcrab.Die" );
-}
-
-void CNPC_Headcrab::HeadCrabSound( const char *pchSound )
-{
-	CPASAttenuationFilter filter( this, ATTN_IDLE );
-
-	CSoundParameters params;
-	if ( GetParametersForSound( pchSound, params, NULL ) )
-	{
-		EmitSound_t ep( params );
-
-		ep.m_flVolume = GetSoundVolume();
-		ep.m_nPitch = GetVoicePitch();
-
-		EmitSound( filter, entindex(), ep );
-	}
-}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : pTask - 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::StartTask( const Task_t *pTask )
+void CHL1NPC_Headcrab::StartTask( const Task_t *pTask )
 {
 	switch ( pTask->iTask )
 	{
 		case TASK_RANGE_ATTACK1:
 		{
 			SetIdealActivity( ACT_RANGE_ATTACK1 );
-			SetTouch( &CNPC_Headcrab::LeapTouch );
+			SetTouch( &CHL1NPC_Headcrab::LeapTouch );
 			break;
 		}
 
@@ -186,7 +142,7 @@ void CNPC_Headcrab::StartTask( const Task_t *pTask )
 // Purpose: 
 // Input  : *pTask - 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::RunTask( const Task_t *pTask )
+void CHL1NPC_Headcrab::RunTask( const Task_t *pTask )
 {
 	switch ( pTask->iTask )
 	{
@@ -213,7 +169,7 @@ void CNPC_Headcrab::RunTask( const Task_t *pTask )
 // Purpose: 
 // Output : 
 //-----------------------------------------------------------------------------
-int CNPC_Headcrab::SelectSchedule( void )
+int CHL1NPC_Headcrab::SelectSchedule( void )
 {
 	switch ( m_NPCState )
 	{
@@ -254,7 +210,7 @@ int CNPC_Headcrab::SelectSchedule( void )
 // Input   :
 // Output  :
 //------------------------------------------------------------------------------
-void CNPC_Headcrab::Touch( CBaseEntity *pOther )
+void CHL1NPC_Headcrab::Touch( CBaseEntity *pOther )
 { 
 	// If someone has smacked me into a wall then gib!
 /*	if (m_NPCState == NPC_STATE_DEAD) 
@@ -288,7 +244,7 @@ void CNPC_Headcrab::Touch( CBaseEntity *pOther )
 //			bitsDamageType - 
 // Output : 
 //-----------------------------------------------------------------------------
-int CNPC_Headcrab::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
+int CHL1NPC_Headcrab::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {
 	CTakeDamageInfo info = inputInfo;
 
@@ -303,7 +259,7 @@ int CNPC_Headcrab::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	return BaseClass::OnTakeDamage_Alive( info );
 }
 
-float CNPC_Headcrab::GetDamageAmount( void )
+float CHL1NPC_Headcrab::GetDamageAmount( void )
 {
 	return sk_headcrab_dmg_bite.GetFloat();
 }
@@ -313,7 +269,7 @@ float CNPC_Headcrab::GetDamageAmount( void )
 // Input  : Type - 
 // Output : CAI_Schedule *
 //-----------------------------------------------------------------------------
-int CNPC_Headcrab::TranslateSchedule( int scheduleType )
+int CHL1NPC_Headcrab::TranslateSchedule( int scheduleType )
 {
 	switch( scheduleType )
 	{
@@ -330,7 +286,7 @@ int CNPC_Headcrab::TranslateSchedule( int scheduleType )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::PrescheduleThink( void )
+void CHL1NPC_Headcrab::PrescheduleThink( void )
 {
 	BaseClass::PrescheduleThink();
 	
@@ -348,7 +304,7 @@ void CNPC_Headcrab::PrescheduleThink( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-int CNPC_Headcrab::RangeAttack1Conditions ( float flDot, float flDist )
+int CHL1NPC_Headcrab::RangeAttack1Conditions ( float flDot, float flDist )
 {
 	if ( gpGlobals->curtime < m_flNextAttack )
 	{
@@ -377,7 +333,7 @@ int CNPC_Headcrab::RangeAttack1Conditions ( float flDot, float flDist )
 // Purpose: Indicates this monster's place in the relationship table.
 // Output : 
 //-----------------------------------------------------------------------------
-Class_T	CNPC_Headcrab::Classify( void )
+Class_T	CHL1NPC_Headcrab::Classify( void )
 {
 	return CLASS_ALIEN_PREY; 
 }
@@ -388,7 +344,7 @@ Class_T	CNPC_Headcrab::Classify( void )
 //			than the actual creature so this is needed for targetting.
 // Output : Vector
 //-----------------------------------------------------------------------------
-Vector CNPC_Headcrab::Center( void )
+Vector CHL1NPC_Headcrab::Center( void )
 {
 	return Vector( GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z + 6 );
 }
@@ -399,7 +355,7 @@ Vector CNPC_Headcrab::Center( void )
 // Input  : &posSrc - 
 // Output : Vector
 //-----------------------------------------------------------------------------
-Vector CNPC_Headcrab::BodyTarget( const Vector &posSrc, bool bNoisy ) 
+Vector CHL1NPC_Headcrab::BodyTarget( const Vector &posSrc, bool bNoisy ) 
 { 
 	return( Center() );
 }
@@ -410,7 +366,7 @@ Vector CNPC_Headcrab::BodyTarget( const Vector &posSrc, bool bNoisy )
 // Input  :
 // Output : 
 //-----------------------------------------------------------------------------
-float CNPC_Headcrab::MaxYawSpeed ( void )
+float CHL1NPC_Headcrab::MaxYawSpeed ( void )
 {
 	switch ( GetActivity() )
 	{
@@ -445,7 +401,7 @@ float CNPC_Headcrab::MaxYawSpeed ( void )
 // Purpose: LeapTouch - this is the headcrab's touch function when it is in the air.
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::LeapTouch( CBaseEntity *pOther )
+void CHL1NPC_Headcrab::LeapTouch( CBaseEntity *pOther )
 {
 	if ( pOther->Classify() == Classify() )
 	{
@@ -466,15 +422,26 @@ void CNPC_Headcrab::LeapTouch( CBaseEntity *pOther )
 // Purpose: Make the sound of this headcrab chomping a target.
 // Input  : 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::BiteSound( void )
+void CHL1NPC_Headcrab::BiteSound( void )
 {
-	HeadCrabSound( "Headcrab.Bite" );
+	CPASAttenuationFilter filter( this, ATTN_IDLE );
+
+	CSoundParameters params;
+	if ( GetParametersForSound( "Headcrab.Bite", params, NULL ) )
+	{
+		EmitSound_t ep( params );
+
+		ep.m_flVolume = GetSoundVolume();
+		ep.m_nPitch = GetVoicePitch();
+
+		EmitSound( filter, entindex(), ep );
+	}
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Deal the damage from the headcrab's touch attack.
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::TouchDamage( CBaseEntity *pOther )
+void CHL1NPC_Headcrab::TouchDamage( CBaseEntity *pOther )
 {
 	CTakeDamageInfo info( this, this, GetDamageAmount(), DMG_SLASH );
 	CalculateMeleeDamageForce( &info, GetAbsVelocity(), GetAbsOrigin() );
@@ -487,7 +454,7 @@ void CNPC_Headcrab::TouchDamage( CBaseEntity *pOther )
 //			animation frames are played.
 // Input  : *pEvent - 
 //-----------------------------------------------------------------------------
-void CNPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
+void CHL1NPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
 {
 	switch ( pEvent->event )
 	{
@@ -506,7 +473,7 @@ void CNPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
 			{
 				Vector vecEnemyEyePos = pEnemy->EyePosition();
 
-				float gravity = GetCurrentGravity();
+				float gravity = sv_gravity.GetFloat();
 				if ( gravity <= 1 )
 				{
 					gravity = 1;
@@ -576,9 +543,9 @@ void CNPC_Headcrab::HandleAnimEvent( animevent_t *pEvent )
 	}
 }
 
-void CNPC_Headcrab::AttackSound( void )
+void CHL1NPC_Headcrab::AttackSound( void )
 {
-	HeadCrabSound( "Headcrab.Attack" );
+	EmitSound( "Headcrab.Attack" );
 }
 
 
@@ -588,7 +555,7 @@ void CNPC_Headcrab::AttackSound( void )
 //
 //------------------------------------------------------------------------------
 
-AI_BEGIN_CUSTOM_NPC( monster_headcrab, CNPC_Headcrab )
+AI_BEGIN_CUSTOM_NPC( monster_headcrab, CHL1NPC_Headcrab )
 
 	//=========================================================
 	// > SCHED_HEADCRAB_RANGE_ATTACK1
@@ -611,11 +578,11 @@ AI_BEGIN_CUSTOM_NPC( monster_headcrab, CNPC_Headcrab )
 	)
 	
 	//=========================================================
-	// > SCHED_FAST_HEADCRAB_RANGE_ATTACK1
+	// > SCHED_HL1_HEADCRAB_RANGE_ATTACK1
 	//=========================================================
 	DEFINE_SCHEDULE
 	(
-		SCHED_FAST_HEADCRAB_RANGE_ATTACK1,
+		SCHED_HL1_HEADCRAB_RANGE_ATTACK1,
 	
 		"	Tasks"
 		"		TASK_STOP_MOVING			0"
@@ -631,9 +598,9 @@ AI_BEGIN_CUSTOM_NPC( monster_headcrab, CNPC_Headcrab )
 AI_END_CUSTOM_NPC()
 
 
-class CNPC_BabyCrab : public CNPC_Headcrab
+class CNPC_BabyCrab : public CHL1NPC_Headcrab
 {
-	DECLARE_CLASS( CNPC_BabyCrab, CNPC_Headcrab );
+	DECLARE_CLASS( CNPC_BabyCrab, CHL1NPC_Headcrab );
 public:
 	void Spawn( void );
 	void Precache( void );
@@ -660,7 +627,7 @@ unsigned int CNPC_BabyCrab::PhysicsSolidMaskForEntity( void ) const
 
 void CNPC_BabyCrab::Spawn( void )
 {
-	CNPC_Headcrab::Spawn();
+	CHL1NPC_Headcrab::Spawn();
 	SetModel( "models/baby_headcrab.mdl" );
 	m_nRenderMode = kRenderTransTexture;
 
@@ -668,13 +635,13 @@ void CNPC_BabyCrab::Spawn( void )
 
 	UTIL_SetSize(this, Vector(-12, -12, 0), Vector(12, 12, 24));
 	
-	m_iHealth	  = sk_headcrab_health.GetFloat() * 0.25;	// less health than full grown
+	m_iHealth	  = sk_hl1headcrab_health.GetFloat() * 0.25;	// less health than full grown
 }
 
 void CNPC_BabyCrab::Precache( void )
 {
 	PrecacheModel( "models/baby_headcrab.mdl" );
-	CNPC_Headcrab::Precache();
+	CHL1NPC_Headcrab::Precache();
 }
 
 int CNPC_BabyCrab::RangeAttack1Conditions( float flDot, float flDist )

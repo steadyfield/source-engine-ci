@@ -1601,10 +1601,9 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 			if ( !playerInPVS )
 			{
 				Warning( "Player isn't in the landmark's (%s) PVS, aborting\n", m_szLandmarkName );
-#ifndef HL1_DLL
-				// HL1 works even with these errors!
-				return;
-#endif
+
+				if(!HL2GameRules()->IsInHL1Map())
+					return;
 			}
 		}
 	}
@@ -2281,15 +2280,16 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 				pOther->SetAbsOrigin( origin );
 			}
 
-#ifdef HL1_DLL
-			// Apply the z velocity as a force so it counteracts gravity properly
-			Vector vecImpulse( 0, 0, vecPush.z * 0.025 );//magic hack number
+			if(HL2GameRules()->IsInHL1Map())
+			{
+				// Apply the z velocity as a force so it counteracts gravity properly
+				Vector vecImpulse( 0, 0, vecPush.z * 0.025 );//magic hack number
 
-			pOther->ApplyAbsVelocityImpulse( vecImpulse );
+				pOther->ApplyAbsVelocityImpulse( vecImpulse );
 
-			// apply x, y as a base velocity so we travel at constant speed on conveyors
-			vecPush.z = 0;
-#endif			
+				// apply x, y as a base velocity so we travel at constant speed on conveyors
+				vecPush.z = 0;
+			}
 
 			pOther->SetBaseVelocity( vecPush );
 			pOther->AddFlag( FL_BASEVELOCITY );
@@ -2390,20 +2390,16 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 	//
 	const QAngle *pAngles = NULL;
 	Vector *pVelocity = NULL;
-
-#ifdef HL1_DLL
-	Vector vecZero(0,0,0);		
-#endif
+	Vector vecZero(0,0,0);
 
 	if (!pentLandmark && !HasSpawnFlags(SF_TELEPORT_PRESERVE_ANGLES) )
 	{
 		pAngles = &pentTarget->GetAbsAngles();
 
-#ifdef HL1_DLL
-		pVelocity = &vecZero;
-#else
-		pVelocity = NULL;	//BUGBUG - This does not set the player's velocity to zero!!!
-#endif
+		if(HL2GameRules()->IsInHL1Map())
+			pVelocity = &vecZero;
+		else
+			pVelocity = NULL;	//BUGBUG - This does not set the player's velocity to zero!!!
 	}
 
 	tmp += vecLandmarkOffset;
@@ -2517,8 +2513,6 @@ LINK_ENTITY_TO_CLASS( trigger_autosave, CTriggerSave );
 //-----------------------------------------------------------------------------
 void CTriggerSave::Spawn( void )
 {
-	m_minHitPoints = 1;
-
 	if ( g_pGameRules->IsDeathmatch() )
 	{
 		UTIL_Remove( this );
@@ -2536,7 +2530,7 @@ void CTriggerSave::Spawn( void )
 void CTriggerSave::Touch( CBaseEntity *pOther )
 {
 	// Only save on clients
-	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
+	if ( !pOther->IsPlayer() )
 		return;
 
 	if ( m_fDangerousTimer != 0.0f )
@@ -3086,8 +3080,13 @@ void CTriggerCamera::Enable( void )
 		if ( m_pPath->m_flSpeed != 0 )
 			m_targetSpeed = m_pPath->m_flSpeed;
 		
-		m_flStopTime += m_pPath->GetDelay();
-	}
+		// Compute the distance to the next path already:
+ 		m_vecMoveDir = m_pPath->GetLocalOrigin() - GetLocalOrigin();
+ 		m_moveDistance = VectorNormalize( m_vecMoveDir );
+ 		m_flStopTime = gpGlobals->curtime + m_pPath->GetDelay();
+  	}
+ 	else
+ 		m_moveDistance = 0.0f;
 
 
 	// copy over player information. If we're interpolating from
@@ -3127,7 +3126,7 @@ void CTriggerCamera::Enable( void )
 	}
 
 	// Only track if we have a target
-	if ( m_hTarget )
+	if ( m_hTarget || (m_moveDistance > 0 && m_pPath) || HasSpawnFlags( SF_CAMERA_PLAYER_INTERRUPT ) )
 	{
 		// follow the player down
 		SetThink( &CTriggerCamera::FollowTarget );
@@ -3202,13 +3201,7 @@ void CTriggerCamera::FollowTarget( )
 	if (m_hPlayer == NULL)
 		return;
 
-	if ( m_hTarget == NULL )
-	{
-		Disable();
-		return;
-	}
-
-	if ( !HasSpawnFlags(SF_CAMERA_PLAYER_INFINITE_WAIT) && (!m_hTarget || m_flReturnTime < gpGlobals->curtime) )
+	if ((!HasSpawnFlags(SF_CAMERA_PLAYER_INFINITE_WAIT) && (m_flReturnTime < gpGlobals->curtime)) || (!m_hTarget && !m_pPath))
 	{
 		Disable();
 		return;
@@ -3280,9 +3273,9 @@ void CTriggerCamera::FollowTarget( )
 		}
 	}
 
-	SetNextThink( gpGlobals->curtime );
-
 	Move();
+	
+	SetNextThink( gpGlobals->curtime );
 }
 
 void CTriggerCamera::Move()
@@ -3688,7 +3681,7 @@ public:
 			return IMotionEvent::SIM_NOTHING;
 
 		// Get a cosine modulated noise between 5 and 20 that is object specific
-		int nNoiseMod = 5+(intp)pObject%15; //
+		int nNoiseMod = 5+(intp)pObject%15; // 
 
 		// Turn wind yaw direction into a vector and add noise
 		QAngle vWindAngle = vec3_angle;	
@@ -4623,8 +4616,7 @@ void CTriggerVPhysicsMotion::StartTouch( CBaseEntity *pOther )
 #ifndef _XBOX
 	if ( m_ParticleTrail.m_strMaterialName != NULL_STRING )
 	{
-		CEntityParticleTrail *pTrail = CEntityParticleTrail::Create( pOther, m_ParticleTrail, this ); 
-		pTrail->SetShouldDeletedOnChangelevel( true );
+		CEntityParticleTrail::Create( pOther, m_ParticleTrail, this ); 
 	}
 #endif
 
@@ -4824,7 +4816,6 @@ void CServerRagdollTrigger::EndTouch(CBaseEntity *pOther)
 	}
 }
 
-#ifdef HL1_DLL
 //----------------------------------------------------------------------------------
 // func_friction
 //----------------------------------------------------------------------------------
@@ -4889,8 +4880,6 @@ void CFrictionModifier::EndTouch( CBaseEntity *pOther )
 		pOther->SetFriction( 1.0f );
 	}
 }
-
-#endif //HL1_DLL
 
 bool IsTriggerClass( CBaseEntity *pEntity )
 {

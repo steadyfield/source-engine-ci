@@ -10,6 +10,7 @@
 #include "hl2_player.h"
 #include "mathlib/mathlib.h"
 #include "entitylist.h"
+#include "hl2_suit_devices.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

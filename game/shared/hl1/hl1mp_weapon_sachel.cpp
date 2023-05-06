@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Satchel charge
 //
@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
+#include "NPCEvent.h"
 #include "hl1_basecombatweapon_shared.h"
 //#include "basecombatweapon.h"
 //#include "basecombatcharacter.h"
@@ -278,6 +278,10 @@ void CWeaponSatchel::Throw( void )
 
 void CWeaponSatchel::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	if ( !HasWeaponIdleTimeElapsed() )
 		return;
 
@@ -424,16 +428,16 @@ void CWeaponSatchel::OnRestore( void )
 
 #ifndef CLIENT_DLL
 //-----------------------------------------------------------------------------
-// CSatchelCharge
+// CHL1SatchelCharge
 //-----------------------------------------------------------------------------
 
 #define SATCHEL_CHARGE_MODEL "models/w_satchel.mdl"
 
 
-extern ConVar sk_plr_dmg_satchel;
+extern ConVar sk_plr_dmg_hl1satchel;
 
 
-BEGIN_DATADESC( CSatchelCharge )
+BEGIN_DATADESC( CHL1SatchelCharge )
 	DEFINE_FIELD( m_flNextBounceSoundTime, FIELD_TIME ),
 	DEFINE_FIELD( m_bInAir, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_vLastPosition, FIELD_POSITION_VECTOR ),
@@ -444,20 +448,20 @@ BEGIN_DATADESC( CSatchelCharge )
 	DEFINE_USEFUNC( SatchelUse ),
 END_DATADESC()
 
-LINK_ENTITY_TO_CLASS( monster_satchel, CSatchelCharge );
+LINK_ENTITY_TO_CLASS( monster_satchel, CHL1SatchelCharge );
 
 //=========================================================
 // Deactivate - do whatever it is we do to an orphaned 
 // satchel when we don't want it in the world anymore.
 //=========================================================
-void CSatchelCharge::Deactivate( void )
+void CHL1SatchelCharge::Deactivate( void )
 {
 	AddSolidFlags( FSOLID_NOT_SOLID );
 	UTIL_Remove( this );
 }
 
 
-void CSatchelCharge::Spawn( void )
+void CHL1SatchelCharge::Spawn( void )
 {
 	Precache( );
 	// motor
@@ -468,12 +472,12 @@ void CSatchelCharge::Spawn( void )
 
 	UTIL_SetSize( this, Vector( -4, -4, 0), Vector(4, 4, 8) );
 
-	SetTouch( &CSatchelCharge::SatchelTouch );
-	SetUse( &CSatchelCharge::SatchelUse );
-	SetThink( &CSatchelCharge::SatchelThink );
+	SetTouch( &CHL1SatchelCharge::SatchelTouch );
+	SetUse( &CHL1SatchelCharge::SatchelUse );
+	SetThink( &CHL1SatchelCharge::SatchelThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	m_flDamage		= sk_plr_dmg_satchel.GetFloat();
+	m_flDamage		= sk_plr_dmg_hl1satchel.GetFloat();
 	m_DmgRadius		= m_flDamage * 2.5;
 	m_takedamage	= DAMAGE_NO;
 	m_iHealth		= 1;
@@ -493,7 +497,7 @@ void CSatchelCharge::Spawn( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CSatchelCharge::SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CHL1SatchelCharge::SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	SetThink( &CBaseGrenade::Detonate );
 	SetNextThink( gpGlobals->curtime );
@@ -504,7 +508,7 @@ void CSatchelCharge::SatchelUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CSatchelCharge::SatchelTouch( CBaseEntity *pOther )
+void CHL1SatchelCharge::SatchelTouch( CBaseEntity *pOther )
 {
 	Assert( pOther );
 	if ( pOther->IsSolidFlagSet(FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS) || GetWaterLevel() > 0 )
@@ -525,7 +529,7 @@ void CSatchelCharge::SatchelTouch( CBaseEntity *pOther )
 	SetLocalAngularVelocity( GetLocalAngularVelocity() * GetFriction() );
 }
 
-void CSatchelCharge::UpdateSlideSound( void )
+void CHL1SatchelCharge::UpdateSlideSound( void )
 {	
 	// HACKHACK - On ground isn't always set, so look for ground underneath
 	trace_t tr;
@@ -537,7 +541,7 @@ void CSatchelCharge::UpdateSlideSound( void )
 	}
 }
 
-void CSatchelCharge::SatchelThink( void )
+void CHL1SatchelCharge::SatchelThink( void )
 {
 	UpdateSlideSound();
 
@@ -571,13 +575,13 @@ void CSatchelCharge::SatchelThink( void )
 	SetAbsVelocity( vecNewVel );	
 }
 
-void CSatchelCharge::Precache( void )
+void CHL1SatchelCharge::Precache( void )
 {
 	PrecacheModel( SATCHEL_CHARGE_MODEL );
 	PrecacheScriptSound( "SatchelCharge.Bounce" );
 }
 
-void CSatchelCharge::BounceSound( void )
+void CHL1SatchelCharge::BounceSound( void )
 {
 	if ( gpGlobals->curtime > m_flNextBounceSoundTime )
 	{
@@ -592,7 +596,7 @@ void CSatchelCharge::BounceSound( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-CSatchelCharge::CSatchelCharge(void)
+CHL1SatchelCharge::CHL1SatchelCharge(void)
 {
 	m_vLastPosition.Init();
 }

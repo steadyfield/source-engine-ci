@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Ammo boxes for HL1
 //
@@ -35,7 +35,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_CROSSBOW_GIVE, "XBowBolt" ) )
+		if (pPlayer->GiveAmmo( AMMO_CROSSBOW_GIVE, "XBowDart" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -149,7 +149,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_GLOCK_GIVE, "9mmRound" ) )
+		if (pPlayer->GiveAmmo( AMMO_GLOCK_GIVE, "SMG1" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -189,7 +189,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_MP5_GIVE, "9mmRound" ) )
+		if (pPlayer->GiveAmmo( AMMO_MP5_GIVE, "SMG1" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -229,7 +229,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_MP5CHAIN_GIVE, "9mmRound" ) )
+		if (pPlayer->GiveAmmo( AMMO_MP5CHAIN_GIVE, "SMG1" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -267,7 +267,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_MP5GRENADE_GIVE, "MP5_Grenade" ) )
+		if (pPlayer->GiveAmmo( AMMO_MP5GRENADE_GIVE, "SMG1_Grenade" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -307,7 +307,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_357_GIVE, "357Round" ) )
+		if (pPlayer->GiveAmmo( AMMO_357_GIVE, "357" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -357,7 +357,7 @@ public:
 			nGive = AMMO_RPG_GIVE;
 		}
 
-		if (pPlayer->GiveAmmo( nGive, "RPG_Rocket" ) )
+		if (pPlayer->GiveAmmo( nGive, "RPG_Round" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{

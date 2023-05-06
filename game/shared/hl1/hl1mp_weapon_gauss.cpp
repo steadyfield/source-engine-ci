@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Gauss
 //
@@ -6,15 +6,15 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
-#include "hl1mp_basecombatweapon_shared.h"
+#include "NPCEvent.h"
+#include "hl1mp_weapon_gauss.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 #include "takedamageinfo.h"
 #ifdef CLIENT_DLL
-#include "hl1/hl1_c_player.h"
+#include "c_basehlplayer.h"
 #else
-#include "hl1_player.h"
+#include "hl2_player.h"
 #endif
 #include "gamerules.h"
 #include "in_buttons.h"
@@ -34,7 +34,7 @@
 #else
 #include "te_effect_dispatch.h"
 #endif
-#include "SoundEmitterSystem/isoundemittersystembase.h"
+#include "soundemittersystem/isoundemittersystembase.h"
 
 #define GAUSS_GLOW_SPRITE	"sprites/hotglow.vmt"
 #define GAUSS_BEAM_SPRITE	"sprites/smoke.vmt"
@@ -42,50 +42,6 @@
 
 extern ConVar sk_plr_dmg_gauss;
 
-#ifdef CLIENT_DLL
-#define CWeaponGauss C_WeaponGauss
-#endif
-
-//-----------------------------------------------------------------------------
-// CWeaponGauss
-//-----------------------------------------------------------------------------
-
-
-class CWeaponGauss : public CBaseHL1MPCombatWeapon
-{
-	DECLARE_CLASS( CWeaponGauss, CBaseHL1MPCombatWeapon );
-public:
-
-	DECLARE_NETWORKCLASS(); 
-	DECLARE_PREDICTABLE();
-
-	CWeaponGauss( void );
-
-	void	Precache( void );
-	void	PrimaryAttack( void );
-	void	SecondaryAttack( void );
-	void	WeaponIdle( void );
-	void	AddViewKick( void );
-	bool	Deploy( void );
-	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-
-//	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-
-private:
-	void	StopSpinSound( void );
-	float	GetFullChargeTime( void );
-	void	StartFire( void );
-	void	Fire( Vector vecOrigSrc, Vector vecDir, float flDamage );
-
-private:
-//	int			m_nAttackState;
-//	bool		m_bPrimaryFire;
-	CNetworkVar( int, m_nAttackState);
-	CNetworkVar( bool, m_bPrimaryFire);
-
-	CSoundPatch	*m_sndCharge;
-};
 
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponGauss, DT_WeaponGauss );
 
@@ -106,9 +62,8 @@ BEGIN_PREDICTION_DATA( CWeaponGauss )
 #endif
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_gauss, CWeaponGauss );
-
-PRECACHE_WEAPON_REGISTER( weapon_gauss );
+//LINK_ENTITY_TO_CLASS( hl1_gauss, CWeaponGauss );
+//PRECACHE_WEAPON_REGISTER( hl1_gauss );
 
 //IMPLEMENT_SERVERCLASS_ST( CWeaponGauss, DT_WeaponGauss )
 //END_SEND_TABLE()
@@ -195,7 +150,14 @@ void CWeaponGauss::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponGauss::SecondaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -349,13 +311,22 @@ void CWeaponGauss::StartFire( void )
 {
 	float flDamage;
 	
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
 	}
+	
+	CBasePlayer *pBasePlayer = ToBasePlayer( GetOwner() );
 
-	Vector vecAiming	= pPlayer->GetAutoaimVector( 0 );
+	Vector vecAiming	= pBasePlayer->GetAutoaimVector( 0 ); //Because of cource the HL2 player does something different here that breaks this...
 	Vector vecSrc		= pPlayer->Weapon_ShootPosition( );
 
 	if ( gpGlobals->curtime - pPlayer->m_flStartCharge > GetFullChargeTime() )
@@ -634,7 +605,18 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 
 void CWeaponGauss::WeaponIdle( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer;
+#else
+	CHL2_Player *pPlayer;
+#endif
+
+	pPlayer = ToHL2Player( GetOwner() );
+
 	if ( !pPlayer )
 	{
 		return;
@@ -686,7 +668,13 @@ bool CWeaponGauss::Deploy( void )
 {
 	if ( DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), ACT_VM_DRAW, (char*)GetAnimPrefix() ) )
 	{
-		CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+#ifdef CLIENT_DLL
+		C_BaseHLPlayer *pPlayer;
+#else
+		CHL2_Player *pPlayer;
+#endif
+
+		pPlayer = ToHL2Player( GetOwner() );
 		if ( pPlayer )
 		{
 			pPlayer->m_flPlayAftershock = 0.0;

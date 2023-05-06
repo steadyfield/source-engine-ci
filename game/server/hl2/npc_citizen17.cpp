@@ -17,11 +17,7 @@
 #include "items.h"
 
 
-#ifdef HL2MP
-#include "hl2mp/weapon_crowbar.h"
-#else
-#include "weapon_crowbar.h"
-#endif
+#include "weapon_mattspipe.h" //SMOD: Changed to MattsPipe custom entity class
 
 #include "eventqueue.h"
 
@@ -50,6 +46,7 @@ extern ConVar sk_healthvial;
 const int MAX_PLAYER_SQUAD = 4;
 
 ConVar	sk_citizen_health				( "sk_citizen_health",					"0");
+ConVar	sk_citizen_e_health				( "sk_citizen_e_health",				"0");
 ConVar	sk_citizen_heal_player			( "sk_citizen_heal_player",				"25");
 ConVar	sk_citizen_heal_player_delay	( "sk_citizen_heal_player_delay",		"25");
 ConVar	sk_citizen_giveammo_player_delay( "sk_citizen_giveammo_player_delay",	"10");
@@ -239,17 +236,6 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class CMattsPipe : public CWeaponCrowbar
-{
-	DECLARE_CLASS( CMattsPipe, CWeaponCrowbar );
-
-	const char *GetWorldModel() const	{ return "models/props_canal/mattpipe.mdl"; }
-	void SetPickupTouch( void )	{	/* do nothing */ }
-};
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 //---------------------------------------------------------
 // Citizen models
 //---------------------------------------------------------
@@ -279,6 +265,10 @@ static const char *g_ppszModelLocs[] =
 	"Group01",
 	"Group02",
 	"Group03%s",
+	"this_has_to_be_here_because_of_how_the_group_systems_work_thanks_valve",
+	"group_gasmask",
+	"group_metrocop",
+	"group_ct",
 };
 
 #define IsExcludedHead( type, bMedic, iHead) false // see XBox codeline for an implementation
@@ -583,6 +573,10 @@ void CNPC_Citizen::SelectModel()
 		PrecacheAllOfType( CT_DOWNTRODDEN );
 		PrecacheAllOfType( CT_REFUGEE );
 		PrecacheAllOfType( CT_REBEL );
+		PrecacheAllOfType( CT_SEALTEAM );
+		PrecacheAllOfType( CT_METROCOP );
+		PrecacheModel("models/humans/group_gasmask/male.mdl");
+		PrecacheModel("models/humans/group_gasmask/female.mdl");
 	}
 
 	const char *pszModelName = NULL;
@@ -604,6 +598,15 @@ void CNPC_Citizen::SelectModel()
 			{ "prison",			CT_DOWNTRODDEN	},
 			{ "c17",			CT_REBEL		},
 			{ "citadel",		CT_DOWNTRODDEN	},
+
+			//SMOD: Lets get some more in here...
+			{ "ep1",			CT_REBEL		},
+			{ "ep2",			CT_REBEL		},
+			{ "cs",				CT_SEALTEAM		},
+			{ "de",				CT_SEALTEAM		},
+			{ "dod",			CT_DOWNTRODDEN	},
+			{ "sdk",			CT_REBEL		},
+			
 		};
 
 		char szMapName[256];
@@ -711,10 +714,21 @@ void CNPC_Citizen::SelectModel()
 			return;
 	}
 
-	// Unique citizen models are left alone
-	if ( m_Type != CT_UNIQUE )
+	//Gasmask citizens only have 2 models to save redundancy
+	if (m_Type == CT_GASMASK)
 	{
-		SetModelName( AllocPooledString( CFmtStr( "models/Humans/%s/%s", (const char *)(CFmtStr(g_ppszModelLocs[ m_Type ], ( IsMedic() ) ? "m" : "" )), pszModelName ) ) );
+		if (!Q_strnicmp(pszModelName, "female", 6))
+			SetModelName(AllocPooledString(CFmtStr("models/Humans/%s/female.mdl", (const char *)(CFmtStr(g_ppszModelLocs[m_Type], (IsMedic()) ? "m" : "")))));
+		else
+			SetModelName(AllocPooledString(CFmtStr("models/Humans/%s/male.mdl", (const char *)(CFmtStr(g_ppszModelLocs[m_Type], (IsMedic()) ? "m" : "")))));
+
+		return;
+	}
+
+	// Unique citizen models are left alone
+	if (m_Type != CT_UNIQUE)
+	{
+		SetModelName(AllocPooledString(CFmtStr("models/Humans/%s/%s", (const char *)(CFmtStr(g_ppszModelLocs[m_Type], (IsMedic()) ? "m" : "")), pszModelName)));
 	}
 }
 
@@ -755,7 +769,7 @@ void CNPC_Citizen::FixupMattWeapon()
 	{
 		Weapon_Drop( pWeapon );
 		UTIL_Remove( pWeapon );
-		pWeapon = (CBaseCombatWeapon *)CREATE_UNSAVED_ENTITY( CMattsPipe, "weapon_crowbar" );
+		pWeapon = (CBaseCombatWeapon *)CREATE_UNSAVED_ENTITY( CMattsPipe, "weapon_mattspipe" ); //SMOD: Changed to it's own class so the player can use his pipe
 		pWeapon->SetName( AllocPooledString( "matt_weapon" ) );
 		DispatchSpawn( pWeapon );
 
@@ -4263,3 +4277,39 @@ int CNPC_Citizen::DrawDebugTextOverlays( void )
 	}
 	return text_offset;
 }
+
+//SMOD: Enemy citizen npc
+class CNPC_CitizenEnenmy : public CNPC_Citizen
+{
+	DECLARE_CLASS(CNPC_CitizenEnenmy, CNPC_Citizen);
+	Class_T Classify(void);
+	void Spawn();
+};
+
+LINK_ENTITY_TO_CLASS(npc_citizen_enemy, CNPC_CitizenEnenmy);
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Output : 
+//-----------------------------------------------------------------------------
+Class_T	CNPC_CitizenEnenmy::Classify(void)
+{
+	return	CLASS_COMBINE;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CNPC_CitizenEnenmy::Spawn(void)
+{
+	Precache();
+
+	CNPC_Citizen::Spawn(); //Direct call to the base base class because otherwise this gets fuk'd
+
+	NPCInit();
+
+	SetUse(NULL); //Evil NPC has no use function
+
+	m_iHealth = sk_citizen_e_health.GetInt();
+}
+

@@ -38,7 +38,7 @@ ConVar sk_bigmomma_dmg_slash( "sk_bigmomma_dmg_slash", "50" );
 ConVar sk_bigmomma_dmg_blast( "sk_bigmomma_dmg_blast", "100" );
 ConVar sk_bigmomma_radius_blast( "sk_bigmomma_radius_blast", "250" );
 
-float GetCurrentGravity( void );
+extern ConVar sv_gravity;
 
 
 //=========================================================
@@ -987,7 +987,7 @@ void CNPC_BigMomma::LayHeadcrab( void )
 
 	trace_t tr;
 	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,100), MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
-	UTIL_DecalTrace( &tr, "MommaBlob" );
+	UTIL_DecalTrace( &tr, "Splash" );
 
 	CPASAttenuationFilter filter( this );
 	EmitSound( filter, entindex(), "BigMomma.LayHeadcrab" );
@@ -1058,7 +1058,7 @@ Vector VecCheckSplatToss( CBaseEntity *pEnt, const Vector &vecSpot1, Vector vecS
 	Vector			vecScale;
 	Vector			vecGrenadeVel;
 	Vector			vecTemp;
-	float			flGravity = GetCurrentGravity();
+	float			flGravity = sv_gravity.GetFloat();
 
 	// calculate the midpoint and apex of the 'triangle'
 	vecMidPoint = vecSpot1 + (vecSpot2 - vecSpot1) * 0.5;
@@ -1233,7 +1233,7 @@ void CBMortar::Touch( CBaseEntity *pOther )
 	{
 		// make a splat on the wall
 		UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + GetAbsVelocity() * 10, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
-		UTIL_DecalTrace( &tr, "MommaBlob" );
+		UTIL_DecalTrace( &tr, "Splash" );
 	}
 	else
 	{

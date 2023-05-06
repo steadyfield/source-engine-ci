@@ -189,7 +189,7 @@ void CNPC_HAssassin::Spawn()
 //=========================================================
 void CNPC_HAssassin::Precache()
 {
-	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
+	m_iAmmoType = GetAmmoDef()->Index("SMG1");
 
 	PrecacheModel("models/hassassin.mdl");
 
@@ -236,7 +236,7 @@ int CNPC_HAssassin::MeleeAttack1Conditions ( float flDot, float flDist )
 			return COND_TOO_CLOSE_TO_ATTACK;
 		}
 
-		float flGravity = GetCurrentGravity();
+		float flGravity = sv_gravity.GetFloat();
 
 		float time = sqrt( 160 / (0.5 * flGravity));
 		float speed = flGravity * time / 160;

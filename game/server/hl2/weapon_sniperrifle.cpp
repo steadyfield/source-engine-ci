@@ -17,7 +17,7 @@
 #include "basehlcombatweapon.h"
 #include "basecombatcharacter.h"
 #include "ai_basenpc.h"
-#include "player.h"
+#include "hl2_player.h"
 #include "gamerules.h"				// For g_pGameRules
 #include "in_buttons.h"
 #include "soundent.h"
@@ -69,6 +69,7 @@ public:
 	bool Reload( void );
 	void Zoom( void );
 	virtual float GetFireRate( void ) { return 1; };
+	const char *GetTracerType( void ) { return "AirboatGunHeavyTracer"; }
 
 	void Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
 
@@ -143,11 +144,18 @@ bool CWeaponSniperRifle::Holster( CBaseCombatWeapon *pSwitchingTo )
 		if ( m_nZoomLevel != 0 )
 		{
 			if ( pPlayer->SetFOV( this, 0 ) )
-			{
-				pPlayer->ShowViewModel(true);		
+			{	
 				m_nZoomLevel = 0;
 			}
 		}
+			
+		// Send a message to hide the scope
+		CSingleUserRecipientFilter filter(pPlayer);
+		UserMessageBegin(filter, "ShowScope");
+			WRITE_BYTE(0);
+		MessageEnd();
+		
+		pPlayer->ShowViewModel(true);
 	}
 
 	return BaseClass::Holster(pSwitchingTo);
@@ -266,11 +274,27 @@ void CWeaponSniperRifle::Precache( void )
 bool CWeaponSniperRifle::Reload( void )
 {
 	CBaseCombatCharacter *pOwner = GetOwner();
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+
 	if (!pOwner)
 	{
 		return false;
 	}
-		
+	
+	if (!m_nZoomLevel == 0)
+	{
+		pPlayer->SetFOV(this, 0);
+		m_nZoomLevel = 0;
+		pPlayer->ShowViewModel(true);
+		WeaponSound(SPECIAL2);	
+
+		// Send a message to hide the scope
+		CSingleUserRecipientFilter filter(pPlayer);
+		UserMessageBegin(filter, "ShowScope");
+			WRITE_BYTE(0);
+		MessageEnd();
+	}
+
 	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) > 0)
 	{
 		int primary		= MIN(GetMaxClip1() - m_iClip1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));
@@ -280,6 +304,7 @@ bool CWeaponSniperRifle::Reload( void )
 		{
 			// Play reload on different channel as it happens after every fire
 			// and otherwise steals channel away from fire sound
+
 			WeaponSound(RELOAD);
 			SendWeaponAnim( ACT_VM_RELOAD );
 
@@ -368,25 +393,37 @@ void CWeaponSniperRifle::Zoom( void )
 	{
 		if ( pPlayer->SetFOV( this, 0 ) )
 		{
-			pPlayer->ShowViewModel(true);
-			
 			// Zoom out to the default zoom level
 			WeaponSound(SPECIAL2);	
 			m_nZoomLevel = 0;
+			
+			// Send a message to hide the scope
+			CSingleUserRecipientFilter filter(pPlayer);
+			UserMessageBegin(filter, "ShowScope");
+				WRITE_BYTE(0);
+			MessageEnd();
+
+			pPlayer->ShowViewModel(true);
 		}
 	}
 	else
 	{
 		if ( pPlayer->SetFOV( this, g_nZoomFOV[m_nZoomLevel] ) )
 		{
-			if (m_nZoomLevel == 0)
-			{
-				pPlayer->ShowViewModel(false);
-			}
-
 			WeaponSound(SPECIAL1);
 			
 			m_nZoomLevel++;
+ 
+			if (m_nZoomLevel == 1)
+			{
+				// Send a message to Show the scope
+				CSingleUserRecipientFilter filter(pPlayer);
+				UserMessageBegin(filter, "ShowScope");
+					WRITE_BYTE(1);
+				MessageEnd();
+
+				pPlayer->ShowViewModel(false);
+			}
 		}
 	}
 

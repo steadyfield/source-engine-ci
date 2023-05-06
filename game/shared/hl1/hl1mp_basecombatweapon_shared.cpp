@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -11,11 +11,11 @@
 
 #ifdef CLIENT_DLL
 	#include "c_te_effect_dispatch.h"
+	#include "c_basehlplayer.h"
 #else
 	#include "te_effect_dispatch.h"
+	#include "hl2_player.h"
 #endif
-
-#include "hl1_player_shared.h"
 
 LINK_ENTITY_TO_CLASS( basehl1mpcombatweapon, CBaseHL1MPCombatWeapon );
 

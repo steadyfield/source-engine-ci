@@ -111,7 +111,14 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CNPC_Barney::SelectModel()
 {
-	SetModelName( AllocPooledString( BARNEY_MODEL ) );
+	//SetModelName( AllocPooledString( BARNEY_MODEL ) );
+	//SMOD: Barney has 2 models, one for default and 1 for episodic, so actually respect this value here
+	if (!Q_strnicmp(STRING(gpGlobals->mapname), "ep1", 3) || !Q_strnicmp(STRING(gpGlobals->mapname), "ep2", 3))
+		SetModelName(AllocPooledString("models/barney_ep2.mdl"));
+	else if (CBaseEntity::GetModelName() == NULL_STRING)
+		SetModelName(AllocPooledString("models/barney.mdl"));
+	else
+		SetModelName(CBaseEntity::GetModelName());
 }
 
 //-----------------------------------------------------------------------------
@@ -121,7 +128,7 @@ void CNPC_Barney::Spawn( void )
 {
 	Precache();
 
-	m_iHealth = 80;
+	m_iHealth = sk_barney_health.GetInt();
 
 	m_iszIdleExpression = MAKE_STRING("scenes/Expressions/BarneyIdle.vcd");
 	m_iszAlertExpression = MAKE_STRING("scenes/Expressions/BarneyAlert.vcd");

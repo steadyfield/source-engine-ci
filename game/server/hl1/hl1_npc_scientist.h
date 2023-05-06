@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -106,7 +106,7 @@ private:
 	float m_flFearTime;
 	float m_flHealTime;
 	float m_flPainTime;
-	//float	m_flResponseDelay;
+
 };
 
 //=========================================================
@@ -129,6 +129,9 @@ public:
 	void SittingThink( void );
 
 	virtual void SetAnswerQuestion( CNPCSimpleTalker *pSpeaker );
+
+	int		FIdleSpeak ( void );
+
 	int		m_baseSequence;	
 	int		m_iHeadTurn;
 	float	m_flResponseDelay;

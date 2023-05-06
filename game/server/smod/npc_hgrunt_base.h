@@ -1,0 +1,329 @@
+///========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//EDITED
+//=============================================================================//
+
+#ifndef NPC_HGruntBase_H
+#define NPC_HGruntBase_H
+#ifdef _WIN32
+#pragma once
+#endif
+
+#include "ai_basenpc.h"
+#include "ai_basehumanoid.h"
+#include "ai_behavior.h"
+#include "ai_behavior_assault.h"
+#include "ai_behavior_standoff.h"
+#include "ai_behavior_follow.h"
+#include "ai_behavior_functank.h"
+#include "ai_behavior_rappel.h"
+#include "ai_behavior_actbusy.h"
+#include "ai_sentence.h"
+#include "ai_baseactor.h"
+
+// Used when only what combine to react to what the spotlight sees
+#define SF_COMBINE_NO_LOOK	(1 << 16)
+#define SF_COMBINE_NO_GRENADEDROP ( 1 << 17 )
+#define SF_COMBINE_NO_AR2DROP ( 1 << 18 )
+
+//=========================================================
+//	>> CNPC_HGruntBase
+//=========================================================
+class CNPC_HGruntBase : public CAI_BaseActor
+{
+	DECLARE_DATADESC();
+	DEFINE_CUSTOM_AI;
+	DECLARE_CLASS(CNPC_HGruntBase, CAI_BaseActor);
+
+public:
+	CNPC_HGruntBase();
+
+	// Create components
+	virtual bool	CreateComponents();
+	bool			CanThrowGrenade(const Vector &vecTarget);
+	bool			CheckCanThrowGrenade(const Vector &vecTarget);
+	virtual	bool	CanGrenadeEnemy(bool bUseFreeKnowledge = true);
+	virtual bool	CanAltFireEnemy(bool bUseFreeKnowledge);
+	int				GetGrenadeConditions(float flDot, float flDist);
+	int				RangeAttack2Conditions(float flDot, float flDist); // For innate grenade attack
+	int				MeleeAttack1Conditions(float flDot, float flDist); // For kick/punch
+	bool			FVisible(CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL);
+	virtual bool	IsCurTaskContinuousMove();
+	//virtual float	GetIdealSpeed() const;
+	int		OnTakeDamage_Alive(const CTakeDamageInfo &info);
+	int	  GetCombineDmg(void) { return m_iSoldierdmg; }
+	int				m_iSoldierdmg;
+
+
+
+	virtual float	GetJumpGravity() const		{ return 1.8; } //1.8
+
+	virtual Vector  GetCrouchEyeOffset(void);
+
+	void Event_Killed(const CTakeDamageInfo &info);
+
+
+	void SetActivity(Activity NewActivity);
+	NPC_STATE		SelectIdealState(void);
+
+	// Input handlers.
+	void InputLookOn(inputdata_t &inputdata);
+	void InputLookOff(inputdata_t &inputdata);
+	void InputStartPatrolling(inputdata_t &inputdata);
+	void InputStopPatrolling(inputdata_t &inputdata);
+	void InputAssault(inputdata_t &inputdata);
+	void InputHitByBugbait(inputdata_t &inputdata);
+	void InputThrowGrenadeAtTarget(inputdata_t &inputdata);
+
+
+	bool			UpdateEnemyMemory(CBaseEntity *pEnemy, const Vector &position, CBaseEntity *pInformer = NULL);
+
+	void			Spawn(void);
+	void			Precache(void);
+	void			Activate();
+	float			CombineSpeed;
+
+	Class_T			Classify(void);
+	bool			IsElite() { return m_fIsElite; }
+	bool			IsRecon() { return m_fIsRecon; }
+	bool			IsReconLeader() { return m_fIsReconLeader; }
+	void			DelayAltFireAttack(float flDelay);
+	void			DelaySquadAltFireAttack(float flDelay);
+	float			MaxYawSpeed(void);
+	bool			ShouldMoveAndShoot();
+	bool			OverrideMoveFacing(const AILocalMoveGoal_t &move, float flInterval);;
+	void			HandleAnimEvent(animevent_t *pEvent);
+	Vector			Weapon_ShootPosition();
+
+	Vector			EyeOffset(Activity nActivity);
+	Vector			EyePosition(void);
+	Vector			BodyTarget(const Vector &posSrc, bool bNoisy = true);
+	Vector			GetAltFireTarget();
+
+	void			StartTask(const Task_t *pTask);
+	void			RunTask(const Task_t *pTask);
+	void			PostNPCInit();
+	void			GatherConditions();
+	virtual void	PrescheduleThink();
+
+	Activity		NPC_TranslateActivity(Activity eNewActivity);
+	void			BuildScheduleTestBits(void);
+	virtual int		SelectSchedule(void);
+	virtual int		SelectFailSchedule(int failedSchedule, int failedTask, AI_TaskFailureCode_t taskFailCode);
+	int				SelectScheduleAttack();
+	//int				SelectScheduleNewEnemy();
+
+
+	bool			CreateBehaviors();
+
+	bool			OnBeginMoveAndShoot();
+	void			OnEndMoveAndShoot();
+
+	// Combat
+	WeaponProficiency_t CalcWeaponProficiency(CBaseCombatWeapon *pWeapon);
+	bool			HasShotgun();
+	bool			ActiveWeaponIsFullyLoaded();
+
+	bool			HandleInteraction(int interactionType, void *data, CBaseCombatCharacter *sourceEnt);
+	const char*		GetSquadSlotDebugName(int iSquadSlot);
+
+	bool			IsUsingTacticalVariant(int variant);
+	bool			IsUsingPathfindingVariant(int variant) { return m_iPathfindingVariant == variant; }
+
+	bool			IsRunningApproachEnemySchedule();
+	// -------------
+	// Sounds
+	// -------------
+	void			DeathSound(void);
+	void			PainSound(void);
+	void			IdleSound(void);
+	void			AlertSound(void);
+	void			LostEnemySound(void);
+	void			FoundEnemySound(void);
+	void			AnnounceAssault(void);
+	void			AnnounceEnemyType(CBaseEntity *pEnemy);
+	void			AnnounceEnemyKill(CBaseEntity *pEnemy);
+	void			NotifyDeadFriend(CBaseEntity* pFriend);
+
+
+	virtual float	HearingSensitivity(void) { return 1.0; };
+	int				GetSoundInterests(void);
+	virtual bool	QueryHearSound(CSound *pSound);
+
+	// Speaking
+	void			SpeakSentence(int sentType);
+
+	virtual int		TranslateSchedule(int scheduleType);
+	void			OnStartSchedule(int scheduleType);
+	virtual bool	ShouldPickADeathPose(void);
+
+protected:
+	void			SetKickDamage(int nDamage) { m_nKickDamage = nDamage; }
+	CAI_Sentence< CNPC_HGruntBase > *GetSentences() { return &m_Sentences; }
+
+private:
+	//=========================================================
+	// Combine S schedules
+	//=========================================================
+	enum
+	{
+		SCHED_HECUGRUNT_SUPPRESS = BaseClass::NEXT_SCHEDULE,
+		SCHED_HECUGRUNT_COMBAT_FAIL,
+		SCHED_HECUGRUNT_VICTORY_DANCE,
+		SCHED_HECUGRUNT_COMBAT_FACE,
+		SCHED_HECUGRUNT_HIDE_AND_RELOAD,
+		SCHED_HECUGRUNT_SIGNAL_SUPPRESS,
+		SCHED_HECUGRUNT_ENTER_OVERWATCH,
+		SCHED_HECUGRUNT_OVERWATCH,
+		SCHED_HECUGRUNT_ASSAULT,
+		SCHED_HECUGRUNT_ESTABLISH_LINE_OF_FIRE,
+		SCHED_HECUGRUNT_PRESS_ATTACK,
+		SCHED_HECUGRUNT_FLANK_ENEMY,
+		SCHED_HECUGRUNT_WAIT_IN_COVER,
+		SCHED_HECUGRUNT_WAIT_IN_COVER2,
+		SCHED_HECUGRUNT_RANGE_ATTACK1,
+		SCHED_HECUGRUNT_RANGE_ATTACK2,
+		SCHED_HECUGRUNT_TAKE_COVER1,
+		SCHED_HECUGRUNT_TAKE_COVER2,
+		SCHED_HECUGRUNT_TAKE_SPREAD_COVER,
+		SCHED_HECUGRUNT_TAKE_COVER_FROM_BEST_SOUND,
+		SCHED_HECUGRUNT_RUN_AWAY_FROM_BEST_SOUND,
+		SCHED_HECUGRUNT_GRENADE_COVER1,
+		SCHED_HECUGRUNT_TOSS_GRENADE_COVER1,
+		SCHED_HECUGRUNT_TAKECOVER_FAILED,
+		SCHED_HECUGRUNT_GRENADE_AND_RELOAD,
+		SCHED_HECUGRUNT_PATROL,
+		SCHED_HECUGRUNT_BUGBAIT_DISTRACTION,
+		SCHED_HECUGRUNT_CHARGE_TURRET,
+		SCHED_HECUGRUNT_DROP_GRENADE,
+		SCHED_HECUGRUNT_CHARGE_PLAYER,
+		SCHED_HECUGRUNT_PATROL_ENEMY,
+		SCHED_HECUGRUNT_BURNING_STAND,
+		SCHED_HECUGRUNT_AR2_ALTFIRE,
+		SCHED_HECUGRUNT_FORCED_GRENADE_THROW,
+		SCHED_HECUGRUNT_MOVE_TO_FORCED_GREN_LOS,
+		SCHED_HECUGRUNT_MOVE_TO_FLUSH_GREN_LOS,
+		SCHED_HECUGRUNT_FACE_IDEAL_YAW,
+		SCHED_HECUGRUNT_MOVE_TO_MELEE,
+		SCHED_HECUGRUNT_FLINCH,
+		SCHED_HECUGRUNT_FLINCH_END,
+		SCHED_HECUGRUNT_MOVE_TO_GRENADE_POSITION,
+		SCHED_HECUGRUNT_SPREAD_OUT,
+
+		NEXT_SCHEDULE,
+	};
+
+	//=========================================================
+	// Combine Tasks
+	//=========================================================
+	enum
+	{
+		TASK_HECUGRUNT_FACE_TOSS_DIR = BaseClass::NEXT_TASK,
+		TASK_HECUGRUNT_IGNORE_ATTACKS,
+		TASK_HECUGRUNT_SIGNAL_BEST_SOUND,
+		TASK_HECUGRUNT_DEFER_SQUAD_GRENADES,
+		TASK_HECUGRUNT_CHASE_ENEMY_CONTINUOUSLY,
+		TASK_HECUGRUNT_DIE_INSTANTLY,
+		TASK_HECUGRUNT_PLAY_SEQUENCE_FACE_ALTFIRE_TARGET,
+		TASK_HECUGRUNT_GET_PATH_TO_FORCED_GREN_LOS,
+		TASK_HECUGRUNT_GET_PATH_TO_FLUSH_GREN_LOS,
+		TASK_HECUGRUNT_SET_STANDING,
+		TASK_HECUGRUNT_BEGIN_FLANK,
+		TASK_HECUGRUNT_MOVE_TO_GRENADE_POSITION,
+		TASK_HECUGRUNT_FIND_SPREAD_POSITION,
+		NEXT_TASK
+	};
+
+	//=========================================================
+	// Combine Conditions
+	//=========================================================
+	enum Combine_Conds
+	{
+		COND_COMBINE_NO_FIRE = BaseClass::NEXT_CONDITION,
+		COND_COMBINE_DEAD_FRIEND,
+		COND_COMBINE_SHOULD_PATROL,
+		COND_COMBINE_HIT_BY_BUGBAIT,
+		COND_COMBINE_DROP_GRENADE,
+		COND_COMBINE_ON_FIRE,
+		COND_CANNOT_THROW,
+		COND_COMBINE_ATTACK_SLOT_AVAILABLE,
+		NEXT_CONDITION
+	};
+
+private:
+
+	string_t		m_iszHackClassname;
+	// Select the combat schedule
+	int SelectCombatSchedule();
+
+	// Should we charge the player?
+	bool ShouldChargePlayer();
+
+	// Chase the enemy, updating the target position as the player moves
+	void StartTaskChaseEnemyContinuously(const Task_t *pTask);
+	void RunTaskChaseEnemyContinuously(const Task_t *pTask);
+
+	class CCombineStandoffBehavior : public CAI_ComponentWithOuter<CNPC_HGruntBase, CAI_StandoffBehavior>
+	{
+		typedef CAI_ComponentWithOuter<CNPC_HGruntBase, CAI_StandoffBehavior> BaseClass;
+
+		virtual int SelectScheduleAttack()
+		{
+			int result = GetOuter()->SelectScheduleAttack();
+			if (result == SCHED_NONE)
+				result = BaseClass::SelectScheduleAttack();
+			return result;
+		}
+	};
+
+	// Rappel
+	virtual bool IsWaitingToRappel(void) { return m_RappelBehavior.IsWaitingToRappel(); }
+	void BeginRappel() { m_RappelBehavior.BeginRappel(); }
+
+private:
+
+	int				m_nKickDamage;
+	Vector			m_vecTossVelocity;
+	EHANDLE			m_hForcedGrenadeTarget;
+	EHANDLE			m_hFlushGrenadeTarget;
+	bool			m_bShouldPatrol;
+	bool			m_bFirstEncounter;// only put on the handsign show in the squad's first encounter.
+
+
+
+	// Time Variables
+	float			m_flNextPainSoundTime;
+	float			m_flNextAlertSoundTime;
+	float			m_flNextGrenadeCheck;
+	float			m_flNextGrenadeRunCheck;
+	float			m_flNextDeployCheck;
+	float			m_flNextLostSoundTime;
+	float			m_flAlertPatrolTime;		// When to stop doing alert patrol
+	float			m_flNextAltFireTime;		// Elites only. Next time to begin considering alt-fire attack.
+	int				m_nShots;
+	float			m_flShotDelay;
+	float			m_flStopMoveShootTime;
+
+	CAI_Sentence< CNPC_HGruntBase > m_Sentences;
+
+	int			m_iNumGrenades;
+	CAI_AssaultBehavior			m_AssaultBehavior;
+	CCombineStandoffBehavior	m_StandoffBehavior;
+	CAI_FollowBehavior			m_FollowBehavior;
+	CAI_FuncTankBehavior		m_FuncTankBehavior;
+	CAI_RappelBehavior			m_RappelBehavior;
+	CAI_ActBusyBehavior			m_ActBusyBehavior;
+
+public:
+	int				m_iLastAnimEventHandled;
+	bool			m_fIsElite;
+	bool			m_fIsReconLeader;
+	bool			m_fIsRecon;
+	Vector			m_vecAltFireTarget;
+
+	int				m_iTacticalVariant;
+	int				m_iPathfindingVariant;
+};
+
+#endif // NPC_HGruntBase_H

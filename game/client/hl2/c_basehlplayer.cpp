@@ -31,6 +31,13 @@ ConVar cl_npc_speedmod_outtime( "cl_npc_speedmod_outtime", "1.5", FCVAR_CLIENTDL
 IMPLEMENT_CLIENTCLASS_DT(C_BaseHLPlayer, DT_HL2_Player, CHL2_Player)
 	RecvPropDataTable( RECVINFO_DT(m_HL2Local),0, &REFERENCE_RECV_TABLE(DT_HL2Local) ),
 	RecvPropBool( RECVINFO( m_fIsSprinting ) ),
+
+	//SMOD: HL1 Port
+	RecvPropInt( RECVINFO( m_bHasLongJump ) ),
+	RecvPropFloat( RECVINFO( m_flStartCharge ) ),
+	RecvPropFloat( RECVINFO( m_flAmmoStartCharge ) ),
+	RecvPropFloat( RECVINFO( m_flPlayAftershock ) ),
+	RecvPropFloat( RECVINFO( m_flNextAmmoBurn ) )
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_BaseHLPlayer )
@@ -66,6 +73,9 @@ C_BaseHLPlayer::C_BaseHLPlayer()
 	m_flZoomRate		= 0.0f;
 	m_flZoomStartTime	= 0.0f;
 	m_flSpeedMod		= cl_forwardspeed.GetFloat();
+	
+	ConVarRef scissor( "r_flashlightscissor" );
+	scissor.SetValue( "0" );
 }
 
 //-----------------------------------------------------------------------------

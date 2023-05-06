@@ -10,6 +10,8 @@
 #include "npc_metropolice.h"
 #include "weapon_stunstick.h"
 #include "IEffects.h"
+#include "basebludgeonweapon.h"
+#include "rumble_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -18,6 +20,12 @@ ConVar    sk_plr_dmg_stunstick	( "sk_plr_dmg_stunstick","0");
 ConVar    sk_npc_dmg_stunstick	( "sk_npc_dmg_stunstick","0");
 
 extern ConVar metropolice_move_and_melee;
+
+#define BLUDGEON_HULL_DIM		16
+
+static const Vector g_bludgeonMins(-BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM);
+static const Vector g_bludgeonMaxs(BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM);
+
 
 //-----------------------------------------------------------------------------
 // CWeaponStunStick
@@ -86,7 +94,7 @@ void CWeaponStunStick::Precache()
 //-----------------------------------------------------------------------------
 float CWeaponStunStick::GetDamageForActivity( Activity hitActivity )
 {
-	if ( ( GetOwner() != NULL ) && ( GetOwner()->IsPlayer() ) )
+	if ( ( GetOwner()->IsPlayer() ) )
 		return sk_plr_dmg_stunstick.GetFloat();
 	
 	return sk_npc_dmg_stunstick.GetFloat();

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -10,20 +10,20 @@
 #include "scripted.h"
 #include "soundent.h"
 #include "animation.h"
-#include "entitylist.h"
-#include "ai_navigator.h"
-#include "ai_motor.h"
+#include "EntityList.h"
+#include "AI_Navigator.h"
+#include "AI_Motor.h"
 #include "player.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
-#include "npcevent.h"
+#include "NPCevent.h"
 #include "ai_interactions.h"
 #include "doors.h"
 
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
 #include "hl1_ai_basenpc.h"
-#include "SoundEmitterSystem/isoundemittersystembase.h"
+#include "soundemittersystem/isoundemittersystembase.h"
 
 ConVar hl1_debug_sentence_volume( "hl1_debug_sentence_volume", "0" );
 ConVar hl1_fixup_sentence_sndlevel( "hl1_fixup_sentence_sndlevel", "1" );
@@ -185,6 +185,10 @@ void CHL1NPCTalker::RunTask( const Task_t *pTask )
 
 bool CHL1NPCTalker::ShouldGib( const CTakeDamageInfo &info )
 {
+	//HL1 to HL2 support: Dissolve like HL2 NPCs when hit by a pulse ball
+	if ( info.GetDamageType() & DMG_DISSOLVE ) 
+		 return false;
+
 	if ( info.GetDamageType() & DMG_NEVERGIB )
 		 return false;
 
@@ -192,7 +196,6 @@ bool CHL1NPCTalker::ShouldGib( const CTakeDamageInfo &info )
 		 return true;
 	
 	return false;
-	
 }
 
 void CHL1NPCTalker::StartTask( const Task_t *pTask )
@@ -204,122 +207,11 @@ void CHL1NPCTalker::StartTask( const Task_t *pTask )
 			GetNavigator()->SetMovementActivity( ACT_WALK );
 			break;
 		}
-		case TASK_TALKER_SPEAK:
-			// ask question or make statement
-			FIdleSpeak();
-			TaskComplete();
-			break;
 		default:
 			BaseClass::StartTask( pTask );
 			break;
 	}
 }
-
-//=========================================================
-// FIdleSpeak
-// ask question of nearby friend, or make statement
-//=========================================================
-int CHL1NPCTalker::FIdleSpeak ( void )
-{ 
-	if (!IsOkToSpeak())
-		return FALSE;
-
-	// if there is a friend nearby to speak to, play sentence, set friend's response time, return
-	// try to talk to any standing or sitting scientists nearby
-	CBaseEntity *pentFriend = FindNearestFriend( false );
-	CHL1NPCTalker *pentTalker = dynamic_cast<CHL1NPCTalker *>( pentFriend );
-	if (pentTalker && random->RandomInt(0,1) )
-	{
-		Speak( TLK_QUESTION );
-		SetSpeechTarget( pentFriend );
-
-		pentTalker->SetSpeechTarget( this );
-		pentTalker->SetCondition( COND_TALKER_RESPOND_TO_QUESTION );
-		pentTalker->SetSchedule( SCHED_TALKER_IDLE_RESPONSE );
-		pentTalker->GetExpresser()->BlockSpeechUntil( GetExpresser()->GetTimeSpeechComplete() );
-
-		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
-
-		//DevMsg( "Asking some question!\n" );
-		return TRUE;
-	}
-	else if ( random->RandomInt(0,1)) 	// otherwise, play an idle statement
-	{
-		//DevMsg( "Making idle statement!\n" );
-
-		Speak( TLK_IDLE );
-		// set global min delay for next conversation
-		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
-		return TRUE;
-	}
-
-	// never spoke
-	GetExpresser()->BlockSpeechUntil( 0 );
-	m_flNextIdleSpeechTime = gpGlobals->curtime + 3;
-	return FALSE;
-}
-
-
-
-bool CHL1NPCTalker::IsValidSpeechTarget( int flags, CBaseEntity *pEntity )
-{
-	if ( pEntity == this )
-		return false;
-
-	CHL1NPCTalker *pentTarget = dynamic_cast<CHL1NPCTalker *>( pEntity );
-	if ( pentTarget )
-	{
-		if ( !(flags & AIST_IGNORE_RELATIONSHIP) )
-		{
-			if ( pEntity->IsPlayer() )
-			{
-				if ( !IsPlayerAlly( (CBasePlayer *)pEntity ) )
-					return false;
-			}
-			else
-			{
-				if ( IRelationType( pEntity ) != D_LI )
-					return false;
-			}
-		}		
-
-		if ( !pEntity->IsAlive() )
-			// don't dead people
-			return false;
-
-		// Ignore no-target entities
-		if ( pEntity->GetFlags() & FL_NOTARGET )
-			return false;
-
-		CAI_BaseNPC *pNPC = pEntity->MyNPCPointer();
-		if ( pNPC )
-		{
-			// If not a NPC for some reason, or in a script.
-			//if ( (pNPC->m_NPCState == NPC_STATE_SCRIPT || pNPC->m_NPCState == NPC_STATE_PRONE))
-			//	return false;
-
-			if ( pNPC->IsInAScript() )
-				return false;
-
-			// Don't bother people who don't want to be bothered
-			if ( !pNPC->CanBeUsedAsAFriend() )
-				return false;
-		}
-
-		if ( flags & AIST_FACING_TARGET )
-		{
-			if ( pEntity->IsPlayer() )
-				return HasCondition( COND_SEE_PLAYER );
-			else if ( !FInViewCone( pEntity ) )
-				return false;
-		}
-
-		return FVisible( pEntity );
-	}
-	else
-		return BaseClass::IsValidSpeechTarget( flags, pEntity );
-}
-
 
 int CHL1NPCTalker::SelectSchedule ( void )
 {
@@ -572,22 +464,20 @@ void CHL1NPCTalker::SetHeadDirection( const Vector &vTargetPos, float flInterval
 bool CHL1NPCTalker::CorpseGib( const CTakeDamageInfo &info )
 {
 	CEffectData	data;
-
+	
 	data.m_vOrigin = WorldSpaceCenter();
 	data.m_vNormal = data.m_vOrigin - info.GetDamagePosition();
 	VectorNormalize( data.m_vNormal );
-
+	
 	data.m_flScale = RemapVal( m_iHealth, 0, -500, 1, 3 );
 	data.m_flScale = clamp( data.m_flScale, 1, 3 );
 
-	data.m_nMaterial = 1;
+    data.m_nMaterial = 1;
 	data.m_nHitBox = -m_iHealth;
 
 	data.m_nColor = BloodColor();
-
+	
 	DispatchEffect( "HL1Gib", data );
-
-	BaseClass::CorpseGib( info );
 
 	CSoundEnt::InsertSound( SOUND_MEAT, GetAbsOrigin(), 256, 0.5f, this );
 

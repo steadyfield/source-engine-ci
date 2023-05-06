@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -19,9 +19,9 @@
 extern short	g_sModelIndexFireball;
 extern short	g_sModelIndexWExplosion;
 
-extern ConVar sk_plr_dmg_mp5_grenade;
-extern ConVar sk_max_mp5_grenade;
-extern ConVar sk_mp5_grenade_radius;
+extern ConVar sk_plr_dmg_smg1_grenade;
+extern ConVar sk_max_smg1_grenade;
+extern ConVar sk_smg1_grenade_radius;
 
 BEGIN_DATADESC( CGrenadeMP5 )
 	// SR-BUGBUG: These are borked!!!!
@@ -50,8 +50,8 @@ void CGrenadeMP5::Spawn( void )
 	SetTouch( &CGrenadeMP5::GrenadeMP5Touch );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	m_flDamage		= sk_plr_dmg_mp5_grenade.GetFloat();
-	m_DmgRadius		= sk_mp5_grenade_radius.GetFloat();
+	m_flDamage		= sk_plr_dmg_smg1_grenade.GetFloat();
+	m_DmgRadius		= sk_smg1_grenade_radius.GetFloat();
 	m_takedamage	= DAMAGE_YES;
 	m_bIsLive		= true;
 	m_iHealth		= 1;

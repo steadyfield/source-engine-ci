@@ -1,13 +1,13 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose:		357 - hand gun
+// Purpose:		357 - big fuckin' hand gun
 //
 // $NoKeywords: $
 //=============================================================================//
 
 #include "cbase.h"
 #include "npcevent.h"
-#include "basehlcombatweapon.h"
+#include "weapon_357.h"
 #include "basecombatcharacter.h"
 #include "ai_basenpc.h"
 #include "player.h"
@@ -23,35 +23,36 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-//-----------------------------------------------------------------------------
-// CWeapon357
-//-----------------------------------------------------------------------------
+//LINK_ENTITY_TO_CLASS( weapon_357, CWeapon357 );
 
-class CWeapon357 : public CBaseHLCombatWeapon
-{
-	DECLARE_CLASS( CWeapon357, CBaseHLCombatWeapon );
-public:
-
-	CWeapon357( void );
-
-	void	PrimaryAttack( void );
-	void	Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
-
-	float	WeaponAutoAimScale()	{ return 0.6f; }
-
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-};
-
-LINK_ENTITY_TO_CLASS( weapon_357, CWeapon357 );
-
-PRECACHE_WEAPON_REGISTER( weapon_357 );
+//PRECACHE_WEAPON_REGISTER( weapon_357 );
 
 IMPLEMENT_SERVERCLASS_ST( CWeapon357, DT_Weapon357 )
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeapon357 )
 END_DATADESC()
+
+acttable_t	CWeapon357::m_acttable[] =
+{
+	{ ACT_IDLE,						ACT_IDLE_PISTOL,				true },
+	{ ACT_IDLE_ANGRY,				ACT_IDLE_ANGRY_PISTOL,			true },
+	{ ACT_RANGE_ATTACK1,			ACT_RANGE_ATTACK_PISTOL,		true },
+	{ ACT_RELOAD,					ACT_RELOAD_PISTOL,				true },
+	{ ACT_WALK_AIM,					ACT_WALK_AIM_PISTOL,			true },
+	{ ACT_RUN_AIM,					ACT_RUN_AIM_PISTOL,				true },
+	{ ACT_GESTURE_RANGE_ATTACK1,	ACT_GESTURE_RANGE_ATTACK_PISTOL,true },
+	{ ACT_RELOAD_LOW,				ACT_RELOAD_PISTOL_LOW,			false },
+	{ ACT_RANGE_ATTACK1_LOW,		ACT_RANGE_ATTACK_PISTOL_LOW,	false },
+	{ ACT_COVER_LOW,				ACT_COVER_PISTOL_LOW,			false },
+	{ ACT_RANGE_AIM_LOW,			ACT_RANGE_AIM_PISTOL_LOW,		false },
+	{ ACT_GESTURE_RELOAD,			ACT_GESTURE_RELOAD_PISTOL,		false },
+	{ ACT_WALK,						ACT_WALK_PISTOL,				false },
+	{ ACT_RUN,						ACT_RUN_PISTOL,					false },
+};
+
+
+IMPLEMENT_ACTTABLE( CWeapon357 );
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -60,6 +61,11 @@ CWeapon357::CWeapon357( void )
 {
 	m_bReloadsSingly	= false;
 	m_bFiresUnderwater	= false;
+	
+	m_fMinRange1		= 24;
+	m_fMaxRange1		= 1500;
+	m_fMinRange2		= 24;
+	m_fMaxRange2		= 200;
 }
 
 //-----------------------------------------------------------------------------
@@ -72,21 +78,42 @@ void CWeapon357::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatChara
 	switch( pEvent->event )
 	{
 		case EVENT_WEAPON_RELOAD:
+		{
+			CEffectData data;
+
+			// Emit six spent shells
+			for ( int i = 0; i < 6; i++ )
 			{
-				CEffectData data;
+				data.m_vOrigin = pOwner->WorldSpaceCenter() + RandomVector( -4, 4 );
+				data.m_vAngles = QAngle( 90, random->RandomInt( 0, 360 ), 0 );
+				data.m_nEntIndex = entindex();
 
-				// Emit six spent shells
-				for ( int i = 0; i < 6; i++ )
-				{
-					data.m_vOrigin = pOwner->WorldSpaceCenter() + RandomVector( -4, 4 );
-					data.m_vAngles = QAngle( 90, random->RandomInt( 0, 360 ), 0 );
-					data.m_nEntIndex = entindex();
-
-					DispatchEffect( "ShellEject", data );
-				}
-
-				break;
+				DispatchEffect( "ShellEject", data );
 			}
+		}
+		break;
+			
+		case EVENT_WEAPON_PISTOL_FIRE:
+		{
+			Vector vecShootOrigin, vecShootDir;
+			vecShootOrigin = pOperator->Weapon_ShootPosition();
+
+			CAI_BaseNPC *npc = pOperator->MyNPCPointer();
+			ASSERT( npc != NULL );
+
+			vecShootDir = npc->GetActualShootTrajectory( vecShootOrigin );
+
+			CSoundEnt::InsertSound( SOUND_COMBAT|SOUND_CONTEXT_GUNFIRE, pOperator->GetAbsOrigin(), SOUNDENT_VOLUME_PISTOL, 0.2, pOperator, SOUNDENT_CHANNEL_WEAPON, pOperator->GetEnemy() );
+
+			WeaponSound( SINGLE_NPC );
+			pOperator->FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_PRECALCULATED, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 2 );
+			pOperator->DoMuzzleFlash();
+			m_iClip1 = m_iClip1 - 1;
+		}
+		break;
+		default:
+			BaseClass::Operator_HandleAnimEvent( pEvent, pOperator );
+			break;
 	}
 }
 

@@ -27,9 +27,20 @@ public:
 	void	Precache( void );
 
 	virtual int		GetMinBurst( void ) { return 4; }
+	virtual int		GetBurstSize( void ) { return 3; };
 	virtual int		GetMaxBurst( void ) { return 7; }
 	virtual float	GetMinRestTime( void );
 	virtual float	GetMaxRestTime( void );
+	virtual bool	Reload( void );
+	void			PrimaryAttack( void );
+	void			BasePrimaryAttack( void );
+	void			SecondaryAttack( void );
+	void			BurstThink( void );
+	virtual void			WeaponIdle( void );						// called when no buttons pressed
+	Activity	GetPrimaryAttackActivity( void );
+	Activity	GetSecondaryAttackActivity( void );
+	virtual Activity		GetDrawActivity( void );
+	virtual bool	Deploy( void );
 
 	virtual void Equip( CBaseCombatCharacter *pOwner );
 
@@ -45,15 +56,24 @@ public:
 	void Operator_ForceNPCFire( CBaseCombatCharacter  *pOperator, bool bSecondary );
 	void Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
 
-	virtual void SetPickupTouch( void )
+	/*virtual void SetPickupTouch( void )
 	{
 		// Alyx gun cannot be picked up
 		SetTouch(NULL);
-	}
+	}*/
 
 	float m_flTooCloseTimer;
+	bool m_bJustDrawn;
 
 	DECLARE_ACTTABLE();
+	
+	bool m_bBurstFirstSound;
+
+private:
+	float	m_flSoonestPrimaryAttack;
+	float	m_flLastAttackTime;
+	float	m_flAccuracyPenalty;
+	int		m_nNumShotsFired;
 
 };
 

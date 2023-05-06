@@ -37,10 +37,10 @@ END_DATADESC()
 IMPLEMENT_SERVERCLASS_ST(CWeapon_Tripwire, DT_Weapon_Tripwire)
 END_SEND_TABLE()
 
-LINK_ENTITY_TO_CLASS( weapon_tripwire, CWeapon_Tripwire );
+LINK_ENTITY_TO_CLASS( weapon_hopwire, CWeapon_Tripwire );
 
 // BUGBUG: Enable this when the script & resources are checked in.
-//PRECACHE_WEAPON_REGISTER(weapon_tripwire);
+PRECACHE_WEAPON_REGISTER(weapon_hopwire);
 
 acttable_t	CWeapon_Tripwire::m_acttable[] = 
 {
@@ -86,7 +86,7 @@ void CWeapon_Tripwire::Precache( void )
 //------------------------------------------------------------------------------
 void CWeapon_Tripwire::SetPickupTouch( void )
 {
-	SetTouch(TripwireTouch);
+	SetTouch(&CWeapon_Tripwire::TripwireTouch);
 }
 
 //-----------------------------------------------------------------------------

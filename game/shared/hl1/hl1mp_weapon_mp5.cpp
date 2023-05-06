@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:
 //
@@ -8,13 +8,13 @@
 #include "cbase.h"
 //#include "basecombatweapon.h"
 #include "hl1mp_basecombatweapon_shared.h"
-#include "npcevent.h"
+#include "NPCevent.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 #ifdef CLIENT_DLL
-#include "hl1/hl1_c_player.h"
+#include "c_basehlplayer.h"
 #else
-#include "player.h"
+#include "hl2_player.h"
 #endif
 #include "hl1mp_weapon_mp5.h"
 //#include "hl1_weapon_mp5.h"
@@ -31,9 +31,9 @@
 #include "in_buttons.h"
 #include "engine/IEngineSound.h"
 
-extern ConVar    sk_plr_dmg_mp5_grenade;	
-extern ConVar    sk_max_mp5_grenade;
-extern ConVar	 sk_mp5_grenade_radius;
+extern ConVar    sk_plr_dmg_smg1_grenade;	
+extern ConVar    sk_max_smg1_grenade;
+extern ConVar	 sk_smg1_grenade_radius;
 
 //=========================================================
 //=========================================================
@@ -125,7 +125,7 @@ void CWeaponMP5::PrimaryAttack( void )
 
 	EjectShell( pPlayer, 0 );
 
-	pPlayer->ViewPunch( QAngle( random->RandomFloat( -0.5f, 0.5f ), 0, 0 ) );
+	pPlayer->ViewPunch( QAngle( random->RandomFloat( -2, 2 ), 0, 0 ) );
 #ifdef CLIENT_DLL
 	pPlayer->DoMuzzleFlash();
 #else
@@ -180,7 +180,7 @@ void CWeaponMP5::SecondaryAttack( void )
 	m_pMyGrenade->SetLocalAngularVelocity( QAngle( random->RandomFloat( -100, -500 ), 0, 0 ) );
 	m_pMyGrenade->SetMoveType( MOVETYPE_FLYGRAVITY ); 
 	m_pMyGrenade->SetThrower( GetOwner() );
-	m_pMyGrenade->SetDamage( sk_plr_dmg_mp5_grenade.GetFloat() * g_pGameRules->GetDamageMultiplier() );
+	m_pMyGrenade->SetDamage( sk_plr_dmg_smg1_grenade.GetFloat() * g_pGameRules->GetDamageMultiplier() );
 #endif
 
 	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
@@ -222,6 +222,10 @@ void CWeaponMP5::DryFire( void )
 
 void CWeaponMP5::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( pPlayer )
 	{

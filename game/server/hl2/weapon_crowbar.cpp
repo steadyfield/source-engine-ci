@@ -33,8 +33,8 @@ IMPLEMENT_SERVERCLASS_ST(CWeaponCrowbar, DT_WeaponCrowbar)
 END_SEND_TABLE()
 
 #ifndef HL2MP
-LINK_ENTITY_TO_CLASS( weapon_crowbar, CWeaponCrowbar );
-PRECACHE_WEAPON_REGISTER( weapon_crowbar );
+//LINK_ENTITY_TO_CLASS( weapon_crowbar, CWeaponCrowbar );
+//PRECACHE_WEAPON_REGISTER( weapon_crowbar );
 #endif
 
 acttable_t CWeaponCrowbar::m_acttable[] = 

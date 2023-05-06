@@ -500,6 +500,26 @@ void ClientModeShared::OverrideMouseInput( float *x, float *y )
 	}
 }
 
+#ifdef ARGG
+//-----------------------------------------------------------------------------
+// Purpose: Allow weapons to override mouse input to view angles (for orbiting)
+//-----------------------------------------------------------------------------
+// adnan
+// control the mouse input in the grav gun through this
+bool ClientModeShared::OverrideViewAngles( void )
+{
+	C_BaseCombatWeapon *pWeapon = GetActiveWeapon();
+	if ( pWeapon )
+	{
+		// adnan
+		return pWeapon->OverrideViewAngles();
+	}
+
+	return false;
+}
+// end adnan
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -644,6 +664,28 @@ int	ClientModeShared::KeyInput( int down, ButtonCode_t keynum, const char *pszCu
 {
 	if ( engine->Con_IsVisible() )
 		return 1;
+	
+	// Should we start typing a message?
+	if ( pszCurrentBinding &&
+		( Q_strcmp( pszCurrentBinding, "messagemode" ) == 0 ||
+		  Q_strcmp( pszCurrentBinding, "say" ) == 0 ) )
+	{
+		if ( down )
+		{
+			StartMessageMode( MM_SAY );
+		}
+		return 0;
+	}
+	else if ( pszCurrentBinding &&
+				( Q_strcmp( pszCurrentBinding, "messagemode2" ) == 0 ||
+				  Q_strcmp( pszCurrentBinding, "say_team" ) == 0 ) )
+	{
+		if ( down )
+		{
+			StartMessageMode( MM_SAY_TEAM );
+		}
+		return 0;
+	}
 	
 	// If we're voting...
 #ifdef VOTING_ENABLED
@@ -912,7 +954,22 @@ void ClientModeShared::Layout()
 
 float ClientModeShared::GetViewModelFOV( void )
 {
-	return v_viewmodel_fov.GetFloat();
+	//return v_viewmodel_fov.GetFloat();
+	float flFov = v_viewmodel_fov.GetFloat();
+ 
+	CBasePlayer *pPlayer = CBasePlayer::GetLocalPlayer();
+
+	if (!pPlayer)
+		return flFov;
+ 
+	C_BaseCombatWeapon *pWpn = pPlayer->GetActiveWeapon();
+ 
+	if (pWpn)
+	{
+		flFov = pWpn->GetWpnData().m_flFovAdd + v_viewmodel_fov.GetFloat();
+	}
+ 
+	return flFov;
 }
 
 class CHudChat;

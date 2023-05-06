@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: An entity that creates NPCs in the game. 
 //
@@ -6,13 +6,13 @@
 
 #include "cbase.h"
 #include "entityapi.h"
-#include "entityoutput.h"
-#include "ai_basenpc.h"
+#include "EntityOutput.h"
+#include "AI_BaseNPC.h"
 #include "hl1_monstermaker.h"
 #include "mapentities.h"
 
 
-BEGIN_DATADESC( CNPCMaker )
+BEGIN_DATADESC( CMonsterMaker )
 
 	DEFINE_KEYFIELD( m_iMaxNumNPCs,			FIELD_INTEGER,	"monstercount" ),
 	DEFINE_KEYFIELD( m_iMaxLiveChildren,		FIELD_INTEGER,	"MaxLiveChildren" ),
@@ -38,28 +38,28 @@ BEGIN_DATADESC( CNPCMaker )
 END_DATADESC()
 
 
-LINK_ENTITY_TO_CLASS( monstermaker, CNPCMaker );
+LINK_ENTITY_TO_CLASS( monstermaker, CMonsterMaker );
 
 
 //-----------------------------------------------------------------------------
 // Purpose: Spawn
 //-----------------------------------------------------------------------------
-void CNPCMaker::Spawn( void )
+void CMonsterMaker::Spawn( void )
 {
 	SetSolid( SOLID_NONE );
 	m_cLiveChildren		= 0;
 	Precache();
 
 	// If I can make an infinite number of NPC, force them to fade
-	if ( m_spawnflags & SF_NPCMAKER_INF_CHILD )
+	if ( m_spawnflags & SF_MonsterMaker_INF_CHILD )
 	{
-		m_spawnflags |= SF_NPCMAKER_FADE;
+		m_spawnflags |= SF_MonsterMaker_FADE;
 	}
 
 	//Start on?
 	if ( m_bDisabled == false )
 	{
-		SetThink ( &CNPCMaker::MakerThink );
+		SetThink ( &CMonsterMaker::MakerThink );
 		SetNextThink( gpGlobals->curtime + m_flSpawnFrequency );
 	}
 	else
@@ -74,7 +74,7 @@ void CNPCMaker::Spawn( void )
 //-----------------------------------------------------------------------------
 // Purpose: Returns whether or not it is OK to make an NPC at this instant.
 //-----------------------------------------------------------------------------
-bool CNPCMaker::CanMakeNPC( void )
+bool CMonsterMaker::CanMakeNPC( void )
 {
 	if ( m_iMaxLiveChildren > 0 && m_cLiveChildren >= m_iMaxLiveChildren )
 	{// not allowed to make a new one yet. Too many live ones out right now.
@@ -95,7 +95,7 @@ bool CNPCMaker::CanMakeNPC( void )
 	maxs.z = GetAbsOrigin().z;
 	
 	//Only adjust for the ground if we want it
-	if ( ( m_spawnflags & SF_NPCMAKER_NO_DROP ) == false )
+	if ( ( m_spawnflags & SF_MonsterMaker_NO_DROP ) == false )
 	{
 		mins.z = m_flGround;
 	}
@@ -126,9 +126,9 @@ bool CNPCMaker::CanMakeNPC( void )
 // Purpose: If this had a finite number of children, return true if they've all
 //			been created.
 //-----------------------------------------------------------------------------
-bool CNPCMaker::IsDepleted()
+bool CMonsterMaker::IsDepleted()
 {
-	if ( (m_spawnflags & SF_NPCMAKER_INF_CHILD) || m_iMaxNumNPCs > 0 )
+	if ( (m_spawnflags & SF_MonsterMaker_INF_CHILD) || m_iMaxNumNPCs > 0 )
 		return false;
 
 	return true;
@@ -138,7 +138,7 @@ bool CNPCMaker::IsDepleted()
 //-----------------------------------------------------------------------------
 // Purpose: Toggle the spawner's state
 //-----------------------------------------------------------------------------
-void CNPCMaker::Toggle( void )
+void CMonsterMaker::Toggle( void )
 {
 	if ( m_bDisabled )
 	{
@@ -154,14 +154,14 @@ void CNPCMaker::Toggle( void )
 //-----------------------------------------------------------------------------
 // Purpose: Start the spawner
 //-----------------------------------------------------------------------------
-void CNPCMaker::Enable( void )
+void CMonsterMaker::Enable( void )
 {
 	// can't be enabled once depleted
 	if ( IsDepleted() )
 		return;
 
 	m_bDisabled = false;
-	SetThink ( &CNPCMaker::MakerThink );
+	SetThink ( &CMonsterMaker::MakerThink );
 	SetNextThink( gpGlobals->curtime );
 }
 
@@ -169,7 +169,7 @@ void CNPCMaker::Enable( void )
 //-----------------------------------------------------------------------------
 // Purpose: Stop the spawner
 //-----------------------------------------------------------------------------
-void CNPCMaker::Disable( void )
+void CMonsterMaker::Disable( void )
 {
 	m_bDisabled = true;
 	SetThink ( NULL );
@@ -179,7 +179,7 @@ void CNPCMaker::Disable( void )
 //-----------------------------------------------------------------------------
 // Purpose: Input handler that spawns an NPC.
 //-----------------------------------------------------------------------------
-void CNPCMaker::InputSpawnNPC( inputdata_t &inputdata )
+void CMonsterMaker::InputSpawnNPC( inputdata_t &inputdata )
 {
 	MakeNPC();
 }
@@ -188,7 +188,7 @@ void CNPCMaker::InputSpawnNPC( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 // Purpose: Input hander that starts the spawner
 //-----------------------------------------------------------------------------
-void CNPCMaker::InputEnable( inputdata_t &inputdata )
+void CMonsterMaker::InputEnable( inputdata_t &inputdata )
 {
 	Enable();
 }
@@ -197,7 +197,7 @@ void CNPCMaker::InputEnable( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 // Purpose: Input hander that stops the spawner
 //-----------------------------------------------------------------------------
-void CNPCMaker::InputDisable( inputdata_t &inputdata )
+void CMonsterMaker::InputDisable( inputdata_t &inputdata )
 {
 	Disable();
 }
@@ -206,7 +206,7 @@ void CNPCMaker::InputDisable( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 // Purpose: Input hander that toggles the spawner
 //-----------------------------------------------------------------------------
-void CNPCMaker::InputToggle( inputdata_t &inputdata )
+void CMonsterMaker::InputToggle( inputdata_t &inputdata )
 {
 	Toggle();
 }
@@ -215,7 +215,7 @@ void CNPCMaker::InputToggle( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 // Purpose: Precache the target NPC
 //-----------------------------------------------------------------------------
-void CNPCMaker::Precache( void )
+void CMonsterMaker::Precache( void )
 {
 	BaseClass::Precache();
 	UTIL_PrecacheOther( STRING( m_iszNPCClassname ) );
@@ -225,7 +225,7 @@ void CNPCMaker::Precache( void )
 //-----------------------------------------------------------------------------
 // Purpose: Creates the NPC.
 //-----------------------------------------------------------------------------
-void CNPCMaker::MakeNPC( void )
+void CMonsterMaker::MakeNPC( void )
 {
 	if (!CanMakeNPC())
 	{
@@ -236,7 +236,7 @@ void CNPCMaker::MakeNPC( void )
 
 	if ( !pent )
 	{
-		Warning("NULL Ent in NPCMaker!\n" );
+		Warning("NULL Ent in MonsterMaker!\n" );
 		return;
 	}
 	
@@ -247,7 +247,7 @@ void CNPCMaker::MakeNPC( void )
 
 	pent->AddSpawnFlags( SF_NPC_FALL_TO_GROUND );
 
-	if ( m_spawnflags & SF_NPCMAKER_FADE )
+	if ( m_spawnflags & SF_MonsterMaker_FADE )
 	{
 		pent->AddSpawnFlags( SF_NPC_FADE_CORPSE );
 	}
@@ -258,7 +258,7 @@ void CNPCMaker::MakeNPC( void )
 
 	m_cLiveChildren++;// count this NPC
 
-	if (!(m_spawnflags & SF_NPCMAKER_INF_CHILD))
+	if (!(m_spawnflags & SF_MonsterMaker_INF_CHILD))
 	{
 		m_iMaxNumNPCs--;
 
@@ -275,7 +275,7 @@ void CNPCMaker::MakeNPC( void )
 //-----------------------------------------------------------------------------
 // Purpose: Creates a new NPC every so often.
 //-----------------------------------------------------------------------------
-void CNPCMaker::MakerThink ( void )
+void CMonsterMaker::MakerThink ( void )
 {
 	SetNextThink( gpGlobals->curtime + m_flSpawnFrequency );
 
@@ -287,7 +287,7 @@ void CNPCMaker::MakerThink ( void )
 // Purpose: 
 // Input  : *pVictim - 
 //-----------------------------------------------------------------------------
-void CNPCMaker::DeathNotice( CBaseEntity *pVictim )
+void CMonsterMaker::DeathNotice( CBaseEntity *pVictim )
 {
 	// ok, we've gotten the deathnotice from our child, now clear out its owner if we don't want it to fade.
 	m_cLiveChildren--;

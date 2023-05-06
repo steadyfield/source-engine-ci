@@ -565,6 +565,20 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameDLL, IServerGameDLL, INTERFACEVERSI
 // When bumping the version to this interface, check that our assumption is still valid and expose the older version in the same way
 COMPILE_TIME_ASSERT( INTERFACEVERSION_SERVERGAMEDLL_INT == 10 );
 
+//SMOD: SMMOD added this so I guess we should too
+void GetPrimaryModDirectory( char *pcModPath, int nSize )
+{
+	g_pFullFileSystem->GetSearchPath( "MOD", false, pcModPath, nSize );
+
+	// It's possible that we have multiple MOD directories if there is DLC installed. If that's the case get the last one
+	// in the semi-colon delimited list
+	char *pSemi = V_strrchr( pcModPath, ';');
+	if ( pSemi )
+	{
+		V_strncpy( pcModPath, ++pSemi, MAX_PATH );
+	}
+}
+
 bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory, 
 		CreateInterfaceFn physicsFactory, CreateInterfaceFn fileSystemFactory, 
 		CGlobalVars *pGlobals)
@@ -1577,7 +1591,7 @@ typedef struct
 // this list gets searched for the first partial match, so some are out of order
 static TITLECOMMENT gTitleComments[] =
 {
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
 	{ "t0a0", "#T0A0TITLE" },
 	{ "c0a0", "#HL1_Chapter1_Title" },
 	{ "c1a0", "#HL1_Chapter2_Title" },
@@ -1605,7 +1619,7 @@ static TITLECOMMENT gTitleComments[] =
 	{ "c4a2", "#HL1_Chapter16_Title"  },
 	{ "c4a3", "#HL1_Chapter18_Title"  },
 	{ "c5a1", "#HL1_Chapter19_Title"  },
-#elif defined PORTAL
+//#elif defined PORTAL
 	{ "testchmb_a_00",			"#Portal_Chapter1_Title"  },
 	{ "testchmb_a_01",			"#Portal_Chapter1_Title"  },
 	{ "testchmb_a_02",			"#Portal_Chapter2_Title"  },
@@ -1629,7 +1643,7 @@ static TITLECOMMENT gTitleComments[] =
 	{ "testchmb_a_15",			"#Portal_Chapter11_Title"  },
 	{ "escape_",				"#Portal_Chapter11_Title"  },
 	{ "background2",			"#Portal_Chapter12_Title"  },
-#else
+//#else
 	{ "intro", "#HL2_Chapter1_Title" },
 
 	{ "d1_trainstation_05", "#HL2_Chapter2_Title" },
@@ -1708,7 +1722,7 @@ static TITLECOMMENT gTitleComments[] =
 	
 	{ "ep2_outland_12a", "#ep2_Chapter7_Title" },
 	{ "ep2_outland_12", "#ep2_Chapter6_Title" },
-#endif
+//#endif
 };
 
 #ifdef _XBOX

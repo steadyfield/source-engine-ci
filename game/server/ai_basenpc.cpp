@@ -1530,6 +1530,7 @@ void CBaseEntity::HandleShotImpactingGlass( const FireBulletsInfo_t &info,
 }
 
 
+
 //-----------------------------------------------------------------------------
 // Computes the tracer start position
 //-----------------------------------------------------------------------------
@@ -6818,9 +6819,8 @@ void CAI_BaseNPC::NPCInit ( void )
 	SetIdealActivity( ACT_IDLE );
 	SetActivity( ACT_IDLE );
 
-#ifdef HL1_DLL
-	SetDeathPose( ACT_INVALID );
-#endif
+	if(HL2GameRules()->IsInHL1Map())
+		SetDeathPose( ACT_INVALID );
 
 	ClearCommandGoal();
 
@@ -11331,7 +11331,6 @@ CAI_BaseNPC::CAI_BaseNPC(void)
 	m_flHeadYaw					= 0;
 	m_flHeadPitch				= 0;
 	m_spawnEquipment			= NULL_STRING;
-	m_SquadName = NULL_STRING;
 	m_pEnemies					= new CAI_Enemies;
 	m_bIgnoreUnseenEnemies		= false;
 	m_flEyeIntegRate			= 0.95;

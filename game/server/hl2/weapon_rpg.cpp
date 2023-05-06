@@ -27,6 +27,7 @@
 #include "hl2_shareddefs.h"
 #include "rumble_shared.h"
 #include "gamestats.h"
+#include "hl2_gamerules.h"
 
 #ifdef PORTAL
 	#include "portal_util_shared.h"
@@ -146,6 +147,13 @@ void CMissile::Precache( void )
 	PrecacheModel( "models/weapons/w_missile_closed.mdl" );
 }
 
+Class_T CMissile::Classify( void )
+{
+	if(HL2GameRules()->IsInHL1Map())
+		return CLASS_NONE;
+
+	return CLASS_MISSILE;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1389,8 +1397,8 @@ END_DATADESC()
 IMPLEMENT_SERVERCLASS_ST(CWeaponRPG, DT_WeaponRPG)
 END_SEND_TABLE()
 
-LINK_ENTITY_TO_CLASS( weapon_rpg, CWeaponRPG );
-PRECACHE_WEAPON_REGISTER(weapon_rpg);
+//LINK_ENTITY_TO_CLASS( weapon_rpg, CWeaponRPG );
+//PRECACHE_WEAPON_REGISTER(weapon_rpg);
 
 acttable_t	CWeaponRPG::m_acttable[] = 
 {
@@ -1688,7 +1696,7 @@ void CWeaponRPG::SuppressGuiding( bool state )
 
 	if ( m_hLaserDot == NULL )
 	{
-		StartGuiding();
+		//StartGuiding();
 
 		//STILL!?
 		if ( m_hLaserDot == NULL )
@@ -1711,7 +1719,7 @@ void CWeaponRPG::SuppressGuiding( bool state )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::Lower( void )
 {
-	if ( m_hMissile != NULL )
+	if ( m_hMissile != NULL && IsGuiding() )
 		return false;
 
 	return BaseClass::Lower();
@@ -1746,19 +1754,25 @@ void CWeaponRPG::ItemPostFrame( void )
 		SuppressGuiding( false );
 	}
 
+	//Move the laser
+	UpdateLaserPosition();
+	UpdateLaserEffects();
+
+	if ( pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0 && m_hMissile == NULL )
+	{
+		StopGuiding();
+	}
+	
 	//Player has toggled guidance state
 	//Adrian: Players are not allowed to remove the laser guide in single player anymore, bye!
-	if ( g_pGameRules->IsMultiplayer() == true )
-	{
+	//SMOD: Oh yes they fucking are, fuck you Adrian
+	//if ( g_pGameRules->IsMultiplayer() == true )
+	//{
 		if ( pPlayer->m_afButtonPressed & IN_ATTACK2 )
 		{
 			ToggleGuiding();
 		}
-	}
-
-	//Move the laser
-	UpdateLaserPosition();
-	UpdateLaserEffects();
+	//}
 }
 
 //-----------------------------------------------------------------------------
@@ -2010,6 +2024,9 @@ bool CWeaponRPG::Reload( void )
 		return false;
 
 	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 )
+		return false;
+
+	if ( pOwner->GetActiveWeapon() != this )
 		return false;
 
 	WeaponSound( RELOAD );

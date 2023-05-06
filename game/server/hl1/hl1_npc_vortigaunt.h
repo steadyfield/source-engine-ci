@@ -1,21 +1,21 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifndef NPC_VORTIGAUNT_H
-#define NPC_VORTIGAUNT_H
+#ifndef HL1NPC_Vortigaunt_H
+#define HL1NPC_Vortigaunt_H
 
 #define	VORTIGAUNT_MAX_BEAMS	8
 
 #include "hl1_ai_basenpc.h"
 //=========================================================
 //=========================================================
-class CNPC_Vortigaunt : public CHL1BaseNPC
+class CHL1NPC_Vortigaunt : public CHL1BaseNPC
 {
-	DECLARE_CLASS( CNPC_Vortigaunt, CHL1BaseNPC );
+	DECLARE_CLASS( CHL1NPC_Vortigaunt, CHL1BaseNPC );
 public:
 
 	void Spawn( void );
@@ -71,4 +71,4 @@ private:
 };
 
 
-#endif //NPC_VORTIGAUNT_
+#endif //HL1NPC_Vortigaunt_

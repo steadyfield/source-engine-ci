@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -10,7 +10,6 @@
 #pragma once
 
 #include "hl1_ai_basenpc.h"
-#define	HOUNDEYE_MAX_ATTACK_RADIUS		384
 
 class CNPC_Houndeye : public CHL1BaseNPC
 {
@@ -53,17 +52,10 @@ public:
 	float FLSoundVolume( CSound *pSound );
 	int RangeAttack1Conditions ( float flDot, float flDist );
 
-	void StartNPC ( void );
-
-	virtual float	InnateRange1MinRange( void ) { return 0.0f; }
-	virtual float	InnateRange1MaxRange( void ) { return HOUNDEYE_MAX_ATTACK_RADIUS; }
-
 	DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();
 
-private:
-	int SquadRecruit( int searchRadius, int maxMembers );
-
+protected:
 	int m_iSpriteTexture;
 	bool m_fAsleep;// some houndeyes sleep in idle mode if this is set, the houndeye is lying down
 	bool m_fDontBlink;// don't try to open/close eye if this bit is set!

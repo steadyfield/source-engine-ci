@@ -64,7 +64,7 @@ extern int	g_interactionBarnacleVictimReleased;
 extern ConVar weapon_showproficiency;
 
 ConVar ai_show_hull_attacks( "ai_show_hull_attacks", "0" );
-ConVar ai_force_serverside_ragdoll( "ai_force_serverside_ragdoll", "0" );
+ConVar ai_force_serverside_ragdoll( "ai_force_serverside_ragdoll", "1" );
 
 ConVar nb_last_area_update_tolerance( "nb_last_area_update_tolerance", "4.0", FCVAR_CHEAT, "Distance a character needs to travel in order to invalidate cached area" ); // 4.0 tested as sweet spot (for wanderers, at least). More resulted in little benefit, less quickly diminished benefit [7/31/2008 tom]
 
@@ -228,7 +228,7 @@ int	CBaseCombatCharacter::GetInteractionID(void)
 // ============================================================================
 bool CBaseCombatCharacter::HasHumanGibs( void )
 {
-#if defined( HL2_DLL )
+//#if defined( HL2_DLL )
 	Class_T myClass = Classify();
 	if ( myClass == CLASS_CITIZEN_PASSIVE   ||
 		 myClass == CLASS_CITIZEN_REBEL		||
@@ -238,16 +238,16 @@ bool CBaseCombatCharacter::HasHumanGibs( void )
 		 myClass == CLASS_PLAYER )	
 		 return true;
 
-#elif defined( HL1_DLL )
-	Class_T myClass = Classify();
+//#elif defined( HL1_DLL )
+	//Class_T myClass = Classify();
 	if (	myClass == CLASS_HUMAN_MILITARY		||
 			myClass == CLASS_PLAYER_ALLY		||
-			myClass == CLASS_HUMAN_PASSIVE		||
-			myClass == CLASS_PLAYER )
+			myClass == CLASS_HUMAN_PASSIVE )
 	{
 		return true;
 	}
 
+	/*
 #elif defined( CSPORT_DLL )
 	Class_T myClass = Classify();
 	if (	 myClass == CLASS_PLAYER )	
@@ -255,7 +255,7 @@ bool CBaseCombatCharacter::HasHumanGibs( void )
 		return true;
 	}
 
-#endif
+#endif*/
 
 	return false;
 }
@@ -263,7 +263,7 @@ bool CBaseCombatCharacter::HasHumanGibs( void )
 
 bool CBaseCombatCharacter::HasAlienGibs( void )
 {
-#if defined( HL2_DLL )
+//#if defined( HL2_DLL )
 	Class_T myClass = Classify();
 	if ( myClass == CLASS_BARNACLE		 || 
 		 myClass == CLASS_STALKER		 ||
@@ -274,8 +274,8 @@ bool CBaseCombatCharacter::HasAlienGibs( void )
 		 return true;
 	}
 
-#elif defined( HL1_DLL )
-	Class_T myClass = Classify();
+//#elif defined( HL1_DLL )
+	//Class_T myClass = Classify();
 	if ( myClass == CLASS_ALIEN_MILITARY ||
 		 myClass == CLASS_ALIEN_MONSTER	||
 		 myClass == CLASS_INSECT  ||
@@ -284,7 +284,7 @@ bool CBaseCombatCharacter::HasAlienGibs( void )
 	{
 		return true;
 	}
-#endif
+//#endif
 
 	return false;
 }
@@ -731,10 +731,7 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 	}
 
 	// not standing on a nav area yet
-#ifdef MEXT_BOT
 	m_lastNavArea = NULL;
-#endif
-
 	m_registeredNavTeam = TEAM_INVALID;
 
 	for (int i = 0; i < MAX_WEAPONS; i++)
@@ -3484,20 +3481,17 @@ void CBaseCombatCharacter::UpdateLastKnownArea( void )
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::IsAreaTraversable( const CNavArea *area ) const
 {
-#ifdef NEXT_BOT
 	return area ? !area->IsBlocked( GetTeamNumber() ) : false;
-#endif
-	return false;
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Leaving the nav mesh
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::ClearLastKnownArea( void )
 {
-#ifdef NEXT_BOT
 	OnNavAreaChanged( NULL, m_lastNavArea );
-
+	
 	if ( m_lastNavArea )
 	{
 		m_lastNavArea->DecrementPlayerCount( m_registeredNavTeam, entindex() );
@@ -3505,21 +3499,20 @@ void CBaseCombatCharacter::ClearLastKnownArea( void )
 		m_lastNavArea = NULL;
 		m_registeredNavTeam = TEAM_INVALID;
 	}
-#endif
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Handling editor removing the area we're standing upon
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::OnNavAreaRemoved( CNavArea *removedArea )
 {
-#ifdef NEXT_BOT
 	if ( m_lastNavArea == removedArea )
 	{
 		ClearLastKnownArea();
 	}
-#endif
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Changing team, maintain associated data

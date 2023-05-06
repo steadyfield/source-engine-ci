@@ -46,6 +46,9 @@
 #include "gamestats.h"
 #include "filters.h"
 #include "tier0/icommandline.h"
+#include "SMMOD/mapadd.h"
+#include "basepropdoor.h"
+#include "doors.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -110,6 +113,49 @@ ConVar sv_stickysprint("sv_stickysprint", "0", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBO
 #define	FLASH_DRAIN_TIME	 1.1111	// 100 units / 90 secs
 #define	FLASH_CHARGE_TIME	 50.0f	// 100 units / 2 secs
 
+void CC_GiveAllWeapons(void)
+{
+	CHL2_Player *pPlayer = ToHL2Player(UTIL_PlayerByIndex(1));
+
+	if (pPlayer)
+	{
+		pPlayer->GiveAllItems(4);
+	}
+}
+static ConCommand giveallweapons("giveallweapons", CC_GiveAllWeapons, "Give ALL built in weapons. You will still need to give yourself the custom ones manually!\n", FCVAR_CHEAT);
+
+void CC_GiveAllWeaponsSMOD(void)
+{
+	CHL2_Player *pPlayer = ToHL2Player(UTIL_PlayerByIndex(1));
+
+	if (pPlayer)
+	{
+		pPlayer->GiveAllItems(3);
+	}
+}
+static ConCommand giveallweaponssmod("giveallweaponssmod", CC_GiveAllWeaponsSMOD, "Give all SMOD weapons.\n", FCVAR_CHEAT);
+
+void CC_GiveAllWeaponsHL2(void)
+{
+	CHL2_Player *pPlayer = ToHL2Player(UTIL_PlayerByIndex(1));
+
+	if (pPlayer)
+	{
+		pPlayer->GiveAllItems(2);
+	}
+}
+static ConCommand giveallweaponshl2("giveallweaponshl2", CC_GiveAllWeaponsHL2, "Give all HL2 weapons.\n", FCVAR_CHEAT);
+
+void CC_GiveAllWeaponsHL1(void)
+{
+	CHL2_Player *pPlayer = ToHL2Player(UTIL_PlayerByIndex(1));
+
+	if (pPlayer)
+	{
+		pPlayer->GiveAllItems(1);
+	}
+}
+static ConCommand giveallweaponshl1("giveallweaponshl1", CC_GiveAllWeaponsHL1, "Give all HL1 weapons.\n", FCVAR_CHEAT);
 
 //==============================================================================================
 // CAPPED PLAYER PHYSICS DAMAGE TABLE
@@ -385,6 +431,25 @@ BEGIN_DATADESC( CHL2_Player )
 
 	//DEFINE_FIELD( m_hPlayerProxy, FIELD_EHANDLE ), //Shut up class check!
 
+	//SMOD: New stuff
+	DEFINE_FIELD( m_bHasDualPistols, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bHasDualBerettas, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bHasDualUZIs, FIELD_BOOLEAN ),
+	
+	DEFINE_FIELD( m_iAkimboPistolAmmoLeft, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iAkimboPistolAmmoRight, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iAkimboBerettaAmmoLeft, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iAkimboBerettaAmmoRight, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iAkimboUZIAmmoLeft, FIELD_INTEGER ),
+	DEFINE_FIELD( m_iAkimboUZIAmmoRight, FIELD_INTEGER ),
+
+	//SMOD: HL1 Port
+	DEFINE_FIELD( m_flStartCharge, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flAmmoStartCharge, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flPlayAftershock, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flNextAmmoBurn, FIELD_FLOAT ),
+	DEFINE_FIELD( m_bHasLongJump, FIELD_BOOLEAN ),
+
 END_DATADESC()
 
 CHL2_Player::CHL2_Player()
@@ -395,6 +460,16 @@ CHL2_Player::CHL2_Player()
 
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
+	m_bHasDualPistols = false;
+	m_bHasDualBerettas = false;
+	m_bHasDualUZIs = false;
+
+	m_iAkimboPistolAmmoLeft = 18;
+	m_iAkimboPistolAmmoRight = 18;
+	m_iAkimboUZIAmmoLeft = 30;
+	m_iAkimboUZIAmmoRight = 30;
+	m_iAkimboBerettaAmmoLeft = 15;
+	m_iAkimboBerettaAmmoLeft = 15;
 }
 
 //
@@ -402,29 +477,38 @@ CHL2_Player::CHL2_Player()
 //
 #define SUITPOWER_CHARGE_RATE	12.5											// 100 units in 8 seconds
 
-#ifdef HL2MP
-	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 25.0f );				// 100 units in 4 seconds
-#else
-	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 12.5f );				// 100 units in 8 seconds
-#endif
-
-#ifdef HL2_EPISODIC
-	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
-#else
-	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 2.222 );	// 100 units in 45 second
-#endif
-CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 units in 15 seconds (plus three padded seconds)
-
+CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 12.5f );			// 100 units in 8 seconds
+CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
+CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );			// 100 units in 15 seconds (plus three padded seconds)
+CSuitPowerDevice SuitDeviceCloak( bits_SUIT_DEVICE_CLOAK, 6.7f );				// 100 units in 15 seconds
+CSuitPowerDevice SuitDeviceLongJump( bits_SUIT_DEVICE_CLOAK, 50.0f );			// 50 units at once
 
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
+
+	//SMOD: HL1 Port
+	SendPropInt( SENDINFO( m_bHasLongJump ), 1, SPROP_UNSIGNED ),
+	SendPropFloat( SENDINFO( m_flStartCharge ) ),
+	SendPropFloat( SENDINFO( m_flAmmoStartCharge ) ),
+	SendPropFloat( SENDINFO( m_flPlayAftershock ) ),
+	SendPropFloat( SENDINFO( m_flNextAmmoBurn ) )
 END_SEND_TABLE()
 
 
 void CHL2_Player::Precache( void )
 {
 	BaseClass::Precache();
+	PrecacheModel( "models/weapons/v_kick.mdl" ); //SMOD KICK STUFF!
+	PrecacheScriptSound( "SMODPlayer.kick_fire" );
+	PrecacheScriptSound( "SMODPlayer.kick_body" );
+	PrecacheScriptSound( "SMODPlayer.kick_wall" );
+	PrecacheScriptSound( "d3_citadel.guards_bangdoor" );
+	
+	PrecacheModel( "models/player/gordon.mdl" );
+	PrecacheModel( "models/player/gordon_citizen.mdl" );
+	PrecacheModel( "models/player/freemansci.mdl" );
+	PrecacheModel( "models/player/freemanof.mdl" );
 
 	PrecacheScriptSound( "HL2Player.SprintNoPower" );
 	PrecacheScriptSound( "HL2Player.SprintStart" );
@@ -435,6 +519,8 @@ void CHL2_Player::Precache( void )
 	PrecacheScriptSound( "HL2Player.TrainUse" );
 	PrecacheScriptSound( "HL2Player.Use" );
 	PrecacheScriptSound( "HL2Player.BurnPain" );
+
+	PrecacheScriptSound( "SMODPlayer.VoiceHit" );
 }
 
 //-----------------------------------------------------------------------------
@@ -462,7 +548,14 @@ void CHL2_Player::EquipSuit( bool bPlayEffects )
 {
 	MDLCACHE_CRITICAL_SECTION();
 	BaseClass::EquipSuit();
-	
+
+	//SMOD: If you're in HL1 use old gordon
+	CHalfLife2 *pHL2Rules = HL2GameRules();
+	if (pHL2Rules->IsInHL1Map())
+		SetModel("models/player/freemanof.mdl");
+	else
+		SetModel("models/player/gordon.mdl");
+
 	m_HL2Local.m_bDisplayReticle = true;
 
 	if ( bPlayEffects == true )
@@ -894,6 +987,133 @@ void CHL2_Player::PreThink(void)
 	}
 }
 
+//Dear lord, why must you make me do this the wrong way?
+ConVar kick_throwforce( "kick_throwforce", "20", FCVAR_ARCHIVE, "The default throw force of kick without player velocity." );
+ConVar kick_damage( "kick_damage", "50", FCVAR_ARCHIVE, "The default damage of kick without player velocity." );
+
+ConVar kick_throwforce_mult( "kick_throwforce_mult", "1", FCVAR_ARCHIVE, "The multiplier for kick force." );
+ConVar kick_damage_mult( "kick_damage_mult", "1", FCVAR_ARCHIVE, "The multiplier for kick damage." );
+
+ConVar kick_throwforce_div( "kick_throwforce_div", "48", FCVAR_ARCHIVE, "Divide the velocity by this." );
+ConVar kick_damage_div( "kick_damage_div", "48", FCVAR_ARCHIVE, "Divide the velocity by this." );
+
+void CHL2_Player::KickAttack( void )
+{
+	MDLCACHE_CRITICAL_SECTION();
+	CBaseViewModel *vm = GetViewModel( VM_LEGS );
+
+	if ( vm )
+	{
+		//If you're in HL1 use old gordon
+		CHalfLife2 *pHL2Rules = HL2GameRules();
+		if (pHL2Rules->IsInHL1Map())
+		{
+			if (!IsSuitEquipped())
+				vm->SetBodygroup(0, 3);
+			else
+				vm->SetBodygroup(0, 2);
+		}
+		else
+		{
+			if (!IsSuitEquipped())
+				vm->SetBodygroup(0, 1);
+			else
+				vm->SetBodygroup(0, 0);
+		}
+
+	//	CBaseViewModel *vm = GetViewModel( 2 );
+
+		int	idealSequence = vm->SelectWeightedSequence( ACT_VM_PRIMARYATTACK );
+
+		if ( idealSequence >= 0 )
+		{
+			vm->SendViewModelMatchingSequence( idealSequence );
+		//	vm->AddGesture(Activity activity, bool addifmissing=true, bool autokill=true);
+		//	vm->AddGestureSequence(int sequence, bool autokill=true);
+			 m_flNextKickAttack = gpGlobals->curtime + vm->SequenceDuration( idealSequence ) - 0.5f; 
+		} 
+		QAngle	recoil = QAngle( random->RandomFloat( 1.0f, 2.0f ), random->RandomFloat( -1.0f, 1.0f ), 0 );
+		this->ViewPunch( recoil );
+
+
+		// Trace up or down based on where the enemy is...
+		// But only if we're basically facing that direction
+		Vector vecDirection;
+		AngleVectors( QAngle( clamp(EyeAngles().x, 20, 80), EyeAngles().y, EyeAngles().z), &vecDirection );
+
+		CBaseEntity *pEnemy = MyNPCPointer() ? MyNPCPointer()->GetEnemy() : NULL;
+		if ( pEnemy )
+		{
+			Vector vecDelta;
+			VectorSubtract( pEnemy->WorldSpaceCenter(), Weapon_ShootPosition(), vecDelta );
+			VectorNormalize( vecDelta );
+
+			Vector2D vecDelta2D = vecDelta.AsVector2D();
+			Vector2DNormalize( vecDelta2D );
+			if ( DotProduct2D( vecDelta2D, vecDirection.AsVector2D() ) > 0.8f )
+			{
+				vecDirection = vecDelta;
+			}
+		}
+
+		Vector vecEnd;
+		VectorMA( Weapon_ShootPosition(), 50, vecDirection, vecEnd );
+		trace_t tr;
+		UTIL_TraceHull( Weapon_ShootPosition(), vecEnd, Vector(-16,-16,-16), Vector(16,16,16), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr );
+
+		// did I hit someone?
+		float KickDamageMult = 	kick_damage.GetFloat() + ( kick_damage_mult.GetFloat() * ((fabs(GetAbsVelocity().x) + fabs(GetAbsVelocity().y) + fabs(GetAbsVelocity().z)) / kick_damage_div.GetFloat()));
+		float KickThrowForceMult = kick_throwforce.GetFloat() + ( kick_throwforce_mult.GetFloat() * ((fabs(GetAbsVelocity().x) + fabs(GetAbsVelocity().y) + fabs(GetAbsVelocity().z)) / kick_throwforce_div.GetFloat()));
+
+		DevMsg("Kicking at %.2f of damage!\n", KickDamageMult);
+		DevMsg("Kicking at %.2f of force!\n", KickThrowForceMult);
+
+		if ( tr.m_pEnt )
+		{
+			if(!(tr.m_pEnt))
+			{
+			//	return;
+			}
+			else
+			{
+				CBasePropDoor *pDoor = dynamic_cast<CBasePropDoor*>((CBaseEntity*)tr.m_pEnt);
+				if (pDoor)
+				{
+					if(pDoor->HasSpawnFlags( SF_BREAKABLE_BY_PLAYER ))
+					{
+						AngularImpulse angVelocity( random->RandomFloat(0, 45), 18, random->RandomFloat(-45, 45) );
+						pDoor->PlayBreakOpenSound();
+						pDoor->BreakDoor(Weapon_ShootPosition(), angVelocity);
+						return;
+					}
+					pDoor->PlayBreakFailSound();
+					pDoor->KickFail();
+					return;
+				}
+			//	if(tr.m_pEnt->IsNPC())
+			//	{
+					CBaseEntity *Victum = this->CheckTraceHullAttack(  Weapon_ShootPosition(), vecEnd, Vector(-16,-16,-16), Vector(16,16,16), KickDamageMult, DMG_CRUSH, KickThrowForceMult, true );
+					if(Victum)
+					{
+						EmitSound( "SMODPlayer.kick_body" );
+						return;
+					}
+			//	}
+			}
+		}
+		UTIL_TraceLine(Weapon_ShootPosition(), vecEnd, MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr );//IF we hit anything else
+		if(tr.DidHit())
+		{
+			EmitSound( "SMODPlayer.kick_wall" );
+		}
+		else
+		{
+			EmitSound( "SMODPlayer.kick_fire" );
+		}
+
+	}
+}
+
 void CHL2_Player::PostThink( void )
 {
 	BaseClass::PostThink();
@@ -902,6 +1122,28 @@ void CHL2_Player::PostThink( void )
 	{
 		 HandleAdmireGlovesAnimation();
 	}
+
+	if ( m_afButtonReleased & IN_KICK && m_flNextKickAttack / 2.0f < gpGlobals->curtime /* && m_flNextKickAttack < gpGlobals->curtime  && !m_bIsKicking*/ )
+	{
+		KickAttack();
+		m_bIsKicking = true;
+	}
+
+	if ( m_flNextKickAttack < gpGlobals->curtime )
+	{
+		m_bIsKicking = false;
+		CBaseViewModel *vm = GetViewModel( VM_LEGS );
+
+		if ( vm )
+		{
+			int	idealSequence = vm->SelectWeightedSequence( ACT_VM_IDLE );
+
+			if ( idealSequence >= 0 )
+			{
+				vm->SendViewModelMatchingSequence( idealSequence );
+			}
+		}
+	}
 }
 
 void CHL2_Player::StartAdmireGlovesAnimation( void )
@@ -909,9 +1151,17 @@ void CHL2_Player::StartAdmireGlovesAnimation( void )
 	MDLCACHE_CRITICAL_SECTION();
 	CBaseViewModel *vm = GetViewModel( 0 );
 
-	if ( vm && !GetActiveWeapon() )
+	if ( vm && (!GetActiveWeapon() ))
 	{
 		vm->SetWeaponModel( "models/weapons/v_hands.mdl", NULL );
+
+		//SMOD: If you're in HL1 use old gordon
+		CHalfLife2 *pHL2Rules = HL2GameRules();
+		if (pHL2Rules->IsInHL1Map())
+			vm->SetBodygroup(0, 1);
+		else
+			vm->SetBodygroup(0, 0);
+
 		ShowViewModel( true );
 						
 		int	idealSequence = vm->SelectWeightedSequence( ACT_VM_IDLE );
@@ -941,6 +1191,15 @@ void CHL2_Player::HandleAdmireGlovesAnimation( void )
 			{
 				m_flAdmireGlovesAnimTime = 0.0f;
 				pVM->SetWeaponModel( NULL, NULL );
+
+				GiveNamedItem("weapon_hands"); //SMOD: This means the player has a suit, so give them this
+
+				//SMOD: Once the player is done looking at their hands give them the punchy punch
+				CHalfLife2 *pHL2Rules = HL2GameRules();
+				if (pHL2Rules->IsInHL1Map())
+					GiveNamedItem("hl1_fists");
+				else
+					GiveNamedItem("weapon_fists");
 			}
 		}
 	}
@@ -1108,12 +1367,14 @@ void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 //-----------------------------------------------------------------------------
 void CHL2_Player::Spawn(void)
 {
+	Precache();
 
-#ifndef HL2MP
-#ifndef PORTAL
-	SetModel( "models/player.mdl" );
-#endif
-#endif
+	//SMOD: If you're in HL1 use old gordon
+	CHalfLife2 *pHL2Rules = HL2GameRules();
+	if (pHL2Rules->IsInHL1Map())
+		SetModel("models/player/freemansci.mdl");
+	else
+		SetModel("models/player/gordon_citizen.mdl");
 
 	BaseClass::Spawn();
 
@@ -1142,6 +1403,20 @@ void CHL2_Player::Spawn(void)
 	GetPlayerProxy();
 
 	SetFlashlightPowerDrainScale( 1.0f );
+
+	m_flNextKickAttack		= gpGlobals->curtime;
+	CBaseViewModel *Leg = GetViewModel( VM_LEGS );
+	Leg->SetWeaponModel( "models/weapons/v_kick.mdl", NULL ); //TODO: Make it adjustable via console commands without crashing!
+	//Leg->SetOwner(this); //Not needed anymore, keeping just in case.
+
+	/*
+	CMapAdd *initMapAddPlayer = GetMapAddEntity();
+	if(!initMapAddPlayer)
+		initMapAddPlayer = CreateMapAddEntity();
+	char szMapadd[128];
+	Q_snprintf( szMapadd, sizeof( szMapadd ), "mapadd/%s.txt", gpGlobals->mapname );
+	initMapAddPlayer->RunPlayerInit(szMapadd, "Init");
+	*/
 }
 
 //-----------------------------------------------------------------------------
@@ -1745,6 +2020,15 @@ void CHL2_Player::CheatImpulseCommands( int iImpulse )
 
 		break;
 	}
+	
+	case 101:
+	{
+		if (sv_cheats->GetBool())
+		{
+			GiveAllItems();
+		}
+		break;
+	}
 
 	default:
 		BaseClass::CheatImpulseCommands( iImpulse );
@@ -1805,13 +2089,13 @@ void CHL2_Player::SuitPower_Update( void )
 			}
 		}
 
-		if( SuitPower_IsDeviceActive(SuitDeviceFlashlight) )
+		if (SuitPower_IsDeviceActive(SuitDeviceFlashlight))
 		{
 			float factor;
 
 			factor = 1.0f / m_flFlashlightPowerDrainScale;
 
-			flPowerLoad -= ( SuitDeviceFlashlight.GetDeviceDrainRate() * (1.0f - factor) );
+			flPowerLoad -= (SuitDeviceFlashlight.GetDeviceDrainRate() * (1.0f - factor));
 		}
 
 		if( !SuitPower_Drain( flPowerLoad * gpGlobals->frametime ) )
@@ -2029,8 +2313,8 @@ void CHL2_Player::FlashlightTurnOn( void )
 		return;
 
 	if ( Flashlight_UseLegacyVersion() )
-	{
-		if( !SuitPower_AddDevice( SuitDeviceFlashlight ) )
+	{	
+		if (!SuitPower_AddDevice(SuitDeviceFlashlight))
 			return;
 	}
 #ifdef HL2_DLL
@@ -2053,7 +2337,7 @@ void CHL2_Player::FlashlightTurnOff( void )
 {
 	if ( Flashlight_UseLegacyVersion() )
 	{
-		if( !SuitPower_RemoveDevice( SuitDeviceFlashlight ) )
+		if (!SuitPower_AddDevice(SuitDeviceFlashlight))
 			return;
 	}
 
@@ -2284,7 +2568,12 @@ void CHL2_Player::NotifyFriendsOfDamage( CBaseEntity *pAttackerEntity )
 // Purpose: 
 //-----------------------------------------------------------------------------
 ConVar test_massive_dmg("test_massive_dmg", "30" );
-ConVar test_massive_dmg_clip("test_massive_dmg_clip", "0.5" );
+ConVar test_massive_dmg_clip("test_massive_dmg_clip", "0.5");
+ConVar	smod_playerdialog("smod_playerdialog", "0", FCVAR_ARCHIVE, "Player voice. 0 disables, 1 enables. You need to have a voice pack installed for this to work.");
+
+#define ARMOR_RATIO	 0.2	// Armor Takes 80% of the damage
+#define ARMOR_BONUS  0.5	// Each Point of Armor is work 1/x points of health
+
 int	CHL2_Player::OnTakeDamage( const CTakeDamageInfo &info )
 {
 	if ( GlobalEntity_GetState( "gordon_invulnerable" ) == GLOBAL_ON )
@@ -2348,9 +2637,16 @@ int	CHL2_Player::OnTakeDamage( const CTakeDamageInfo &info )
 		playerDamage.AdjustPlayerDamageTakenForSkillLevel();
 	}
 
-	gamestats->Event_PlayerDamage( this, info );
+	//gamestats->Event_PlayerDamage( this, info );
+	
+	int voicehitchance = random->RandomInt(0, 5);
+	if (voicehitchance == 0)
+	{
+		if (smod_playerdialog.GetBool())
+			EmitSound("SMODPlayer.VoiceHit");
+	}
 
-	return BaseClass::OnTakeDamage( playerDamage );
+	return BaseClass::OnTakeDamage(info);
 }
 
 //-----------------------------------------------------------------------------
@@ -2388,7 +2684,6 @@ int CHL2_Player::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			SuspendUse( 0.5f );
 		}
 	}
-
 
 	// Call the base class implementation
 	return BaseClass::OnTakeDamage_Alive( info );
@@ -2629,16 +2924,196 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 //-----------------------------------------------------------------------------
 bool CHL2_Player::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 {
-#ifndef HL2MP	
-	if ( pWeapon->ClassMatches( "weapon_stunstick" ) )
+	//SMOD: But you can always use your hands
+	if (pWeapon->ClassMatches("weapon_hands"))
+		return BaseClass::Weapon_CanUse( pWeapon );
+
+	//SMOD: Can't use weapons if you don't have a suit
+	if (!IsSuitEquipped())
+		return false;
+
+	//SMOD: If the player already has a stunstick give them the battery power like the normal game does
+	if ( pWeapon->ClassMatches( "weapon_stunstick" ) && this->Weapon_OwnsThisType("weapon_stunstick") )
 	{
 		if ( ApplyBattery( 0.5 ) )
 			UTIL_Remove( pWeapon );
 		return false;
 	}
-#endif
+
+	//SMOD: If the player has a single pistol, but doesn't have the dual pistols, give them the dual pistols but only do it the one time
+	if ( pWeapon->ClassMatches("weapon_pistol") && this->Weapon_OwnsThisType("weapon_pistol") && !this->Weapon_OwnsThisType("weapon_pistol_akimbo") )
+	{
+		m_bHasDualPistols = true;
+		GiveNamedItem("weapon_pistol_akimbo");
+		UTIL_Remove(pWeapon);
+		return false;
+	}
+
+	//SMOD: same for the beretta
+	if ( pWeapon->ClassMatches("weapon_beretta") && this->Weapon_OwnsThisType("weapon_beretta")  && !this->Weapon_OwnsThisType("weapon_beretta_akimbo") )
+	{
+		m_bHasDualBerettas = true;
+		GiveNamedItem("weapon_beretta_akimbo");
+		UTIL_Remove(pWeapon);
+		return false;
+	}
+
+	//SMOD: and for the UZI!
+	if ( pWeapon->ClassMatches("weapon_uzi") && this->Weapon_OwnsThisType("weapon_uzi") && !this->Weapon_OwnsThisType("weapon_uzi_akimbo") )
+	{
+		m_bHasDualUZIs = true;
+		GiveNamedItem("weapon_uzi_akimbo");
+		UTIL_Remove(pWeapon);
+		return false;
+	}
 
 	return BaseClass::Weapon_CanUse( pWeapon );
+}
+
+void CHL2_Player::GiveAllItems(int whatType)
+{
+	EquipSuit();
+
+	SetHealth(100);
+	SetArmorValue(200);
+
+	if (!m_bHasLongJump)
+		GiveNamedItem("item_longjump");
+	
+	CBasePlayer::GiveAmmo( 999,	"AR2");
+	CBasePlayer::GiveAmmo( 999,	"AlyxGun");
+	CBasePlayer::GiveAmmo( 999,	"Pistol");
+	CBasePlayer::GiveAmmo( 999,	"SMG1");
+	CBasePlayer::GiveAmmo( 999,	"357");
+	CBasePlayer::GiveAmmo( 999,	"XBowBolt");
+	CBasePlayer::GiveAmmo( 999,	"Buckshot");
+	CBasePlayer::GiveAmmo( 999,	"RPG_Round");
+	CBasePlayer::GiveAmmo( 999,	"SMG1_Grenade");
+	CBasePlayer::GiveAmmo( 999,	"SniperRound");
+	CBasePlayer::GiveAmmo( 999,	"SniperPenetratedRound");
+	CBasePlayer::GiveAmmo( 999,	"Grenade");
+	CBasePlayer::GiveAmmo( 999,	"Thumper");
+	CBasePlayer::GiveAmmo( 999,	"Gravity");
+	CBasePlayer::GiveAmmo( 999,	"Extinguisher");
+	CBasePlayer::GiveAmmo( 999,	"Battery");
+	CBasePlayer::GiveAmmo( 999,	"GaussEnergy");
+	CBasePlayer::GiveAmmo( 999,	"CombineCannon");
+	CBasePlayer::GiveAmmo( 999,	"AirboatGun");
+	CBasePlayer::GiveAmmo( 999,	"StriderMinigun");
+	CBasePlayer::GiveAmmo( 999,	"StriderMinigunDirect");
+	CBasePlayer::GiveAmmo( 999,	"HelicopterGun");
+	CBasePlayer::GiveAmmo( 999,	"AR2AltFire");
+	CBasePlayer::GiveAmmo( 999,	"Hopwire");
+	CBasePlayer::GiveAmmo( 999,	"CombineHeavyCannon");
+	CBasePlayer::GiveAmmo( 999,	"ammo_proto1");
+	CBasePlayer::GiveAmmo( 999,	"slam");
+	CBasePlayer::GiveAmmo( 999,	"Uranium");
+	CBasePlayer::GiveAmmo( 999,	"Hornet");
+	CBasePlayer::GiveAmmo( 999,	"Snark");
+	CBasePlayer::GiveAmmo( 999,	"XBowDart");
+	CBasePlayer::GiveAmmo( 999,	"TripMine");
+	CBasePlayer::GiveAmmo( 999,	"Satchel");
+	CBasePlayer::GiveAmmo( 999,	"AssaultRifle");
+	CBasePlayer::GiveAmmo( 999,	"Manhack");
+	CBasePlayer::GiveAmmo( 999,	"FlareRound");
+	CBasePlayer::GiveAmmo( 999,	"AWP");
+	CBasePlayer::GiveAmmo( 999,	"BlackHole");
+	CBasePlayer::GiveAmmo( 999,	"Annabelle");
+	CBasePlayer::GiveAmmo( 999,	"Laser");
+	CBasePlayer::GiveAmmo( 999,	"Katana");
+	CBasePlayer::GiveAmmo( 999,	"Gatling");
+	CBasePlayer::GiveAmmo( 999,	"PSPGame");
+
+	CHalfLife2 *pHL2Rules = HL2GameRules();
+
+	if (whatType == 4 || whatType == 1 || (pHL2Rules->IsInHL1Map() && whatType == 0))
+	{
+		GiveNamedItem("weapon_fists");
+		GiveNamedItem("weapon_crowbar");
+		GiveNamedItem("weapon_glock");
+		GiveNamedItem("weapon_357");
+		GiveNamedItem("weapon_mp5");
+		GiveNamedItem("weapon_shotgun");
+		GiveNamedItem("weapon_crossbow");
+		GiveNamedItem("weapon_handgrenade");
+		GiveNamedItem("weapon_tripmine");
+		GiveNamedItem("weapon_satchel");
+		GiveNamedItem("weapon_snark");
+		GiveNamedItem("weapon_egon");
+		GiveNamedItem("weapon_gauss");
+		GiveNamedItem("weapon_rpg");
+		GiveNamedItem("weapon_hornetgun");
+	}
+
+	if (whatType == 4 || whatType == 2 || (!pHL2Rules->IsInHL1Map() && whatType == 0))
+	{
+		GiveNamedItem("weapon_crowbar");
+		GiveNamedItem("weapon_stunstick");
+		GiveNamedItem("weapon_pistol");
+		GiveNamedItem("weapon_357");
+		GiveNamedItem("weapon_smg1");
+		GiveNamedItem("weapon_ar2");
+		GiveNamedItem("weapon_shotgun");
+		GiveNamedItem("weapon_crossbow");
+		GiveNamedItem("weapon_frag");
+		GiveNamedItem("weapon_slam");
+		GiveNamedItem("weapon_rpg");
+		GiveNamedItem("weapon_bugbait");
+		GiveNamedItem("weapon_physcannon");
+	}
+
+	if (whatType == 4 || whatType == 3 || (!pHL2Rules->IsInHL1Map() && whatType == 0))
+	{
+		m_bHasDualPistols = true;
+		m_bHasDualBerettas = true;
+		m_bHasDualUZIs = true;
+
+		GiveNamedItem("weapon_grapple");
+		GiveNamedItem("weapon_portalgun");
+		GiveNamedItem("weapon_physgun");
+		GiveNamedItem("weapon_positiongrabber");
+
+		GiveNamedItem("weapon_fists");
+		GiveNamedItem("weapon_mattspipe");
+		GiveNamedItem("weapon_katana");
+		GiveNamedItem("weapon_knife");
+
+		GiveNamedItem("weapon_pistol_akimbo");
+		GiveNamedItem("weapon_alyxgun");
+		GiveNamedItem("weapon_beretta");
+		GiveNamedItem("weapon_beretta_akimbo");
+		GiveNamedItem("weapon_deagle");
+		GiveNamedItem("weapon_flaregun");
+
+		GiveNamedItem("weapon_smg2");
+		GiveNamedItem("weapon_ar2x");
+		GiveNamedItem("weapon_uzi");
+		GiveNamedItem("weapon_uzi_akimbo");
+		GiveNamedItem("weapon_m16");
+
+		GiveNamedItem("weapon_m3super90");
+		GiveNamedItem("weapon_sniperrifle");
+		GiveNamedItem("weapon_annabelle");
+		GiveNamedItem("weapon_dartbow");
+		GiveNamedItem("weapon_ar2x");
+		GiveNamedItem("weapon_m249");
+
+		GiveNamedItem("weapon_snark");
+		GiveNamedItem("weapon_manhack");
+		GiveNamedItem("weapon_blackhole");
+		GiveNamedItem("weapon_hopwire");
+
+		GiveNamedItem("weapon_gauss");
+		GiveNamedItem("weapon_egon");
+		GiveNamedItem("weapon_cguard");
+		GiveNamedItem("weapon_flamethrower");
+		GiveNamedItem("weapon_hornetgun");
+		GiveNamedItem("weapon_immolator");
+		GiveNamedItem("weapon_physconcusson");
+		GiveNamedItem("weapon_physlauncher");
+		GiveNamedItem("weapon_gatling");
+		GiveNamedItem("weapon_psp");
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -3122,6 +3597,16 @@ void CHL2_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 	if ( GetGroundEntity() == pObject )
 		return;
 	
+	CRagdollProp *pRagdoll = dynamic_cast<CRagdollProp*>(pObject);
+	if( pRagdoll ) //Ragdolls are important.
+	{
+		//if ( pObject->HasNPCsOnIt() )
+		//	return;
+		if ( CBasePlayer::CanPickupObject( pObject, 70, 128 ) )
+			PlayerPickupRagdoll( this, pObject );
+		return; //Don't do anything else.
+	}
+
 	if ( bLimitMassAndSize == true )
 	{
 		if ( CBasePlayer::CanPickupObject( pObject, 35, 128 ) == false )

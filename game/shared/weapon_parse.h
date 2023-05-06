@@ -12,6 +12,7 @@
 #endif
 
 #include "shareddefs.h"
+#include "utlvector.h"
 
 class IFileSystem;
 
@@ -41,6 +42,9 @@ typedef enum {
 	DEPLOY,
 
 	// Add new shoot sound types here
+
+	PUMP,		//SMOD Custom Weapon Shotgun Pump
+
 
 	NUM_SHOOT_SOUND_TYPES,
 } WeaponSound_t;
@@ -130,6 +134,49 @@ public:
 
 // SERVER DLL
 
+
+
+
+	//SMOD Custom stuff
+	float	m_flFovAdd;								//ViewmodelFov Add
+	char	szMuzzleAttachement[MAX_WEAPON_STRING];	//Muzzleflash/weapon smoke attachement point
+	bool	m_bUsesCSMuzzleFlash;					//If it uses the CS muzzle flash or not
+	char	szCSMuzzleFlashType[MAX_WEAPON_STRING];	//CS muzzle flash type
+	char	szCSMuzzleFlashName[MAX_WEAPON_STRING];	//CS muzzle flash name
+	
+	Vector	vecIronsightPosOffset;	//Ironsight vector
+	QAngle	angIronsightAngOffset;	//Ironsight angle
+	float	flIronsightFOVOffset;	//Ironsight fov	float
+	bool	m_bCanIronSight;		//Ironsight enabled bool
+
+	//scripted weapons stuff
+	bool	m_bIsScripted;						//True if it's a custom weapon
+	char	szPrecacheEnt1[MAX_WEAPON_STRING];	//Entity to precache (1)
+	char	szPrecacheEnt2[MAX_WEAPON_STRING];	//Entity to precache (2)
+	bool	m_bReloadsSingly;					//Reloads singly
+	bool	m_bUsesShotgunReload;				//Uses shotgun reload
+	char	szGiveCheatName[MAX_WEAPON_STRING];	//Custom weapon name for "give" command
+	char	szAnimDeploy[MAX_WEAPON_STRING];	//Animations: Deploy name
+	char	szAnimReload[MAX_WEAPON_STRING];	//Animations: Reload name
+	char	szAnimIdle[MAX_WEAPON_STRING];		//Animations: Idle name
+	char	szAnimPriAtk[MAX_WEAPON_STRING];	//Animations: Primary Attack name
+	char	szAnimSecAtk[MAX_WEAPON_STRING];	//Animations: Secondary Attack name
+	char	szAnimPriMiss[MAX_WEAPON_STRING];	//Animations: Miss (primary) name
+	char	szAnimSecMiss[MAX_WEAPON_STRING];	//Animations: Miss (secondary) name
+	char	szAttackTypePri[6];					//Primary Attack: Type
+	int		m_iDamagePri;						//Primary Attack: Damage
+	bool	m_bUsesShotgunPumpPri;				//Primary Attack: Pump
+	bool	m_bUnderWtaerPri;					//Primary Attack: Underwater
+	float	m_fFireRatePri;						//Primary Attack: Fire rate
+	char	szFireModePri[5];					//Primary Attack Bullet: Mode
+	Vector	m_vSpreadPri;						//Primary Attack Bullet: Spread
+	Vector	m_vSpreadPriIron;					//Primary Attack Bullet: Spread (IronSight)
+	int		m_iAmountPri;						//Primary Attack Bullet: Amount
+	int		m_iRangePri;						//Primary Attack Bullet: Range
+	char	szTracerPri[MAX_WEAPON_PREFIX];		//Primary Attack Bullet: Tracer
+	char	szLnchEntNamePri[MAX_WEAPON_PREFIX];//Primary Attack Launch: Entity
+	char	szLnchTypePri[4];					//Primary Attack Launch: Type
+	int		m_iVelocityPri;						//Primary Attack Launch: Velocity
 };
 
 // The weapon parse function

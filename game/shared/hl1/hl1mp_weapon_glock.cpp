@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Glock - hand gun
 //
@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
+#include "NPCEvent.h"
 #include "hl1mp_basecombatweapon_shared.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
@@ -191,6 +191,10 @@ bool CWeaponGlock::Reload( void )
 
 void CWeaponGlock::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( pPlayer )
 	{

@@ -286,6 +286,8 @@ protected:
 private:
 	bool m_bIsSlumped;
 
+public:
+	bool m_bIsNHZombie;
 };
 
 #endif // NPC_BASEZOMBIE_H

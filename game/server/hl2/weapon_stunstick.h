@@ -33,6 +33,7 @@ public:
 
 	float		GetRange( void )		{ return STUNSTICK_RANGE; }
 	float		GetFireRate( void )		{ return STUNSTICK_REFIRE; }
+	bool		UsesHitWorldSounds(){ return true; }
 
 	int			WeaponMeleeAttack1Condition( float flDot, float flDist );
 

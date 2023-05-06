@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "gamerules.h"
+#include "hl2_gamerules.h"
 #include "player.h"
 #include "items.h"
 #include "in_buttons.h"
@@ -26,11 +26,18 @@ class CHealthKit : public CItem
 {
 public:
 	DECLARE_CLASS( CHealthKit, CItem );
+	DECLARE_DATADESC();
 
 	void Spawn( void );
 	void Precache( void );
 	bool MyTouch( CBasePlayer *pPlayer );
+
+	int iHealthCharge;
 };
+
+BEGIN_DATADESC(CHealthKit)
+DEFINE_KEYFIELD(iHealthCharge, FIELD_INTEGER, "ChargeAmount"),
+END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( item_healthkit, CHealthKit );
 PRECACHE_REGISTER(item_healthkit);
@@ -42,7 +49,7 @@ PRECACHE_REGISTER(item_healthkit);
 void CHealthKit::Spawn( void )
 {
 	Precache();
-	SetModel( "models/items/healthkit.mdl" );
+	SetModel(STRING(GetModelName()));
 
 	BaseClass::Spawn();
 }
@@ -52,8 +59,16 @@ void CHealthKit::Spawn( void )
 // Purpose: 
 //-----------------------------------------------------------------------------
 void CHealthKit::Precache( void )
-{
-	PrecacheModel("models/items/healthkit.mdl");
+{	
+	CHalfLife2 *pHL2Rules = HL2GameRules();
+	if (pHL2Rules->IsInHL1Map())
+		SetModelName(AllocPooledString("models/w_medkit.mdl"));	//If we're in HL1
+	else if (CBaseEntity::GetModelName() == NULL_STRING)
+		SetModelName(AllocPooledString("models/items/healthkit.mdl"));	//If we got here, we are not in HL1 and we do not have a custom model
+	else
+		SetModelName(CBaseEntity::GetModelName());
+
+	PrecacheModel(STRING(GetModelName()));
 
 	PrecacheScriptSound( "HealthKit.Touch" );
 }
@@ -66,7 +81,15 @@ void CHealthKit::Precache( void )
 //-----------------------------------------------------------------------------
 bool CHealthKit::MyTouch( CBasePlayer *pPlayer )
 {
-	if ( pPlayer->TakeHealth( sk_healthkit.GetFloat(), DMG_GENERIC ) )
+	int iHealthToGive;
+
+	if (iHealthCharge)
+		iHealthToGive = iHealthCharge;
+	else
+		iHealthToGive = sk_healthkit.GetFloat();
+
+
+	if ( pPlayer->TakeHealth( iHealthToGive, DMG_GENERIC ) )
 	{
 		CSingleUserRecipientFilter user( pPlayer );
 		user.MakeReliable();

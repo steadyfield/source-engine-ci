@@ -157,7 +157,12 @@ void CAI_AllyManager::CountAllies( int *pTotal, int *pMedics )
 				  fabsf( ppAIs[i]->GetAbsOrigin().z - vPlayerPos.z ) > 192 ) )
 				continue;
 
-			if( FClassnameIs( ppAIs[i], "npc_citizen" ) ) 
+			//SMOD: Oh OH BOY wow this is fucking terible someone make this better PLEASE
+            if( FClassnameIs( ppAIs[i], "npc_citizen" ) || FClassnameIs( ppAIs[i], "npc_combine_ally" ) || FClassnameIs( ppAIs[i], "npc_breen_ally" ) || \
+                FClassnameIs( ppAIs[i], "npc_barney_ally" ) || FClassnameIs( ppAIs[i], "npc_alyx_ally" ) || FClassnameIs( ppAIs[i], "npc_eli_ally" ) || \
+                FClassnameIs( ppAIs[i], "npc_gman_ally" ) || FClassnameIs( ppAIs[i], "npc_kleiner_ally" ) || FClassnameIs( ppAIs[i], "npc_magnusson_ally" ) || \
+                FClassnameIs( ppAIs[i], "npc_mossman_ally" ) || FClassnameIs( ppAIs[i], "npc_odessa_ally" ) || FClassnameIs( ppAIs[i], "npc_gordon_ally" ) || \
+                FClassnameIs( ppAIs[i], "npc_metropolice_ally" ) || FClassnameIs( ppAIs[i], "npc_human_grunt_ally" ))
 			{  
 				CNPC_Citizen *pCitizen = assert_cast<CNPC_Citizen *>(ppAIs[i]);
 				if ( !pCitizen->CanJoinPlayerSquad() )

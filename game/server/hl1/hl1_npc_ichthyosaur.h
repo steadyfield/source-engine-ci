@@ -1,12 +1,12 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifndef NPC_ICHTHYOSAUR_H
-#define NPC_ICHTHYOSAUR_H
+#ifndef HL1NPC_Ichthyosaur_H
+#define HL1NPC_Ichthyosaur_H
 
 
 #include "hl1_ai_basenpc.h"
@@ -23,12 +23,12 @@
 
 
 //
-// CNPC_Ichthyosaur
+// CHL1NPC_Ichthyosaur
 //
 
-class CNPC_Ichthyosaur : public CHL1BaseNPC
+class CHL1NPC_Ichthyosaur : public CHL1BaseNPC
 {
-	DECLARE_CLASS( CNPC_Ichthyosaur, CHL1BaseNPC );
+	DECLARE_CLASS( CHL1NPC_Ichthyosaur, CHL1BaseNPC );
 public:
 
 	void	Precache( void );
@@ -94,4 +94,4 @@ private:
 };
 
 
-#endif //NPC_ICHTHYOSAUR_H
+#endif //HL1NPC_Ichthyosaur_H

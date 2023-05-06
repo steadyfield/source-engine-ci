@@ -174,6 +174,9 @@ void CBaseHLBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity, bool 
 		{
 			gamestats->Event_WeaponHit( pPlayer, !bIsSecondary, GetClassname(), info );
 		}
+		
+		if (UsesHitWorldSounds())
+			WeaponSound(MELEE_HIT);
 	}
 
 	// Apply an impact effect

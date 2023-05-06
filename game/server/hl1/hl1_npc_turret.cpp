@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -6,20 +6,18 @@
 //
 //=============================================================================//
 #include	"cbase.h"
-#include	"ai_default.h"
-#include	"ai_task.h"
-#include	"ai_schedule.h"
-#include	"ai_node.h"
-#include	"ai_hull.h"
-#include	"ai_hint.h"
-#include	"ai_memory.h"
-#include	"ai_route.h"
-#include	"ai_motor.h"
-#include	"ai_senses.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"AI_Senses.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"npcevent.h"
-#include	"entitylist.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"basecombatweapon.h"
@@ -62,7 +60,7 @@ public:
 	virtual void Precache(void);
 	void EXPORT TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	
-	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr );
 
 	virtual int OnTakeDamage( const CTakeDamageInfo &info );
 	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
@@ -125,7 +123,7 @@ public:
 
 	// movement
 	float	m_flStartYaw;
-	QAngle	m_vecCurAngles;
+	Vector	m_vecCurAngles;
 	Vector	m_vecGoalAngles;
 
 
@@ -141,6 +139,8 @@ public:
 
 	//DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();
+
+	typedef CAI_BaseNPC BaseClass;
 };
 
 BEGIN_DATADESC( CNPC_BaseTurret )
@@ -246,7 +246,7 @@ void CNPC_BaseTurret::Spawn()
 
 void CNPC_BaseTurret::Precache()
 {
-	m_iAmmoType = GetAmmoDef()->Index("12mmRound");	
+	m_iAmmoType = GetAmmoDef()->Index("SMG1");	
 
 	PrecacheScriptSound( "Turret.Alert" );
 	PrecacheScriptSound( "Turret.Die" );
@@ -266,7 +266,7 @@ Class_T CNPC_BaseTurret::Classify( void )
 //=========================================================
 // TraceAttack - being attacked
 //=========================================================
-void CNPC_BaseTurret::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+void CNPC_BaseTurret::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr )
 {
 	CTakeDamageInfo ainfo = info;
 
@@ -521,15 +521,15 @@ void CNPC_BaseTurret::ActiveThink(void)
 		}
 	}
 
-	Vector vecMid = EyePosition();
-	Vector vecMidEnemy = GetEnemy()->BodyTarget(vecMid, false);
+
+	Vector vecMid = GetAbsOrigin() + GetViewOffset();
+	Vector vecMidEnemy = GetEnemy()->BodyTarget( vecMid, false );
 
 	// Look for our current enemy
-	int fEnemyVisible = FInViewCone( GetEnemy() ) && FVisible( GetEnemy() );	
+	int fEnemyVisible = FBoxVisible(this, GetEnemy(), vecMidEnemy );	
 	
 	//We want to look at the enemy's eyes so we don't jitter
 	Vector	vecDirToEnemyEyes = vecMidEnemy - vecMid;
-//	NDebugOverlay::Line( vecMid, vecMidEnemy, 0, 255, 0, false, 1.0 );
 
 	float flDistToEnemy = vecDirToEnemyEyes.Length();
 
@@ -561,28 +561,37 @@ void CNPC_BaseTurret::ActiveThink(void)
 		m_vecLastSight = vecMidEnemy;
 	}
 	
-	Vector forward;
-	AngleVectors( m_vecCurAngles, &forward );
+	//ALERT( at_console, "%.0f %.0f : %.2f %.2f %.2f\n", 
+	//	m_vecCurAngles.x, m_vecCurAngles.y,
+	//	gpGlobals->v_forward.x, gpGlobals->v_forward.y, gpGlobals->v_forward.z );
 
-	Vector2D vec2LOS = ( GetEnemy()->GetAbsOrigin() - GetAbsOrigin() ).AsVector2D();
-	vec2LOS.NormalizeInPlace();
+	Vector vecLOS = vecDirToEnemyEyes; //vecMid - m_vecLastSight;
+	VectorNormalize( vecLOS );
 
-	float flDot = vec2LOS.Dot( forward.AsVector2D() );
+	Vector vecMuzzle, vecMuzzleDir;
+	QAngle vecMuzzleAng;
+	GetAttachment( 1, vecMuzzle, vecMuzzleAng );
 
-	if ( flDot  <= 0.866 )
+	AngleVectors( vecMuzzleAng, &vecMuzzleDir );
+	
+	// Is the Gun looking at the target
+	if (DotProduct(vecLOS, vecMuzzleDir) <= 0.866) // 30 degree slop
 		fAttack = FALSE;
 	else
 		fAttack = TRUE;
 
 	//forward
-	//NDebugOverlay::Line(vecMuzzle, vecMid + ( forward ), 255,0,0, false, 0.1);
+//	NDebugOverlay::Line(vecMuzzle, vecMid + ( vecMuzzleDir * 200 ), 255,0,0, false, 0.1);
 	//LOS
-	//NDebugOverlay::Line(vecMuzzle, vecMid + ( vecDirToEnemyEyes * 200 ), 0,0,255, false, 0.1);
+//	NDebugOverlay::Line(vecMuzzle, vecMid + ( vecLOS * 200 ), 0,0,255, false, 0.1);
 
 	// fire the gun
 	if (m_iSpin && ((fAttack) || (m_fBeserk)))
 	{
-		Shoot(vecMid, forward );
+		Vector vecOrigin;
+		QAngle vecAngles;
+		GetAttachment( 1, vecOrigin, vecAngles );
+		Shoot(vecOrigin, vecMuzzleDir );
 		SetTurretAnim(TURRET_ANIM_FIRE);
 	} 
 	else
@@ -1125,7 +1134,7 @@ void CNPC_BaseTurret::EyeOff(void)
 	{
 		if (m_eyeBrightness > 0)
 		{
-			m_eyeBrightness = MAX( 0, m_eyeBrightness - 30 );
+			m_eyeBrightness = max( 0, m_eyeBrightness - 30 );
 			m_pEyeGlow->SetBrightness( m_eyeBrightness );
 		}
 	}
@@ -1334,7 +1343,7 @@ void CNPC_MiniTurret::Precache()
 {
 	CNPC_BaseTurret::Precache( );
 
-	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
+	m_iAmmoType = GetAmmoDef()->Index("SMG1");
 
 	PrecacheScriptSound( "Turret.Shoot" );
 
@@ -1386,7 +1395,7 @@ void CNPC_Sentry::Precache()
 {
 	BaseClass::Precache( );
 
-	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
+	m_iAmmoType = GetAmmoDef()->Index("SMG1");
 
 	PrecacheScriptSound( "Sentry.Shoot" );
 	PrecacheScriptSound( "Sentry.Die" );

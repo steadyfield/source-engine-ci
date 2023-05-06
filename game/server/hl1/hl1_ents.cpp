@@ -762,7 +762,7 @@ void CFuncMortarField::InputTrigger( inputdata_t &inputdata )
 	}
 }
 
-#ifdef HL1_DLL
+//#ifdef HL1_DLL
 
 class CMortar : public CHL1BaseGrenade
 {
@@ -822,7 +822,7 @@ void CMortar::MortarExplode( void )
 	UTIL_ScreenShake( tr.endpos, 25.0, 150.0, 1.0, 750, SHAKE_START );
 }
 
-#endif
+//#endif
 
 //=========================================================
 // Dead HEV suit prop
@@ -1476,7 +1476,7 @@ void CHL1Gib::WaitTillLand ( void )
 		AddSolidFlags( FSOLID_NOT_SOLID );*/
 		
 		SetNextThink( gpGlobals->curtime + m_lifeTime );
-		SetThink ( &CBaseEntity::SUB_FadeOut );
+		//SetThink ( &CBaseEntity::SUB_FadeOut );
 
 		// If you bleed, you stink!
 	/*	if ( m_bloodColor != DONT_BLEED )
@@ -1587,7 +1587,7 @@ void CHL1Gib::Spawn( const char *szGibModel )
 
 	SetNextThink( gpGlobals->curtime + 4 );
 
-	m_lifeTime = 250;
+	m_lifeTime = 25;
 
 	SetThink ( &CHL1Gib::WaitTillLand );
 	SetTouch ( &CHL1Gib::BounceGibTouch );

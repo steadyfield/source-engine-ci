@@ -8,6 +8,8 @@
 #include "in_buttons.h"
 #include "utlrbtree.h"
 #include "hl2_shareddefs.h"
+#include "movevars_shared.h" //SMOD: Longjump
+#include "hl2_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -283,7 +285,8 @@ bool CHL2GameMovement::ContinueForcedMove()
 //-----------------------------------------------------------------------------
 bool CHL2GameMovement::OnLadder( trace_t &trace )
 {
-	return ( GetLadder() != NULL ) ? true : false;
+	//SMOD: Old style ladder fix
+	return ( GetLadder() != NULL ) ? true : BaseClass::OnLadder( trace );
 }
 
 //-----------------------------------------------------------------------------
@@ -524,9 +527,12 @@ void CHL2GameMovement::FullLadderMove()
 {
 #if !defined( CLIENT_DLL )
 	CFuncLadder *ladder = GetLadder();
-	Assert( ladder );
+	
+	//SMOD: Old style ladder fix
+	//Assert( ladder );
 	if ( !ladder )
 	{
+		BaseClass::FullLadderMove();
 		return;
 	}
 
@@ -887,7 +893,9 @@ bool CHL2GameMovement::LadderMove( void )
 	if ( player->GetMoveType() == MOVETYPE_NOCLIP )
 	{
 		SetLadder( NULL );
-		return false;
+
+		//SMOD: Old style ladder fix
+		return BaseClass::LadderMove();
 	}
 
 	// If being forced to mount/dismount continue to act like we are on the ladder
@@ -953,8 +961,9 @@ bool CHL2GameMovement::LadderMove( void )
 				}
 			}
 		}
-
-		return false;
+		
+		//SMOD: Old style ladder fix
+		return BaseClass::LadderMove();
 	}
 
 	if ( !ladder && 
@@ -968,7 +977,8 @@ bool CHL2GameMovement::LadderMove( void )
 	ladder = GetLadder();
 	if ( !ladder )
 	{
-		return false;
+		//SMOD: Old style ladder fix
+		return BaseClass::LadderMove();
 	}
 
 	// Don't play the deny sound
@@ -1032,7 +1042,8 @@ bool CHL2GameMovement::LadderMove( void )
 		{
 			mv->m_vecVelocity.z = mv->m_vecVelocity.z + 50;
 		}
-		return false;
+		//SMOD: Old style ladder fix
+		return BaseClass::LadderMove();
 	}
 
 	if ( forwardSpeed != 0 || rightSpeed != 0 )
@@ -1064,7 +1075,8 @@ bool CHL2GameMovement::LadderMove( void )
 			player->SetMoveType( MOVETYPE_WALK );
 			// Remove from ladder
 			SetLadder( NULL );
-			return false;
+			//SMOD: Old style ladder fix
+			return BaseClass::LadderMove();
 		}
 
 		bool ishorizontal = fabs( topPosition.z - bottomPosition.z ) < 64.0f ? true : false;
@@ -1150,3 +1162,206 @@ bool CHL2GameMovement::CanAccelerate()
 
 	EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGameMovement, IGameMovement,INTERFACENAME_GAMEMOVEMENT, g_GameMovement );
 #endif
+
+//SMOD: Moddifed base jumping systems for HL1 maps and the longjump.
+
+extern bool g_bMovementOptimizations;
+#define CheckV( tick, ctx, vel )
+extern ConVar xc_uncrouch_on_jump;
+ConVar smod_autobunnyhop("smod_autobunnyhop","0",FCVAR_ARCHIVE,"If true, will automatically jump as soon as you hit the ground (like bunnyhopping)\n");
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CHL2GameMovement::CheckJumpButton( void )
+{
+	if (player->pl.deadflag)
+	{
+		mv->m_nOldButtons |= IN_JUMP ;	// don't jump again until released
+		return false;
+	}
+
+	// See if we are waterjumping.  If so, decrement count and return.
+	if (player->m_flWaterJumpTime)
+	{
+		player->m_flWaterJumpTime -= gpGlobals->frametime;
+		if (player->m_flWaterJumpTime < 0)
+			player->m_flWaterJumpTime = 0;
+		
+		return false;
+	}
+
+	// If we are in the water most of the way...
+	if ( player->GetWaterLevel() >= 2 )
+	{	
+		// swimming, not jumping
+		SetGroundEntity( NULL );
+
+		if(player->GetWaterType() == CONTENTS_WATER)    // We move up a certain amount
+			mv->m_vecVelocity[2] = 100;
+		else if (player->GetWaterType() == CONTENTS_SLIME)
+			mv->m_vecVelocity[2] = 80;
+		
+		// play swiming sound
+		if ( player->m_flSwimSoundTime <= 0 )
+		{
+			// Don't play sound again for 1 second
+			player->m_flSwimSoundTime = 1000;
+			PlaySwimSound();
+		}
+
+		return false;
+	}
+
+	// No more effect
+ 	if (player->GetGroundEntity() == NULL)
+	{
+		mv->m_nOldButtons |= IN_JUMP;
+		return false;		// in air, so no effect
+	}
+
+	// Don't allow jumping when the player is in a stasis field.
+#ifndef HL2_EPISODIC
+	if ( player->m_Local.m_bSlowMovement )
+		return false;
+#endif
+
+	if (!smod_autobunnyhop.GetBool())
+		if ( mv->m_nOldButtons & IN_JUMP )
+			return false;		// don't pogo stick
+
+	// Cannot jump will in the unduck transition.
+	if ( player->m_Local.m_bDucking && (  player->GetFlags() & FL_DUCKING ) )
+		return false;
+
+	// Still updating the eye position.
+	if ( player->m_Local.m_flDuckJumpTime > 0.0f )
+		return false;
+
+
+	// In the air now.
+    SetGroundEntity( NULL );
+	
+	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
+	
+	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
+
+	float flGroundFactor = 1.0f;
+	if (player->m_pSurfaceData)
+	{
+		flGroundFactor = player->m_pSurfaceData->game.jumpFactor; 
+	}
+
+	float flMul;
+	if ( g_bMovementOptimizations )
+	{
+		Assert( GetCurrentGravity() == 600.0f );
+
+		m_pHL1Player = ToHL2Player(player);
+
+		Assert(m_pHL1Player);
+
+		if (m_pHL1Player->m_bHasLongJump &&
+			(mv->m_nButtons & IN_DUCK) &&
+			(m_pHL1Player->m_Local.m_flDucktime > 0) &&
+			mv->m_vecVelocity.Length() > 50)
+		{
+			m_pHL1Player->m_Local.m_vecPunchAngle.Set(PITCH, -5);
+
+			mv->m_vecVelocity = m_vecForward * PLAYER_LONGJUMP_SPEED * 1.6;
+			flMul = sqrt(2 * 800 * 56.0);
+		}
+		else
+		{
+#ifndef CLIENT_DLL
+			CHalfLife2 *pHL2Rules = HL2GameRules();
+			if (pHL2Rules->IsInHL1Map())
+				flMul = sqrt(2 * 600 * 45.0);
+			else
+#endif
+				flMul = 160.0f;	// approx. 21 units.
+		}
+	}
+	else
+	{
+		flMul = sqrt(2 * GetCurrentGravity() * GAMEMOVEMENT_JUMP_HEIGHT);
+	}
+
+	// Acclerate upward
+	// If we are ducking...
+	float startz = mv->m_vecVelocity[2];
+	if ( (  player->m_Local.m_bDucking ) || (  player->GetFlags() & FL_DUCKING ) )
+	{
+		// d = 0.5 * g * t^2		- distance traveled with linear accel
+		// t = sqrt(2.0 * 45 / g)	- how long to fall 45 units
+		// v = g * t				- velocity at the end (just invert it to jump up that high)
+		// v = g * sqrt(2.0 * 45 / g )
+		// v^2 = g * g * 2.0 * 45 / g
+		// v = sqrt( g * 2.0 * 45 )
+		mv->m_vecVelocity[2] = flGroundFactor * flMul;  // 2 * gravity * height
+	}
+	else
+	{
+		mv->m_vecVelocity[2] += flGroundFactor * flMul;  // 2 * gravity * height
+	}
+
+	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
+	if ( gpGlobals->maxClients == 1 )
+	{
+		CHLMoveData *pMoveData = ( CHLMoveData* )mv;
+		Vector vecForward;
+		AngleVectors( mv->m_vecViewAngles, &vecForward );
+		vecForward.z = 0;
+		VectorNormalize( vecForward );
+		
+		// We give a certain percentage of the current forward movement as a bonus to the jump speed.  That bonus is clipped
+		// to not accumulate over time.
+		float flSpeedBoostPerc = ( !pMoveData->m_bIsSprinting && !player->m_Local.m_bDucked ) ? 0.5f : 0.1f;
+		float flSpeedAddition = fabs( mv->m_flForwardMove * flSpeedBoostPerc );
+		float flMaxSpeed = mv->m_flMaxSpeed + ( mv->m_flMaxSpeed * flSpeedBoostPerc );
+		float flNewSpeed = ( flSpeedAddition + mv->m_vecVelocity.Length2D() );
+
+		// If we're over the maximum, we want to only boost as much as will get us to the goal speed
+		if ( flNewSpeed > flMaxSpeed )
+		{
+			flSpeedAddition -= flNewSpeed - flMaxSpeed;
+		}
+
+		if ( mv->m_flForwardMove < 0.0f )
+			flSpeedAddition *= -1.0f;
+
+		// Add it on
+		VectorAdd( (vecForward*flSpeedAddition), mv->m_vecVelocity, mv->m_vecVelocity );
+	}
+
+	FinishGravity();
+
+	CheckV( player->CurrentCommandNumber(), "CheckJump", mv->m_vecVelocity );
+
+	mv->m_outJumpVel.z += mv->m_vecVelocity[2] - startz;
+	mv->m_outStepHeight += 0.15f;
+
+	OnJump(mv->m_outJumpVel.z);
+
+	// Set jump time.
+	if ( gpGlobals->maxClients == 1 )
+	{
+		player->m_Local.m_flJumpTime = GAMEMOVEMENT_JUMP_TIME;
+		player->m_Local.m_bInDuckJump = true;
+	}
+
+#ifndef CLIENT_DLL
+	if ( xc_uncrouch_on_jump.GetBool() )
+	{
+		// Uncrouch when jumping
+		if ( player->GetToggledDuckState() )
+		{
+			player->ToggleDuck();
+		}
+	}
+#endif
+
+	// Flag that we jumped.
+	mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released
+	return true;
+}

@@ -345,19 +345,14 @@ int UTIL_DropToFloor( CBaseEntity *pEntity, unsigned int mask, CBaseEntity *pIgn
 
 	trace_t	trace;
 
-#if !defined(HL2MP) && !defined(HL1_DLL)
+#ifndef HL2MP
 	// HACK: is this really the only sure way to detect crossing a terrain boundry?
 	UTIL_TraceEntity( pEntity, pEntity->GetAbsOrigin(), pEntity->GetAbsOrigin(), mask, pIgnore, pEntity->GetCollisionGroup(), &trace );
 	if (trace.fraction == 0.0)
 		return -1;
 #endif // HL2MP
 
-	UTIL_TraceEntity( pEntity, pEntity->GetAbsOrigin() + Vector(0,0,1), pEntity->GetAbsOrigin() - Vector(0,0,256), mask, pIgnore, pEntity->GetCollisionGroup(), &trace );
-
-#ifdef HL1_DLL
-	if( fabs(pEntity->GetAbsOrigin().z - trace.endpos.z) <= 2.f )
-		return -1;
-#endif
+	UTIL_TraceEntity( pEntity, pEntity->GetAbsOrigin(), pEntity->GetAbsOrigin() - Vector(0,0,256), mask, pIgnore, pEntity->GetCollisionGroup(), &trace );
 
 	if (trace.allsolid)
 		return -1;

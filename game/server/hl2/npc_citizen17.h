@@ -44,7 +44,10 @@ enum CitizenType_t
 	CT_DOWNTRODDEN,
 	CT_REFUGEE,
 	CT_REBEL,
-	CT_UNIQUE
+	CT_UNIQUE,
+	CT_GASMASK,
+	CT_METROCOP,
+	CT_SEALTEAM
 };
 
 //-----------------------------------------------------------------------------
@@ -249,7 +252,9 @@ public:
 	bool			UseSemaphore( void );
 
 	virtual void	OnChangeRunningBehavior( CAI_BehaviorBase *pOldBehavior,  CAI_BehaviorBase *pNewBehavior );
-
+	
+	//SMOD: Moved to public from private for child NPCs
+	CitizenType_t	m_Type;
 private:
 	//-----------------------------------------------------
 	// Conditions, Schedules, Tasks
@@ -307,7 +312,6 @@ private:
 	CSimpleSimTimer	m_AutoSummonTimer;
 	Vector			m_vAutoSummonAnchor;
 
-	CitizenType_t	m_Type;
 	CitizenExpressionTypes_t	m_ExpressionType;
 
 	int				m_iHead;

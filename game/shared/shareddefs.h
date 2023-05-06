@@ -30,7 +30,7 @@
 class CViewVectors
 {
 public:
-	CViewVectors() = default;
+	CViewVectors() {}
 
 	CViewVectors( 
 		Vector vView,
@@ -102,27 +102,30 @@ public:
 
 #define MAX_CLIMB_SPEED		200
 
-#if defined(TF_DLL) || defined(TF_CLIENT_DLL)
+//SMOD: We want faster ducking, because it's nice
+//#if defined(TF_DLL) || defined(TF_CLIENT_DLL)
 	#define TIME_TO_DUCK		0.2
 	#define TIME_TO_DUCK_MS		200.0f
-#else
-	#define TIME_TO_DUCK		0.4
-	#define TIME_TO_DUCK_MS		400.0f
-#endif 
+//#else
+//	#define TIME_TO_DUCK		0.4
+//	#define TIME_TO_DUCK_MS		400.0f
+//#endif 
+
 #define TIME_TO_UNDUCK		0.2
 #define TIME_TO_UNDUCK_MS	200.0f
 
-#define MAX_WEAPON_SLOTS		6	// hud item selection slots
-#define MAX_WEAPON_POSITIONS	20	// max number of items within a slot
-#define MAX_ITEM_TYPES			6	// hud item selection slots
-#define MAX_WEAPONS				48	// Max number of weapons available
+#define MAX_WEAPON_SLOTS		7	// hud item selection slots
+#define MAX_WEAPON_POSITIONS	99	// max number of items within a slot
+#define MAX_ITEM_TYPES			15	// hud item selection slots
+#define MAX_WEAPONS				96	// Max number of weapons available
 
-#define MAX_ITEMS				5	// hard coded item types
+#define MAX_ITEMS				15	// hard coded item types
 
 #define WEAPON_NOCLIP			-1	// clip sizes set to this tell the weapon it doesn't use a clip
 
-#define	MAX_AMMO_TYPES	32		// ???
-#define MAX_AMMO_SLOTS  32		// not really slots
+//SMOD: We have to bump up the amount of max ammo types otherwise we can't use any of them besides the stock ones
+#define	MAX_AMMO_TYPES	128		// ???
+#define MAX_AMMO_SLOTS  128		// not really slots
 
 #define HUD_PRINTNOTIFY		1
 #define HUD_PRINTCONSOLE	2
@@ -205,15 +208,6 @@ enum CastVote
 #define HIDEHUD_BITCOUNT			12
 
 //===================================================================================================================
-// suit usage bits
-#define bits_SUIT_DEVICE_SPRINT		0x00000001
-#define bits_SUIT_DEVICE_FLASHLIGHT	0x00000002
-#define bits_SUIT_DEVICE_BREATHER	0x00000004
-
-#define MAX_SUIT_DEVICES			3
-
-
-//===================================================================================================================
 // Player Defines
 
 // Max number of players in a game ( see const.h for ABSOLUTE_PLAYER_LIMIT (256 ) )
@@ -226,13 +220,15 @@ enum CastVote
 //Since this is decided by the gamerules (and it can be whatever number as long as its less than MAX_PLAYERS).
 #if defined( CSTRIKE_DLL )
 	#define MAX_PLAYERS				65  // Absolute max players supported
+#elif defined SMOD
+	#define MAX_PLAYERS				1
 #else
 	#define MAX_PLAYERS				33  // Absolute max players supported
 #endif
 
 #define MAX_PLACE_NAME_LENGTH		18
 
-#define MAX_FOV						110
+#define MAX_FOV						90
 
 //===================================================================================================================
 // Team Defines
@@ -262,6 +258,7 @@ enum CastVote
 #define SKILL_EASY		1
 #define SKILL_MEDIUM	2
 #define SKILL_HARD		3
+#define SKILL_DEATHWISH	4 //SMOD: New DEATHWISH skill level
 
 
 // Weapon flags
@@ -361,7 +358,8 @@ enum PLAYER_ANIM
 	PLAYER_LEAVE_AIMING,
 };
 
-#ifdef HL2_DLL
+//SMOD: While we ARE HL2_DLL sometimes it doesn't get defined here which can and does cause issues
+//#ifdef HL2_DLL
 // HL2 has 600 gravity by default
 // NOTE: The discrete ticks can have quantization error, so these numbers are biased a little to
 // make the heights more exact
@@ -370,13 +368,13 @@ enum PLAYER_ANIM
 #define PLAYER_LAND_ON_FLOATING_OBJECT	173 // Can fall another 173 in/sec without getting hurt
 #define PLAYER_MIN_BOUNCE_SPEED		173
 #define PLAYER_FALL_PUNCH_THRESHOLD 303.0f // won't punch player's screen/make scrape noise unless player falling at least this fast - at least a 76" fall (sqrt( 2 * g * 76))
-#else
-#define PLAYER_FATAL_FALL_SPEED		1024 // approx 60 feet
-#define PLAYER_MAX_SAFE_FALL_SPEED	580 // approx 20 feet
-#define PLAYER_LAND_ON_FLOATING_OBJECT	200 // Can go another 200 units without getting hurt
-#define PLAYER_MIN_BOUNCE_SPEED		200
-#define PLAYER_FALL_PUNCH_THRESHOLD (float)350 // won't punch player's screen/make scrape noise unless player falling at least this fast.
-#endif
+//#else
+//#define PLAYER_FATAL_FALL_SPEED		1024 // approx 60 feet
+//#define PLAYER_MAX_SAFE_FALL_SPEED	580 // approx 20 feet
+//#define PLAYER_LAND_ON_FLOATING_OBJECT	200 // Can go another 200 units without getting hurt
+//#define PLAYER_MIN_BOUNCE_SPEED		200
+//#define PLAYER_FALL_PUNCH_THRESHOLD (float)350 // won't punch player's screen/make scrape noise unless player falling at least this fast.
+//#endif
 #define DAMAGE_FOR_FALL_SPEED		100.0f / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED ) // damage per unit per second.
 
 
@@ -664,6 +662,8 @@ enum FireBulletsFlags_t
 	FIRE_BULLETS_DONT_HIT_UNDERWATER = 0x2,		// If the shot hits its target underwater, don't damage it
 	FIRE_BULLETS_ALLOW_WATER_SURFACE_IMPACTS = 0x4,	// If the shot hits water surface, still call DoImpactEffect
 	FIRE_BULLETS_TEMPORARY_DANGER_SOUND = 0x8,		// Danger sounds added from this impact can be stomped immediately if another is queued
+	FIRE_BULLETS_USEPENITRATION_DEPTH = 0x16,		// Tells the bullet penetration system that we are using bullet thickness for penetration calculation
+	FIRE_BULLETS_USEPENITRATION_COUNT = 0x32,		// Tells the bullet penetratiob system that we are using a counter to factor bullet penetration
 };
 
 
@@ -688,9 +688,11 @@ struct FireBulletsInfo_t
 		m_vecDirShooting.Init( VEC_T_NAN, VEC_T_NAN, VEC_T_NAN );
 #endif
 		m_bPrimaryAttack = true;
+		m_iPenetrationCount = 1;
+		m_flPenetrationForce = 96.0f;
 	}
 
-	FireBulletsInfo_t( int nShots, const Vector &vecSrc, const Vector &vecDir, const Vector &vecSpread, float flDistance, int nAmmoType, bool bPrimaryAttack = true )
+	FireBulletsInfo_t( int nShots, const Vector &vecSrc, const Vector &vecDir, const Vector &vecSpread, float flDistance, int nAmmoType, bool bPrimaryAttack = true,  int iPenetrationCount = 0,  float flPenetrationDeph = 0.0f)
 	{
 		m_iShots = nShots;
 		m_vecSrc = vecSrc;
@@ -706,6 +708,8 @@ struct FireBulletsInfo_t
 		m_pAdditionalIgnoreEnt = NULL;
 		m_flDamageForceScale = 1.0f;
 		m_bPrimaryAttack = bPrimaryAttack;
+		m_iPenetrationCount = iPenetrationCount;
+		m_flPenetrationForce = flPenetrationDeph;
 	}
 
 	int m_iShots;
@@ -722,6 +726,8 @@ struct FireBulletsInfo_t
 	CBaseEntity *m_pAttacker;
 	CBaseEntity *m_pAdditionalIgnoreEnt;
 	bool m_bPrimaryAttack;
+	int m_iPenetrationCount;
+	float m_flPenetrationForce;
 };
 
 //-----------------------------------------------------------------------------

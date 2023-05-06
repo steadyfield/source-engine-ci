@@ -18,8 +18,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar hopwire_vortex( "hopwire_vortex", "0" );
-ConVar hopwire_trap( "hopwire_trap", "1" );
+ConVar hopwire_vortex( "hopwire_vortex", "1" );
+ConVar hopwire_trap( "hopwire_trap", "0" );
 ConVar hopwire_strider_kill_dist_h( "hopwire_strider_kill_dist_h", "300" );
 ConVar hopwire_strider_kill_dist_v( "hopwire_strider_kill_dist_v", "256" );
 ConVar hopwire_strider_hits( "hopwire_strider_hits", "1" );
@@ -27,7 +27,7 @@ ConVar hopwire_hopheight( "hopwire_hopheight", "400" );
 
 ConVar g_debug_hopwire( "g_debug_hopwire", "0" );
 
-#define	DENSE_BALL_MODEL	"models/props_junk/metal_paintcan001b.mdl"
+#define	DENSE_BALL_MODEL	"models/weapons/w_blackhole.mdl"
 
 #define	MAX_HOP_HEIGHT		(hopwire_hopheight.GetFloat())		// Maximum amount the grenade will "hop" upwards when detonated
 
@@ -71,6 +71,11 @@ float CGravityVortexController::GetConsumedMass( void ) const
 //-----------------------------------------------------------------------------
 void CGravityVortexController::ConsumeEntity( CBaseEntity *pEnt )
 {
+	//Player is safe from blackhole grenades
+	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+	if (pEnt == pPlayer)
+		return;
+
 	// Get our base physics object
 	IPhysicsObject *pPhysObject = pEnt->VPhysicsGetObject();
 	if ( pPhysObject == NULL )
@@ -93,7 +98,7 @@ void CGravityVortexController::ConsumeEntity( CBaseEntity *pEnt )
 		m_flMass += pPhysObject->GetMass();
 	}
 
-	// Destroy the entity
+	// Destroy the entity 
 	UTIL_Remove( pEnt );
 }
 
@@ -102,6 +107,8 @@ void CGravityVortexController::ConsumeEntity( CBaseEntity *pEnt )
 //-----------------------------------------------------------------------------
 void CGravityVortexController::PullPlayersInRange( void )
 {
+	return;
+	/*
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 	
 	Vector	vecForce = GetAbsOrigin() - pPlayer->WorldSpaceCenter();
@@ -141,7 +148,7 @@ void CGravityVortexController::PullPlayersInRange( void )
 	if ( vecForce.z > 0 && ( pPlayer->GetFlags() & FL_ONGROUND) )
 	{
 		pPlayer->SetGroundEntity( NULL );
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------
@@ -153,6 +160,11 @@ void CGravityVortexController::PullPlayersInRange( void )
 bool CGravityVortexController::KillNPCInRange( CBaseEntity *pVictim, IPhysicsObject **pPhysObj )
 {
 	CBaseCombatCharacter *pBCC = pVictim->MyCombatCharacterPointer();
+
+	//Players are safe from the black hole
+	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+	if (pBCC == pPlayer)
+		return false;
 
 	// See if we can ragdoll
 	if ( pBCC != NULL && pBCC->CanBecomeRagdoll() )
@@ -334,8 +346,8 @@ END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( vortex_controller, CGravityVortexController );
 
-#define GRENADE_MODEL_CLOSED	"models/roller.mdl"
-#define GRENADE_MODEL_OPEN		"models/roller_spikes.mdl"
+#define GRENADE_MODEL_CLOSED	"models/weapons/w_blackhole.mdl"
+#define GRENADE_MODEL_OPEN		"models/weapons/w_blackhole.mdl"
 
 BEGIN_DATADESC( CGrenadeHopwire )
 	DEFINE_FIELD( m_hVortexController, FIELD_EHANDLE ),

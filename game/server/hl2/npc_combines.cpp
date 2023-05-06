@@ -395,6 +395,10 @@ bool CNPC_CombineS::IsHeavyDamage( const CTakeDamageInfo &info )
 			return true;
 	}
 
+	// Sniper rounds are heavy damage too!
+	if ( info.GetDamageType() & DMG_SNIPER )
+		return true;
+
 	// Rollermine shocks
 	if( (info.GetDamageType() & DMG_SHOCK) && hl2_episodic.GetBool() )
 	{
@@ -429,3 +433,41 @@ BEGIN_DATADESC( CNPC_CombineS )
 
 END_DATADESC()
 #endif
+
+//SMOD: Combine Synth Soldier
+ConVar	sk_combine_synth_health("sk_combine_synth_health", "0");
+ConVar	sk_combine_synth_kick("sk_combine_synth_kick", "0");
+
+class CNPC_CombineSynth : public CNPC_CombineS
+{
+	DECLARE_CLASS(CNPC_CombineSynth, CNPC_CombineS);
+public:
+	void Precache();
+	void Spawn();
+};
+
+LINK_ENTITY_TO_CLASS(npc_combine_synth, CNPC_CombineSynth);
+
+void CNPC_CombineSynth::Spawn(void)
+{
+	Precache();
+	BaseClass::Spawn();
+
+	m_fIsElite = true;
+
+	// Strongest and the toughest!
+	SetHealth(sk_combine_synth_health.GetFloat());
+	SetMaxHealth(sk_combine_synth_health.GetFloat());
+	SetKickDamage(sk_combine_synth_kick.GetFloat());
+}
+
+void CNPC_CombineSynth::Precache()
+{
+	if (!GetModelName())
+	{
+		SetModelName(MAKE_STRING("models/combine/synth_soldier.mdl"));
+	}
+
+	PrecacheModel(STRING(GetModelName()));
+}
+

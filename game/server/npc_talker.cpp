@@ -857,10 +857,8 @@ int CNPCSimpleTalker::SelectNonCombatSpeechSchedule()
 //-----------------------------------------------------------------------------
 bool CNPCSimpleTalker::CanSayHello( void )
 {
-#ifndef HL1_DLL
-	if ( Classify() == CLASS_PLAYER_ALLY_VITAL )
+	if ( !HL2GameRules()->IsInHL1Map() && Classify() == CLASS_PLAYER_ALLY_VITAL )
 		return false;
-#endif
 	
 	if ( GetSpeechFilter() && GetSpeechFilter()->NeverSayHello() )
 		return false;

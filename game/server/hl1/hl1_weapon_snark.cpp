@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Snark
 //
@@ -7,7 +7,7 @@
 
 #include "cbase.h"
 #include "npcevent.h"
-#include "hl1_basecombatweapon_shared.h"
+#include "hl1_weapon_snark.h"
 #include "basecombatcharacter.h"
 #include "ai_basenpc.h"
 #include "player.h"
@@ -19,6 +19,7 @@
 #include "engine/IEngineSound.h"
 #include "hl1_npc_snark.h"
 #include "beam_shared.h"
+#include "hl1_items.h"
 
 
 //-----------------------------------------------------------------------------
@@ -29,29 +30,9 @@
 #define SNARK_NEST_MODEL	"models/w_sqknest.mdl"
 
 
-class CWeaponSnark : public CBaseHL1CombatWeapon
-{
-	DECLARE_CLASS( CWeaponSnark, CBaseHL1CombatWeapon );
-public:
+//LINK_ENTITY_TO_CLASS( hl1_snark, CWeaponSnark );
 
-	CWeaponSnark( void );
-
-	void	Precache( void );
-	void	PrimaryAttack( void );
-	void	WeaponIdle( void );
-	bool	Deploy( void );
-	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-
-	DECLARE_SERVERCLASS();
-	DECLARE_DATADESC();
-
-private:
-	bool	m_bJustThrown;
-};
-
-LINK_ENTITY_TO_CLASS( weapon_snark, CWeaponSnark );
-
-PRECACHE_WEAPON_REGISTER( weapon_snark );
+//PRECACHE_WEAPON_REGISTER( hl1_snark );
 
 IMPLEMENT_SERVERCLASS_ST( CWeaponSnark, DT_WeaponSnark )
 END_SEND_TABLE()
@@ -137,6 +118,10 @@ void CWeaponSnark::PrimaryAttack( void )
 
 void CWeaponSnark::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
 	if ( !pPlayer )
@@ -206,3 +191,51 @@ bool CWeaponSnark::Holster( CBaseCombatWeapon *pSwitchingTo )
 
 	return true;
 }
+
+
+
+// ========================================================================
+//	>> SNARK ammo
+// ========================================================================
+#define AMMO_SNARK_GIVE	5
+
+class CSnarkAmmo : public CHL1Item
+{
+public:
+	DECLARE_CLASS(CSnarkAmmo, CHL1Item);
+
+	void Spawn(void)
+	{
+		Precache();
+		SetModel(SNARK_NEST_MODEL);
+		BaseClass::Spawn();
+	}
+	void Precache(void)
+	{
+		PrecacheModel(SNARK_NEST_MODEL);
+	}
+	bool MyTouch(CBasePlayer *pPlayer)
+	{
+		if (!pPlayer->Weapon_OwnsThisType("hl1_snark"))
+		{
+			pPlayer->GiveNamedItem("hl1_snark");
+			if (g_pGameRules->ItemShouldRespawn(this) == GR_ITEM_RESPAWN_NO)
+			{
+				UTIL_Remove(this);
+			}
+			return true;
+		}
+
+		if (pPlayer->GiveAmmo(AMMO_SNARK_GIVE, "Snark"))
+		{
+			if (g_pGameRules->ItemShouldRespawn(this) == GR_ITEM_RESPAWN_NO)
+			{
+				UTIL_Remove(this);
+			}
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(ammo_snark, CSnarkAmmo);
+PRECACHE_REGISTER(ammo_snark);

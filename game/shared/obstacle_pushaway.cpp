@@ -81,6 +81,8 @@ bool IsPushableEntity( CBaseEntity *pEnt )
 	if ( pEnt == NULL )
 		return false;
 
+	//SMOD: Disabled
+	/*
 	if ( sv_turbophysics.GetBool() )
 	{
 		if ( pEnt->GetCollisionGroup() == COLLISION_GROUP_NONE )
@@ -95,6 +97,7 @@ bool IsPushableEntity( CBaseEntity *pEnt )
 			}
 		}
 	}
+	*/
 
 	return false;
 }

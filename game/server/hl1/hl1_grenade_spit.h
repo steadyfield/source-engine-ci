@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Projectile shot by bullsquid 
 //
@@ -11,8 +11,8 @@
 // $NoKeywords: $
 //=============================================================================//
 
-#ifndef	GRENADESPIT_H
-#define	GRENADESPIT_H
+#ifndef	HL1GrenadeSpit_H
+#define	HL1GrenadeSpit_H
 
 #include "hl1_basegrenade.h"
 
@@ -25,15 +25,15 @@ enum SpitSize_e
 
 #define SPIT_GRAVITY 0.9
 
-class CGrenadeSpit : public CHL1BaseGrenade
+class CHL1GrenadeSpit : public CHL1BaseGrenade
 {
 public:
-	DECLARE_CLASS( CGrenadeSpit, CHL1BaseGrenade );
+	DECLARE_CLASS( CHL1GrenadeSpit, CHL1BaseGrenade );
 
 	void		Spawn( void );
 	void		Precache( void );
 	void		SpitThink( void );
-	void 		GrenadeSpitTouch( CBaseEntity *pOther );
+	void 		HL1GrenadeSpitTouch( CBaseEntity *pOther );
 	void		Event_Killed( const CTakeDamageInfo &info );
 	void		SetSpitSize(int nSize);
 
@@ -41,9 +41,9 @@ public:
 	float		m_fSpitDeathTime;		// If non-zero won't detonate
 
 	void EXPORT				Detonate(void);
-	CGrenadeSpit(void);
+	CHL1GrenadeSpit(void);
 
 	DECLARE_DATADESC();
 };
 
-#endif	//GRENADESPIT_H
+#endif	//HL1GrenadeSpit_H

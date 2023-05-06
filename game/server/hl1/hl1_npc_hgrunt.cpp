@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: Bullseyes act as targets for other NPC's to attack and to trigger
 //			events 
@@ -14,20 +14,21 @@
 
 #include	"cbase.h"
 #include	"beam_shared.h"
-#include	"ai_default.h"
-#include	"ai_task.h"
-#include	"ai_schedule.h"
-#include	"ai_node.h"
-#include	"ai_hull.h"
-#include	"ai_hint.h"
-#include	"ai_memory.h"
-#include	"ai_route.h"
-#include	"ai_motor.h"
+#include	"AI_Default.h"
+#include	"AI_Task.h"
+#include	"AI_Schedule.h"
+#include	"AI_Node.h"
+#include	"AI_Hull.h"
+#include	"AI_Hint.h"
+#include	"AI_Route.h"
+#include	"AI_Squad.h"
+#include	"AI_SquadSlot.h"
+#include	"AI_Motor.h"
 #include	"hl1_npc_hgrunt.h"
 #include	"soundent.h"
 #include	"game.h"
-#include	"npcevent.h"
-#include	"entitylist.h"
+#include	"NPCEvent.h"
+#include	"EntityList.h"
 #include	"activitylist.h"
 #include	"animation.h"
 #include	"engine/IEngineSound.h"
@@ -38,14 +39,15 @@
 #include	"scripted.h"
 #include	"hl1_basegrenade.h"
 #include	"hl1_grenade_mp5.h"
+#include	"hl2_gamerules.h"
 
-ConVar	sk_hgrunt_health( "sk_hgrunt_health","0");
-ConVar  sk_hgrunt_kick ( "sk_hgrunt_kick", "0" );
+ConVar	sk_hl1hgrunt_health( "sk_hl1hgrunt_health","0");
+ConVar  sk_hl1hgrunt_kick ( "sk_hl1hgrunt_kick", "0" );
 ConVar  sk_hgrunt_pellets ( "sk_hgrunt_pellets", "0" );
 ConVar  sk_hgrunt_gspeed ( "sk_hgrunt_gspeed", "0" );
 
 extern ConVar sk_plr_dmg_grenade;
-extern ConVar sk_plr_dmg_mp5_grenade;
+extern ConVar sk_plr_dmg_smg1_grenade;
 
 #define SF_GRUNT_LEADER	( 1 << 5  )
 
@@ -96,7 +98,7 @@ int g_iSquadIndex = 0;
 #define		HGRUNT_AE_DROP_GUN		( 11) // grunt (probably dead) is dropping his mp5.
 
 
-const char *CNPC_HGrunt::pGruntSentences[] = 
+const char *CNPC_HL1HGrunt::pGruntSentences[] = 
 {
 	"HG_GREN", // grenade scared grunt
 	"HG_ALERT", // sees player
@@ -107,7 +109,7 @@ const char *CNPC_HGrunt::pGruntSentences[] =
 	"HG_TAUNT", // say rude things
 };
 
-enum HGRUNT_SENTENCE_TYPES
+enum
 {
 	HGRUNT_SENT_NONE = -1,
 	HGRUNT_SENT_GREN = 0,
@@ -117,9 +119,9 @@ enum HGRUNT_SENTENCE_TYPES
 	HGRUNT_SENT_THROW,
 	HGRUNT_SENT_CHARGE,
 	HGRUNT_SENT_TAUNT,
-} ;
+} HGRUNT_SENTENCE_TYPES;
 
-LINK_ENTITY_TO_CLASS( monster_human_grunt, CNPC_HGrunt );
+LINK_ENTITY_TO_CLASS( monster_human_grunt, CNPC_HL1HGrunt );
 
 //=========================================================
 // monster-specific schedule types
@@ -197,7 +199,7 @@ int ACT_GRUNT_SHOTGUN_CROUCHING;
 //---------------------------------------------------------
 // Save/Restore
 //---------------------------------------------------------
-BEGIN_DATADESC( CNPC_HGrunt )
+BEGIN_DATADESC( CNPC_HL1HGrunt )
 	DEFINE_FIELD( m_flNextGrenadeCheck, FIELD_TIME ),
 	DEFINE_FIELD( m_flNextPainTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flCheckAttackTime, FIELD_FLOAT ),
@@ -209,6 +211,7 @@ BEGIN_DATADESC( CNPC_HGrunt )
 	DEFINE_FIELD( m_voicePitch, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iSentence, FIELD_INTEGER ),
 	DEFINE_KEYFIELD( m_iWeapons, FIELD_INTEGER, "weapons" ),
+	DEFINE_KEYFIELD( m_SquadName, FIELD_STRING, "netname" ),
 
 	DEFINE_FIELD( m_bInBarnacleMouth, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flLastEnemySightTime, FIELD_TIME ),
@@ -221,7 +224,7 @@ END_DATADESC()
 //=========================================================
 // Spawn
 //=========================================================
-void CNPC_HGrunt::Spawn()
+void CNPC_HL1HGrunt::Spawn()
 {
 	Precache( );
 
@@ -235,7 +238,7 @@ void CNPC_HGrunt::Spawn()
 	SetMoveType( MOVETYPE_STEP );
 	m_bloodColor		= BLOOD_COLOR_RED;
 	ClearEffects();
-	m_iHealth			= sk_hgrunt_health.GetFloat();
+	m_iHealth			= sk_hl1hgrunt_health.GetFloat();
 	m_flFieldOfView		= 0.2;// indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_NPCState			= NPC_STATE_NONE;
 	m_flNextGrenadeCheck = gpGlobals->curtime + 1;
@@ -301,7 +304,7 @@ void CNPC_HGrunt::Spawn()
 	NPCInit();
 }
 
-int CNPC_HGrunt::IRelationPriority( CBaseEntity *pTarget )
+int CNPC_HL1HGrunt::IRelationPriority( CBaseEntity *pTarget )
 {
 	//I hate alien grunts more than anything.
 	if ( pTarget->Classify() == CLASS_ALIEN_MILITARY )
@@ -318,10 +321,13 @@ int CNPC_HGrunt::IRelationPriority( CBaseEntity *pTarget )
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-void CNPC_HGrunt::Precache()
+void CNPC_HL1HGrunt::Precache()
 {
-	m_iAmmoType = GetAmmoDef()->Index("9mmRound");
-
+	if (FBitSet(m_iWeapons, HGRUNT_SHOTGUN))
+		m_iAmmoType = GetAmmoDef()->Index("Buckshot");
+	else
+		m_iAmmoType = GetAmmoDef()->Index("SMG1");
+	
 	PrecacheModel("models/hgrunt.mdl");
 
 	// get voice pitch
@@ -346,7 +352,7 @@ void CNPC_HGrunt::Precache()
 //=========================================================
 // someone else is talking - don't speak
 //=========================================================
-bool CNPC_HGrunt::FOkToSpeak( void )
+bool CNPC_HL1HGrunt::FOkToSpeak( void )
 {
 // if someone else is talking, don't speak
 	if ( gpGlobals->curtime <= m_flTalkWaitTime )
@@ -377,7 +383,7 @@ bool CNPC_HGrunt::FOkToSpeak( void )
 // may still fail but in most cases, well after the grunt has 
 // started moving.
 //=========================================================
-void CNPC_HGrunt::SpeakSentence( void )
+void CNPC_HL1HGrunt::SpeakSentence( void )
 {
 	if ( m_iSentence == HGRUNT_SENT_NONE )
 	{
@@ -394,7 +400,7 @@ void CNPC_HGrunt::SpeakSentence( void )
 
 //=========================================================
 //=========================================================
-void CNPC_HGrunt::JustSpoke( void )
+void CNPC_HL1HGrunt::JustSpoke( void )
 {
 	m_flTalkWaitTime = gpGlobals->curtime + random->RandomFloat( 1.5f, 2.0f );
 	m_iSentence = HGRUNT_SENT_NONE;
@@ -404,7 +410,7 @@ void CNPC_HGrunt::JustSpoke( void )
 // PrescheduleThink - this function runs after conditions
 // are collected and before scheduling code is run.
 //=========================================================
-void CNPC_HGrunt::PrescheduleThink ( void )
+void CNPC_HL1HGrunt::PrescheduleThink ( void )
 {
 	BaseClass::PrescheduleThink();
 	
@@ -413,7 +419,7 @@ void CNPC_HGrunt::PrescheduleThink ( void )
 		if ( m_pSquad->GetLeader() == NULL )
 			 return;
 
-		CNPC_HGrunt *pSquadLeader = (CNPC_HGrunt*)m_pSquad->GetLeader()->MyNPCPointer();
+		CNPC_HL1HGrunt *pSquadLeader = (CNPC_HL1HGrunt*)m_pSquad->GetLeader()->MyNPCPointer();
 
 		if ( pSquadLeader == NULL )
 			 return; //Paranoid, so making sure it's ok.		
@@ -434,7 +440,7 @@ void CNPC_HGrunt::PrescheduleThink ( void )
 	}
 }
 
-Class_T	CNPC_HGrunt::Classify ( void )
+Class_T	CNPC_HL1HGrunt::Classify ( void )
 {
 	return CLASS_HUMAN_MILITARY;
 }
@@ -445,7 +451,7 @@ Class_T	CNPC_HGrunt::Classify ( void )
 // link them as a group.  returns the group size
 //
 //=========================================================
-int CNPC_HGrunt::SquadRecruit( int searchRadius, int maxMembers )
+int CNPC_HL1HGrunt::SquadRecruit( int searchRadius, int maxMembers )
 {
 	int squadCount;
 	int iMyClass = Classify();// cache this monster's class
@@ -465,7 +471,7 @@ int CNPC_HGrunt::SquadRecruit( int searchRadius, int maxMembers )
 
 		while ( pEntity )
 		{
-			CNPC_HGrunt *pRecruit = (CNPC_HGrunt*)pEntity->MyNPCPointer();
+			CNPC_HL1HGrunt *pRecruit = (CNPC_HL1HGrunt*)pEntity->MyNPCPointer();
 
 			if ( pRecruit )
 			{
@@ -490,14 +496,14 @@ int CNPC_HGrunt::SquadRecruit( int searchRadius, int maxMembers )
 		char szSquadName[64];
 		Q_snprintf( szSquadName, sizeof( szSquadName ), "squad%d\n", g_iSquadIndex );
 
-		m_SquadName = AllocPooledString( szSquadName );
+		m_SquadName = MAKE_STRING( szSquadName );
 
 		while ( ( pEntity = gEntList.FindEntityInSphere( pEntity, GetAbsOrigin(), searchRadius ) ) != NULL )
 		{
 			if ( !FClassnameIs ( pEntity, "monster_human_grunt" ) )
 				  continue;
 
-			CNPC_HGrunt *pRecruit = (CNPC_HGrunt*)pEntity->MyNPCPointer();
+			CNPC_HL1HGrunt *pRecruit = (CNPC_HL1HGrunt*)pEntity->MyNPCPointer();
 
 			if ( pRecruit && pRecruit != this && pRecruit->IsAlive() && !pRecruit->m_hCine )
 			{
@@ -537,7 +543,7 @@ int CNPC_HGrunt::SquadRecruit( int searchRadius, int maxMembers )
 	return squadCount;
 }
 
-void CNPC_HGrunt::StartNPC ( void )
+void CNPC_HL1HGrunt::StartNPC ( void )
 {
 	if ( !m_pSquad )
 	{
@@ -595,7 +601,7 @@ void CNPC_HGrunt::StartNPC ( void )
 //=========================================================
 // CheckMeleeAttack1
 //=========================================================
-int CNPC_HGrunt::MeleeAttack1Conditions ( float flDot, float flDist )
+int CNPC_HL1HGrunt::MeleeAttack1Conditions ( float flDot, float flDist )
 {
 	if (flDist > 64)
 		return COND_TOO_FAR_TO_ATTACK;
@@ -613,7 +619,7 @@ int CNPC_HGrunt::MeleeAttack1Conditions ( float flDot, float flDist )
 // occluded (throw grenade over wall, etc). We must 
 // disqualify the machine gun attack if the enemy is occluded.
 //=========================================================
-int CNPC_HGrunt::RangeAttack1Conditions ( float flDot, float flDist )
+int CNPC_HL1HGrunt::RangeAttack1Conditions ( float flDot, float flDist )
 {
 	if ( !HasCondition( COND_ENEMY_OCCLUDED ) && flDist <= 2048 && flDot >= 0.5 && NoFriendlyFire() )
 	{
@@ -650,13 +656,13 @@ int CNPC_HGrunt::RangeAttack1Conditions ( float flDot, float flDist )
 	return COND_NONE;
 }
 
-int CNPC_HGrunt::RangeAttack2Conditions( float flDot, float flDist  )
+int CNPC_HL1HGrunt::RangeAttack2Conditions( float flDot, float flDist  )
 {
 	m_iLastGrenadeCondition = GetGrenadeConditions( flDot, flDist );
 	return m_iLastGrenadeCondition;
 }
 
-int CNPC_HGrunt::GetGrenadeConditions( float flDot, float flDist  )
+int CNPC_HL1HGrunt::GetGrenadeConditions( float flDot, float flDist  )
 {
 	if ( !FBitSet( m_iWeapons, ( HGRUNT_HANDGRENADE | HGRUNT_GRENADELAUNCHER ) ) )
 		  return COND_NONE;
@@ -795,7 +801,7 @@ int CNPC_HGrunt::GetGrenadeConditions( float flDot, float flDist  )
 // this is a bad bug. Friendly machine gun fire avoidance
 // will unecessarily prevent the throwing of a grenade as well.
 //=========================================================
-bool CNPC_HGrunt::FCanCheckAttacks( void )
+bool CNPC_HL1HGrunt::FCanCheckAttacks( void )
 {
 	// This condition set when too close to a grenade to blow it up
 	if ( !HasCondition( COND_TOO_CLOSE_TO_ATTACK ) )
@@ -808,7 +814,7 @@ bool CNPC_HGrunt::FCanCheckAttacks( void )
 	}
 }
 
-int CNPC_HGrunt::GetSoundInterests( void )
+int CNPC_HL1HGrunt::GetSoundInterests( void )
 {
 	return	SOUND_WORLD			|
 			SOUND_COMBAT		|
@@ -821,7 +827,7 @@ int CNPC_HGrunt::GetSoundInterests( void )
 //=========================================================
 // TraceAttack - make sure we're not taking it in the helmet
 //=========================================================
-void CNPC_HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+void CNPC_HL1HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
 	CTakeDamageInfo info = inputInfo;
 
@@ -848,7 +854,7 @@ void CNPC_HGrunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 // needs to forget that he is in cover if he's hurt. (Obviously
 // not in a safe place anymore).
 //=========================================================
-int CNPC_HGrunt::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
+int CNPC_HL1HGrunt::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {
 	Forget( bits_MEMORY_INCOVER );
 
@@ -860,7 +866,7 @@ int CNPC_HGrunt::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-float CNPC_HGrunt::MaxYawSpeed( void )
+float CNPC_HL1HGrunt::MaxYawSpeed( void )
 {
 	float flYS;
 
@@ -904,7 +910,7 @@ float CNPC_HGrunt::MaxYawSpeed( void )
 	return flYS * 0.5f;
 }
 
-void CNPC_HGrunt::IdleSound( void )
+void CNPC_HL1HGrunt::IdleSound( void )
 {
 	if (FOkToSpeak() && ( g_fGruntQuestion || random->RandomInt( 0,1 ) ) )
 	{
@@ -943,7 +949,7 @@ void CNPC_HGrunt::IdleSound( void )
 	}
 }
 
-bool CNPC_HGrunt::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt)
+bool CNPC_HL1HGrunt::HandleInteraction(int interactionType, void *data, CBaseCombatCharacter* sourceEnt)
 {
 	if (interactionType == g_interactionBarnacleVictimDangle)
 	{
@@ -988,7 +994,7 @@ bool CNPC_HGrunt::HandleInteraction(int interactionType, void *data, CBaseCombat
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CNPC_HGrunt::CheckAmmo ( void )
+void CNPC_HL1HGrunt::CheckAmmo ( void )
 {
 	if ( m_cAmmoLoaded <= 0 )
 	 	 SetCondition( COND_NO_PRIMARY_AMMO );
@@ -997,7 +1003,7 @@ void CNPC_HGrunt::CheckAmmo ( void )
 
 //=========================================================
 //=========================================================
-CBaseEntity *CNPC_HGrunt::Kick( void )
+CBaseEntity *CNPC_HL1HGrunt::Kick( void )
 {
 	trace_t tr;
 
@@ -1018,7 +1024,7 @@ CBaseEntity *CNPC_HGrunt::Kick( void )
 	return NULL;
 }
 
-Vector CNPC_HGrunt::Weapon_ShootPosition( void )
+Vector CNPC_HL1HGrunt::Weapon_ShootPosition( void )
 {
 	if ( m_fStanding )
 		return GetAbsOrigin() + Vector( 0, 0, 60 );
@@ -1026,7 +1032,7 @@ Vector CNPC_HGrunt::Weapon_ShootPosition( void )
 		return GetAbsOrigin() + Vector( 0, 0, 48 );
 }
 
-void CNPC_HGrunt::Event_Killed( const CTakeDamageInfo &info )
+void CNPC_HL1HGrunt::Event_Killed( const CTakeDamageInfo &info )
 {
 	Vector	vecGunPos;
 	QAngle	vecGunAngles;
@@ -1042,14 +1048,22 @@ void CNPC_HGrunt::Event_Killed( const CTakeDamageInfo &info )
 		vecGunPos = GetAbsOrigin();
 	}
 
+	CHalfLife2 *pHL2Rules = HL2GameRules();
+
 	// now spawn a gun.
 	if (FBitSet( m_iWeapons, HGRUNT_SHOTGUN ))
 	{
-		 DropItem( "weapon_shotgun", vecGunPos, vecGunAngles );
+		if (pHL2Rules->IsInHL1Map())
+			DropItem( "hl1_shotgun", vecGunPos, vecGunAngles );
+		else
+			DropItem( "weapon_shotgun", vecGunPos, vecGunAngles );
 	}
 	else
 	{
-		 DropItem( "weapon_mp5", vecGunPos, vecGunAngles );
+		if (pHL2Rules->IsInHL1Map())
+			DropItem( "hl1_mp5", vecGunPos, vecGunAngles );
+		else
+			DropItem( "weapon_smg2", vecGunPos, vecGunAngles );
 	}
 
 	if (FBitSet( m_iWeapons, HGRUNT_GRENADELAUNCHER ))
@@ -1064,7 +1078,7 @@ void CNPC_HGrunt::Event_Killed( const CTakeDamageInfo &info )
 // HandleAnimEvent - catches the monster-specific messages
 // that occur when tagged animation frames are played.
 //=========================================================
-void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
+void CNPC_HL1HGrunt::HandleAnimEvent( animevent_t *pEvent )
 {
 	Vector	vecShootDir;
 	Vector	vecShootOrigin;
@@ -1111,7 +1125,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 			m_pMyGrenade->SetLocalAngularVelocity( QAngle( random->RandomFloat( -100, -500 ), 0, 0 ) );
 			m_pMyGrenade->SetMoveType( MOVETYPE_FLYGRAVITY ); 
 			m_pMyGrenade->SetThrower( this );
-			m_pMyGrenade->SetDamage( sk_plr_dmg_mp5_grenade.GetFloat() );
+			m_pMyGrenade->SetDamage( sk_plr_dmg_smg1_grenade.GetFloat() );
 
 			if (g_iSkillLevel == SKILL_HARD)
 				m_flNextGrenadeCheck = gpGlobals->curtime + random->RandomFloat( 2, 5 );// wait a random amount of time before shooting again
@@ -1182,7 +1196,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 				{
 					pHurt->ApplyAbsVelocityImpulse( forward * 100 + up * 50 );
 
-					CTakeDamageInfo info( this, this, sk_hgrunt_kick.GetFloat(), DMG_CLUB );
+					CTakeDamageInfo info( this, this, sk_hl1hgrunt_kick.GetFloat(), DMG_CLUB );
 					CalculateMeleeDamageForce( &info, forward, pHurt->GetAbsOrigin() );
 					pHurt->TakeDamage( info );
 				}			
@@ -1206,7 +1220,7 @@ void CNPC_HGrunt::HandleAnimEvent( animevent_t *pEvent )
 	}
 }
 
-void CNPC_HGrunt::SetAim( const Vector &aimDir )
+void CNPC_HL1HGrunt::SetAim( const Vector &aimDir )
 {
 	QAngle angDir;
 	VectorAngles( aimDir, angDir );
@@ -1220,7 +1234,7 @@ void CNPC_HGrunt::SetAim( const Vector &aimDir )
 //=========================================================
 // Shoot
 //=========================================================
-void CNPC_HGrunt::Shoot ( void )
+void CNPC_HL1HGrunt::Shoot ( void )
 {
 	if ( GetEnemy() == NULL )
 		return;
@@ -1245,7 +1259,7 @@ void CNPC_HGrunt::Shoot ( void )
 //=========================================================
 // Shoot
 //=========================================================
-void CNPC_HGrunt::Shotgun ( void )
+void CNPC_HL1HGrunt::Shotgun ( void )
 {
 	if ( GetEnemy() == NULL )
 		return;
@@ -1270,7 +1284,7 @@ void CNPC_HGrunt::Shotgun ( void )
 //=========================================================
 // start task
 //=========================================================
-void CNPC_HGrunt::StartTask ( const Task_t *pTask )
+void CNPC_HL1HGrunt::StartTask ( const Task_t *pTask )
 {
 	switch ( pTask->iTask )
 	{
@@ -1319,7 +1333,7 @@ void CNPC_HGrunt::StartTask ( const Task_t *pTask )
 //=========================================================
 // RunTask
 //=========================================================
-void CNPC_HGrunt::RunTask( const Task_t *pTask )
+void CNPC_HL1HGrunt::RunTask( const Task_t *pTask )
 {
 	switch ( pTask->iTask )
 	{
@@ -1345,7 +1359,7 @@ void CNPC_HGrunt::RunTask( const Task_t *pTask )
 //=========================================================
 // PainSound
 //=========================================================
-void CNPC_HGrunt::PainSound( const CTakeDamageInfo &info )
+void CNPC_HL1HGrunt::PainSound( const CTakeDamageInfo &info )
 {
 	if ( gpGlobals->curtime > m_flNextPainTime )
 	{
@@ -1359,7 +1373,7 @@ void CNPC_HGrunt::PainSound( const CTakeDamageInfo &info )
 //=========================================================
 // DeathSound 
 //=========================================================
-void CNPC_HGrunt::DeathSound( const CTakeDamageInfo &info )
+void CNPC_HL1HGrunt::DeathSound( const CTakeDamageInfo &info )
 {
 	CPASAttenuationFilter filter( this, ATTN_IDLE );
 	EmitSound( filter, entindex(), "HGrunt.Die" );	
@@ -1368,7 +1382,7 @@ void CNPC_HGrunt::DeathSound( const CTakeDamageInfo &info )
 //=========================================================
 // SetActivity 
 //=========================================================
-Activity CNPC_HGrunt::NPC_TranslateActivity( Activity eNewActivity )
+Activity CNPC_HL1HGrunt::NPC_TranslateActivity( Activity eNewActivity )
 {
 	switch ( eNewActivity)
 	{
@@ -1449,7 +1463,7 @@ Activity CNPC_HGrunt::NPC_TranslateActivity( Activity eNewActivity )
 	return BaseClass::NPC_TranslateActivity( eNewActivity );
 }
 
-void CNPC_HGrunt::ClearAttackConditions( void )
+void CNPC_HL1HGrunt::ClearAttackConditions( void )
 {
 	bool fCanRangeAttack2 = HasCondition( COND_CAN_RANGE_ATTACK2 );
 
@@ -1464,7 +1478,7 @@ void CNPC_HGrunt::ClearAttackConditions( void )
 	}
 }
 
-int CNPC_HGrunt::SelectSchedule( void )
+int CNPC_HL1HGrunt::SelectSchedule( void )
 {
 		// clear old sentence
 	m_iSentence = HGRUNT_SENT_NONE;
@@ -1718,7 +1732,7 @@ int CNPC_HGrunt::SelectSchedule( void )
 	return BaseClass::SelectSchedule();
 }
 
-int CNPC_HGrunt::TranslateSchedule( int scheduleType )
+int CNPC_HL1HGrunt::TranslateSchedule( int scheduleType )
 {
 
 	if ( scheduleType == SCHED_CHASE_ENEMY_FAILED )
@@ -1854,9 +1868,9 @@ int CNPC_HGrunt::TranslateSchedule( int scheduleType )
 // repelling down a line.
 //=========================================================
 
-class CNPC_HGruntRepel:public CAI_BaseNPC
+class CNPC_HL1HGruntRepel:public CAI_BaseNPC
 {
-	DECLARE_CLASS( CNPC_HGruntRepel, CAI_BaseNPC );
+	DECLARE_CLASS( CNPC_HL1HGruntRepel, CAI_BaseNPC );
 public:
 	void Spawn( void );
 	void Precache( void );
@@ -1866,33 +1880,33 @@ public:
 	DECLARE_DATADESC();
 };
 
-LINK_ENTITY_TO_CLASS( monster_grunt_repel, CNPC_HGruntRepel );
+LINK_ENTITY_TO_CLASS( monster_grunt_repel, CNPC_HL1HGruntRepel );
 
 
 
 //---------------------------------------------------------
 // Save/Restore
 //---------------------------------------------------------
-BEGIN_DATADESC( CNPC_HGruntRepel )
+BEGIN_DATADESC( CNPC_HL1HGruntRepel )
 	DEFINE_USEFUNC( RepelUse ),
 	//DEFINE_FIELD( m_iSpriteTexture, FIELD_INTEGER ),
 END_DATADESC()
 
-void CNPC_HGruntRepel::Spawn( void )
+void CNPC_HL1HGruntRepel::Spawn( void )
 {
 	Precache( );
 	SetSolid( SOLID_NONE );
 
-	SetUse( &CNPC_HGruntRepel::RepelUse );
+	SetUse( &CNPC_HL1HGruntRepel::RepelUse );
 }
 
-void CNPC_HGruntRepel::Precache( void )
+void CNPC_HL1HGruntRepel::Precache( void )
 {
 	UTIL_PrecacheOther( "monster_human_grunt" );
 	m_iSpriteTexture = PrecacheModel( "sprites/rope.vmt" );
 }
 
-void CNPC_HGruntRepel::RepelUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CNPC_HL1HGruntRepel::RepelUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	trace_t tr;
 	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + Vector( 0, 0, -4096.0), MASK_NPCSOLID, this,COLLISION_GROUP_NONE, &tr);
@@ -1922,7 +1936,7 @@ void CNPC_HGruntRepel::RepelUse ( CBaseEntity *pActivator, CBaseEntity *pCaller,
 // Schedules
 //
 //------------------------------------------------------------------------------
-AI_BEGIN_CUSTOM_NPC( monster_human_grunt, CNPC_HGrunt )
+AI_BEGIN_CUSTOM_NPC( monster_human_grunt, CNPC_HL1HGrunt )
 
 	DECLARE_ACTIVITY( ACT_GRUNT_LAUNCH_GRENADE )
 	DECLARE_ACTIVITY( ACT_GRUNT_TOSS_GRENADE )

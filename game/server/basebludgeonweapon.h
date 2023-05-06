@@ -33,6 +33,8 @@ public:
 	
 	virtual void	ItemPostFrame( void );
 
+	bool		UsesHitWorldSounds(){ return false; }
+
 	//Functions to select animation sequences 
 	virtual Activity	GetPrimaryAttackActivity( void )	{	return	ACT_VM_HITCENTER;	}
 	virtual Activity	GetSecondaryAttackActivity( void )	{	return	ACT_VM_HITCENTER2;	}
@@ -46,9 +48,9 @@ public:
 
 protected:
 	virtual	void	ImpactEffect( trace_t &trace );
+	bool			ImpactWater( const Vector &start, const Vector &end );
 
 private:
-	bool			ImpactWater( const Vector &start, const Vector &end );
 	void			Swing( int bIsSecondary );
 	void			Hit( trace_t &traceHit, Activity nHitActivity, bool bIsSecondary );
 	Activity		ChooseIntersectionPointAndActivity( trace_t &hitTrace, const Vector &mins, const Vector &maxs, CBasePlayer *pOwner );

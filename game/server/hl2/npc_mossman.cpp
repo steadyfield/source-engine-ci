@@ -94,7 +94,8 @@ void CNPC_Mossman::Spawn()
 
 	BaseClass::Spawn();
 
-	SetModel( "models/mossman.mdl" );
+	//SetModel( "models/mossman.mdl" );
+	SetModel( STRING( GetModelName() ) );
 
 	SetHullType(HULL_HUMAN);
 	SetHullSizeNormal();
@@ -119,7 +120,16 @@ void CNPC_Mossman::Spawn()
 //-----------------------------------------------------------------------------
 void CNPC_Mossman::Precache()
 {
-	PrecacheModel( "models/mossman.mdl" );
+	//PrecacheModel( "models/mossman.mdl" );
+	//SMOD: mossman has 2 models, one for default and 1 for episodic, so actually respect this value here
+	if (!Q_strnicmp(STRING(gpGlobals->mapname), "ep1", 3) || !Q_strnicmp(STRING(gpGlobals->mapname), "ep2", 3))
+		SetModelName(AllocPooledString("models/mossman_ep2.mdl"));
+	else if (CBaseEntity::GetModelName() == NULL_STRING)
+		SetModelName(AllocPooledString("models/mossman.mdl"));
+	else
+		SetModelName(CBaseEntity::GetModelName());
+	
+	PrecacheModel( STRING( GetModelName() ) );
 	
 	BaseClass::Precache();
 }	

@@ -17,6 +17,7 @@
 #include "game.h"
 #include "vstdlib/random.h"
 #include "gamestats.h"
+#include "hl2_player.h" //SMOD
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -57,6 +58,8 @@ public:
 
 	int		CapabilitiesGet( void ) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
 	Activity	GetPrimaryAttackActivity( void );
+
+	void SecondaryAttack(); //SMOD
 
 	virtual bool Reload( void );
 
@@ -370,4 +373,16 @@ void CWeaponPistol::AddViewKick( void )
 
 	//Add it to the view punch
 	pPlayer->ViewPunch( viewPunch );
+}
+
+//SMOD: Akimbo
+void CWeaponPistol::SecondaryAttack()
+{
+	CHL2_Player *pPlayer = ToHL2Player(GetOwner());
+
+	if (!pPlayer)
+		return;
+
+	if (pPlayer->Weapon_OwnsThisType("weapon_pistol_akimbo"))
+		pPlayer->Weapon_Switch(pPlayer->Weapon_OwnsThisType("weapon_pistol_akimbo"));
 }

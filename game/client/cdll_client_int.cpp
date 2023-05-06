@@ -151,6 +151,9 @@
 
 extern vgui::IInputInternal *g_InputInternal;
 
+//SMOD: SMMOD added this for some reason
+const char *COM_GetModDirectory(); // return the mod dir (rather than the complete -game param, which can be a path)
+
 //=============================================================================
 // HPE_BEGIN
 // [dwenger] Necessary for stats display
@@ -305,7 +308,7 @@ C_BaseEntityClassList::~C_BaseEntityClassList()
 class CDataChangedEvent
 {
 public:
-	CDataChangedEvent() = default;
+	CDataChangedEvent() {}
 	CDataChangedEvent( IClientNetworkable *ent, DataUpdateType_t updateType, int *pStoredEvent )
 	{
 		m_pEntity = ent;
@@ -852,6 +855,20 @@ extern IGameSystem *ViewportClientSystem();
 //-----------------------------------------------------------------------------
 ISourceVirtualReality *g_pSourceVR = NULL;
 
+//SMOD: SMMOD added this for some reason, looks like it could be somewhat useful
+void GetPrimaryModDirectory(char *pcModPath, int nSize)
+{
+	g_pFullFileSystem->GetSearchPath("MOD", false, pcModPath, nSize);
+
+	// It's possible that we have multiple MOD directories if there is DLC installed. If that's the case get the last one
+	// in the semi-colon delimited list
+	char *pSemi = V_strrchr(pcModPath, ';');
+	if (pSemi)
+	{
+		V_strncpy(pcModPath, ++pSemi, MAX_PATH);
+	}
+}
+
 // Purpose: Called when the DLL is first loaded.
 // Input  : engineFactory - 
 // Output : int
@@ -1156,6 +1173,7 @@ void CHLClient::PostInit()
 		}
 	}
 #endif
+
 }
 
 //-----------------------------------------------------------------------------

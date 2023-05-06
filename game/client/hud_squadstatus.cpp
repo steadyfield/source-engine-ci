@@ -44,14 +44,18 @@ private:
 	CPanelAnimationVarAliasType( float, text_xpos, "text_xpos", "8", "proportional_float" );
 	CPanelAnimationVarAliasType( float, text_ypos, "text_ypos", "20", "proportional_float" );
 
-	CPanelAnimationVar( vgui::HFont, m_hIconFont, "IconFont", "HudNumbers" );
+	//CPanelAnimationVar( vgui::HFont, m_hIconFont, "IconFont", "HudNumbers" );
+	CPanelAnimationVar( vgui::HFont, m_hIconFont, "IconFont", "HudSquad" ); //SMOD: Changed to HudSquad to fix the issue of Cs and Ms
 	CPanelAnimationVarAliasType( float, m_flIconInsetX, "IconInsetX", "8", "proportional_float" );
 	CPanelAnimationVarAliasType( float, m_flIconInsetY, "IconInsetY", "8", "proportional_float" );
 	CPanelAnimationVarAliasType( float, m_flIconGap, "IconGap", "20", "proportional_float" );
 
-	CPanelAnimationVar( Color, m_SquadIconColor, "SquadIconColor", "255 220 0 160" );
-	CPanelAnimationVar( Color, m_LastMemberColor, "LastMemberColor", "255 220 0 0" );
-	CPanelAnimationVar( Color, m_SquadTextColor, "SquadTextColor", "255 220 0 160" );
+	//CPanelAnimationVar( Color, m_SquadIconColor, "SquadIconColor", "255 220 0 160" );
+	//CPanelAnimationVar( Color, m_LastMemberColor, "LastMemberColor", "255 220 0 0" );
+	//CPanelAnimationVar( Color, m_SquadTextColor, "SquadTextColor", "255 220 0 160" );
+	CPanelAnimationVar( Color, m_SquadIconColor, "SquadIconColor", "0 80 255 160" );
+	CPanelAnimationVar( Color, m_LastMemberColor, "LastMemberColor", "0 80 255 0" );
+	CPanelAnimationVar( Color, m_SquadTextColor, "SquadTextColor", "0 80 255 160" );
 	
 	int m_iSquadMembers;
 	int m_iSquadMedics;

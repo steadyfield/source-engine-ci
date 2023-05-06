@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -10,12 +10,6 @@
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
 
-
-BEGIN_DATADESC( CBaseHL1CombatWeapon )
-	DEFINE_THINKFUNC( FallThink ),
-END_DATADESC();
-
-
 void CBaseHL1CombatWeapon::Precache()
 {
 	BaseClass::Precache();
@@ -23,46 +17,26 @@ void CBaseHL1CombatWeapon::Precache()
 	PrecacheScriptSound( "BaseCombatWeapon.WeaponDrop" );
 }
 
-bool CBaseHL1CombatWeapon::CreateVPhysics( void )
-{
-	VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
-	IPhysicsObject *pPhysObj = VPhysicsGetObject();
-        if ( pPhysObj )
-	{
-		pPhysObj->SetMass( 30 );
-		return true;
-	}
-
-	return false;
-}
-
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 void CBaseHL1CombatWeapon::FallInit( void )
 {
 	SetModel( GetWorldModel() );
-
-	if( !CreateVPhysics() )
-	{
-		SetSolid( SOLID_BBOX );
-		SetMoveType( MOVETYPE_FLYGRAVITY );
-                SetSolid( SOLID_BBOX );
-                AddSolidFlags( FSOLID_TRIGGER );
-	}
+	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
+	SetSolid( SOLID_BBOX );
+	AddSolidFlags( FSOLID_TRIGGER );
+	AddSolidFlags( FSOLID_NOT_SOLID );
 
 	SetPickupTouch();
-
+	
 	SetThink( &CBaseHL1CombatWeapon::FallThink );
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	// HACKHACK - On ground isn't always set, so look for ground underneath
 	trace_t tr;
-	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,256), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
-
-	SetAbsOrigin( tr.endpos );
+	UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() - Vector(0,0,2), MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
 
 	if ( tr.fraction < 1.0 )
 	{
@@ -83,20 +57,7 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	bool shouldMaterialize = false;
-	IPhysicsObject *pPhysics = VPhysicsGetObject();
-	if ( pPhysics )
-	{
-		shouldMaterialize = pPhysics->IsAsleep();
-	}
-	else
-	{
-		shouldMaterialize = (GetFlags() & FL_ONGROUND) ? true : false;
-		if( shouldMaterialize )
-			SetSize( Vector( -24, -24, 0 ), Vector( 24, 24, 16 ) );
-	}
-
-	if ( shouldMaterialize )
+	if ( GetFlags() & FL_ONGROUND )
 	{
 		// clatter if we have an owner (i.e., dropped by someone)
 		// don't clatter if the gun is waiting to respawn (if it's waiting, it is invisible!)
@@ -106,8 +67,14 @@ void CBaseHL1CombatWeapon::FallThink ( void )
 		}
 
 		// lie flat
-		Materialize();
+		QAngle ang = GetAbsAngles();
+		ang.x = 0;
+		ang.z = 0;
+		SetAbsAngles( ang );
 
+		Materialize(); 
+
+		SetSize( Vector( -24, -24, 0 ), Vector( 24, 24, 16 ) );
 	}
 }
 

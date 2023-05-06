@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Hand grenade
 //
@@ -6,14 +6,14 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
+#include "NPCEvent.h"
 #include "hl1mp_basecombatweapon_shared.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 #ifdef CLIENT_DLL
-#include "hl1/hl1_c_player.h"
+#include "c_basehlplayer.h"
 #else
-#include "hl1_player.h"
+#include "hl2_player.h"
 #endif
 #include "gamerules.h"
 #include "in_buttons.h"
@@ -245,9 +245,9 @@ BEGIN_PREDICTION_DATA( CWeaponHandGrenade )
 #endif
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_handgrenade, CWeaponHandGrenade );
+LINK_ENTITY_TO_CLASS( hl1_handgrenade, CWeaponHandGrenade );
 
-PRECACHE_WEAPON_REGISTER( weapon_handgrenade );
+PRECACHE_WEAPON_REGISTER( hl1_handgrenade );
 
 //IMPLEMENT_SERVERCLASS_ST( CWeaponHandGrenade, DT_WeaponHandGrenade )
 //END_SEND_TABLE()
@@ -300,6 +300,10 @@ void CWeaponHandGrenade::PrimaryAttack( void )
 
 void CWeaponHandGrenade::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	if ( m_flReleaseThrow == 0 && m_flStartThrow )
 		 m_flReleaseThrow = gpGlobals->curtime;
 

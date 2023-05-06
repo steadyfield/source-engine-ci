@@ -23,6 +23,14 @@ C_BaseHelicopter::C_BaseHelicopter()
 {
 }
 
+//SMOD: Check header
+IMPLEMENT_CLIENTCLASS_DT( C_HL1BaseHelicopter, DT_HL1BaseHelicopter, CHL1BaseHelicopter )
+	RecvPropTime( RECVINFO( m_flStartupTime ) ),
+END_RECV_TABLE()
+
+C_HL1BaseHelicopter::C_HL1BaseHelicopter()
+{
+}
 
 //-----------------------------------------------------------------------------
 // Chopper blade fade-in time

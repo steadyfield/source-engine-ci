@@ -62,7 +62,7 @@ void CSnark::Precache( void )
 {
 	BaseClass::Precache();
 
-	PrecacheModel( "models/w_squeak2.mdl" );
+	PrecacheModel( "models/w_squeak.mdl" );
 
 	PrecacheScriptSound( "Snark.Die" );
 	PrecacheScriptSound( "Snark.Gibbed" );
@@ -82,7 +82,7 @@ void CSnark::Spawn( void )
 	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_CUSTOM );
 	SetFriction(1.0);	
 
-	SetModel( "models/w_squeak2.mdl" );
+	SetModel( "models/w_squeak.mdl" );
 	UTIL_SetSize( this, Vector( -4, -4, 0 ), Vector( 4, 4, 8 ) );
 
 	SetBloodColor( BLOOD_COLOR_YELLOW );
@@ -137,6 +137,11 @@ Class_T	CSnark::Classify( void )
 			case CLASS_PLAYER:
 			case CLASS_HUMAN_PASSIVE:
 			case CLASS_HUMAN_MILITARY:
+			case CLASS_COMBINE:
+			case CLASS_METROPOLICE:
+			case CLASS_CREMATOR:
+			case CLASS_CITIZEN_PASSIVE:
+			case CLASS_CITIZEN_REBEL:
 				m_iMyClass = CLASS_NONE;
 				return CLASS_ALIEN_MILITARY; // barney's get mad, grunts get mad at it
 		}
@@ -153,6 +158,7 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 	SetThink( &CSnark::SUB_Remove );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 	SetTouch( NULL );
+	SetModel("models/null.mdl");
 
 	// since squeak grenades never leave a body behind, clear out their takedamage now.
 	// Squeaks do a bit of radius damage when they pop, and that radius damage will
@@ -184,6 +190,7 @@ void CSnark::Event_Killed( const CTakeDamageInfo &inputInfo )
 	int iGibDamage = g_pGameRules->Damage_GetShouldGibCorpse();
 	info.SetDamageType( iGibDamage );
 
+	Remove();
 	BaseClass::Event_Killed( info );
 }
 
@@ -525,3 +532,77 @@ bool CSnark::IsValidEnemy( CBaseEntity *pEnemy )
 	return CHL1BaseNPC::IsValidEnemy( pEnemy );
 }
 
+
+class CSnarkHD : public CSnark
+{
+	DECLARE_CLASS(CSnarkHD, CSnark);
+public:
+	void	Precache( void );
+	void	Spawn( void );
+};
+
+LINK_ENTITY_TO_CLASS(npc_snark, CSnarkHD);
+
+void CSnarkHD::Precache(void)
+{
+	CHL1BaseNPC::Precache();
+
+	PrecacheModel( "models/aliens/snark.mdl" );
+
+	PrecacheScriptSound( "Snark.Die" );
+	PrecacheScriptSound( "Snark.Gibbed" );
+	PrecacheScriptSound( "Snark.Squeak" );
+	PrecacheScriptSound( "Snark.Deploy" );
+	PrecacheScriptSound( "Snark.Bounce" );
+
+}
+
+void CSnarkHD::Spawn(void)
+{
+	Precache();
+
+	SetSolid( SOLID_BBOX );
+	AddSolidFlags( FSOLID_NOT_STANDABLE );
+	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_CUSTOM );
+	SetFriction(1.0);	
+
+	SetModel( "models/aliens/snark.mdl" );
+	UTIL_SetSize( this, Vector( -4, -4, 0 ), Vector( 4, 4, 8 ) );
+
+	SetBloodColor( BLOOD_COLOR_YELLOW );
+
+	SetTouch( &CSnark::SuperBounceTouch );
+	SetThink( &CSnark::HuntThink );
+	SetNextThink( gpGlobals->curtime + 0.1f );
+
+	m_flNextHit				= gpGlobals->curtime;
+	m_flNextHunt			= gpGlobals->curtime + 1E6;
+	m_flNextBounceSoundTime	= gpGlobals->curtime;
+
+	AddFlag( FL_AIMTARGET | FL_NPC );
+	m_takedamage = DAMAGE_YES;
+
+	m_iHealth		= sk_snark_health.GetFloat();
+	m_iMaxHealth	= m_iHealth;
+
+	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for snarks
+	SetFriction( 0.5 );
+
+	SetDamage( sk_snark_dmg_pop.GetFloat() );
+
+	m_flDie = gpGlobals->curtime + SQUEEK_DETONATE_DELAY;
+
+	m_flFieldOfView = 0; // 180 degrees
+
+	if ( GetOwnerEntity() )
+		m_hOwner = GetOwnerEntity();
+
+	m_flNextBounceSoundTime = gpGlobals->curtime;// reset each time a snark is spawned.
+
+	SetSequence( WSQUEAK_RUN );
+	ResetSequenceInfo( );
+
+	m_iMyClass = CLASS_NONE;
+
+	m_posPrev = Vector( 0, 0, 0 );
+}

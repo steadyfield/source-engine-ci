@@ -8,6 +8,7 @@
 #include "basehlcombatweapon_shared.h"
 
 #include "hl2_player_shared.h"
+#include "particle_parse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -47,7 +48,8 @@ END_DATADESC()
 BEGIN_PREDICTION_DATA( CBaseHLCombatWeapon )
 END_PREDICTION_DATA()
 
-ConVar sk_auto_reload_time( "sk_auto_reload_time", "3", FCVAR_REPLICATED );
+//SMOD: Die.
+//ConVar sk_auto_reload_time( "sk_auto_reload_time", "3", FCVAR_REPLICATED );
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -65,12 +67,36 @@ void CBaseHLCombatWeapon::ItemHolsterFrame( void )
 		return;
 
 	// If it's been longer than three seconds, reload
-	if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
+	//SMOD: Die.
+	/*if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
 	{
 		// Just load the clip with no animations
 		FinishReload();
 		m_flHolsterTime = gpGlobals->curtime;
-	}
+	}*/
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseHLCombatWeapon::Precache(void)
+{
+	PrecacheParticleSystem( "weapon_muzzle_smoke" );
+
+	BaseClass::Precache();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseHLCombatWeapon::PrimaryAttack(void)
+{
+	BaseClass::PrimaryAttack();
+
+	//We shot, clean up and start the muzzle smoking effect (like l4d)
+//	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
+//	if (pOwner)
+//		DispatchParticleEffect( "weapon_muzzle_smoke", PATTACH_POINT_FOLLOW, pOwner->GetViewModel(), GetWpnData().szMuzzleAttachement, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -188,6 +214,10 @@ bool CBaseHLCombatWeapon::WeaponShouldBeLowered( void )
 //-----------------------------------------------------------------------------
 void CBaseHLCombatWeapon::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	//See if we should idle high or low
 	if ( WeaponShouldBeLowered() )
 	{
@@ -231,23 +261,23 @@ float	g_verticalBob;
 
 #if defined( CLIENT_DLL ) && ( !defined( HL2MP ) && !defined( PORTAL ) )
 
-#define	HL2_BOB_CYCLE_MIN	1.0f
-#define	HL2_BOB_CYCLE_MAX	0.45f
-#define	HL2_BOB			0.002f
-#define	HL2_BOB_UP		0.5f
+//SMOD: Changed these two functions up a ton to be customizeable.
 
+static ConVar	cl_bob_cycle( "cl_bob_cycle","0.45", FCVAR_ARCHIVE );
+static ConVar	cl_bob_up( "cl_bob_up","0.5", FCVAR_ARCHIVE );
+static ConVar	cl_bob_speed_add("cl_bob_speed_add", "0", FCVAR_ARCHIVE, "If non-zero, add this amount of fake speed to the viewbob.\n");
 
-static ConVar	cl_bobcycle( "cl_bobcycle","0.8" );
-static ConVar	cl_bob( "cl_bob","0.002" );
-static ConVar	cl_bobup( "cl_bobup","0.5" );
+static ConVar	cl_bob_roll_value("cl_bob_roll_value", "0.5", FCVAR_ARCHIVE);
+static ConVar	cl_bob_roll_direction("cl_bob_roll_direction", "1", FCVAR_ARCHIVE, "0 = Minus, 1 = Plus\n");
+static ConVar	cl_bob_yaw_value("cl_bob_yaw_value", "0.3", FCVAR_ARCHIVE);
+static ConVar	cl_bob_yaw_direction("cl_bob_yaw_direction", "0", FCVAR_ARCHIVE, "0 = Minus, 1 = Plus\n");
+static ConVar	cl_bob_pitch_value("cl_bob_pitch_value", "0.4", FCVAR_ARCHIVE);
+static ConVar	cl_bob_pitch_direction("cl_bob_pitch_direction", "0", FCVAR_ARCHIVE, "0 = Minus, 1 = Plus\n");
+static ConVar	cl_bob_vectorma1_value("cl_bob_vectorma1_value", "0.1", FCVAR_ARCHIVE);
+static ConVar	cl_bob_vectorma2_value("cl_bob_vectorma2_value", "0.8", FCVAR_ARCHIVE);
+static ConVar	cl_bob_vectorma2_ignore("cl_bob_vectorma2_ignore", "0", FCVAR_ARCHIVE, "If true, will ignore the second VectorMA call AddViewmodelBob does, like in CS:S.\n");
 
-// Register these cvars if needed for easy tweaking
-static ConVar	v_iyaw_cycle( "v_iyaw_cycle", "2"/*, FCVAR_UNREGISTERED*/ );
-static ConVar	v_iroll_cycle( "v_iroll_cycle", "0.5"/*, FCVAR_UNREGISTERED*/ );
-static ConVar	v_ipitch_cycle( "v_ipitch_cycle", "1"/*, FCVAR_UNREGISTERED*/ );
-static ConVar	v_iyaw_level( "v_iyaw_level", "0.3"/*, FCVAR_UNREGISTERED*/ );
-static ConVar	v_iroll_level( "v_iroll_level", "0.1"/*, FCVAR_UNREGISTERED*/ );
-static ConVar	v_ipitch_level( "v_ipitch_level", "0.3"/*, FCVAR_UNREGISTERED*/ );
+ConVar	cl_bob_preset("cl_bob_preset", "0", FCVAR_NONE, "This is techincally a concommand but it takes input.\n1 to use HL2's preset viewbob stuff, 2 to use CS:S's.\n");
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -255,6 +285,9 @@ static ConVar	v_ipitch_level( "v_ipitch_level", "0.3"/*, FCVAR_UNREGISTERED*/ );
 //-----------------------------------------------------------------------------
 float CBaseHLCombatWeapon::CalcViewmodelBob( void )
 {
+	if (m_bIsIronsighted)
+		return 0.0f;
+
 	static	float bobtime;
 	static	float lastbobtime;
 	float	cycle;
@@ -273,6 +306,9 @@ float CBaseHLCombatWeapon::CalcViewmodelBob( void )
 	//Find the speed of the player
 	float speed = player->GetLocalVelocity().Length2D();
 
+	if (cl_bob_speed_add.GetBool() && !speed == 0)
+		speed = speed + cl_bob_speed_add.GetInt();
+
 	//FIXME: This maximum speed value must come from the server.
 	//		 MaxSpeed() is not sufficient for dealing with sprinting - jdw
 
@@ -284,16 +320,16 @@ float CBaseHLCombatWeapon::CalcViewmodelBob( void )
 	lastbobtime = gpGlobals->curtime;
 
 	//Calculate the vertical bob
-	cycle = bobtime - (int)(bobtime/HL2_BOB_CYCLE_MAX)*HL2_BOB_CYCLE_MAX;
-	cycle /= HL2_BOB_CYCLE_MAX;
+	cycle = bobtime - (int)(bobtime/cl_bob_cycle.GetFloat())*cl_bob_cycle.GetFloat();
+	cycle /= cl_bob_cycle.GetFloat();
 
-	if ( cycle < HL2_BOB_UP )
+	if ( cycle < cl_bob_up.GetFloat() )
 	{
-		cycle = M_PI * cycle / HL2_BOB_UP;
+		cycle = M_PI * cycle / cl_bob_up.GetFloat();
 	}
 	else
 	{
-		cycle = M_PI + M_PI*(cycle-HL2_BOB_UP)/(1.0 - HL2_BOB_UP);
+		cycle = M_PI + M_PI*(cycle-cl_bob_up.GetFloat())/(1.0 - cl_bob_up.GetFloat());
 	}
 	
 	g_verticalBob = speed*0.005f;
@@ -302,16 +338,16 @@ float CBaseHLCombatWeapon::CalcViewmodelBob( void )
 	g_verticalBob = clamp( g_verticalBob, -7.0f, 4.0f );
 
 	//Calculate the lateral bob
-	cycle = bobtime - (int)(bobtime/HL2_BOB_CYCLE_MAX*2)*HL2_BOB_CYCLE_MAX*2;
-	cycle /= HL2_BOB_CYCLE_MAX*2;
+	cycle = bobtime - (int)(bobtime/cl_bob_cycle.GetFloat()*2)*cl_bob_cycle.GetFloat()*2;
+	cycle /= cl_bob_cycle.GetFloat()*2;
 
-	if ( cycle < HL2_BOB_UP )
+	if ( cycle < cl_bob_up.GetFloat() )
 	{
-		cycle = M_PI * cycle / HL2_BOB_UP;
+		cycle = M_PI * cycle / cl_bob_up.GetFloat();
 	}
 	else
 	{
-		cycle = M_PI + M_PI*(cycle-HL2_BOB_UP)/(1.0 - HL2_BOB_UP);
+		cycle = M_PI + M_PI*(cycle-cl_bob_up.GetFloat())/(1.0 - cl_bob_up.GetFloat());
 	}
 
 	g_lateralBob = speed*0.005f;
@@ -322,6 +358,47 @@ float CBaseHLCombatWeapon::CalcViewmodelBob( void )
 	return 0.0f;
 }
 
+void HandleViewBobPresets()
+{
+	if (cl_bob_preset.GetInt() == 1)
+	{
+		Msg("Setting viewbob to HL2 preset...\n");
+		cl_bob_cycle.SetValue(0.45f);
+		cl_bob_up.SetValue(0.5f);
+		cl_bob_roll_value.SetValue(0.5f);
+		cl_bob_roll_direction.SetValue(1);
+		cl_bob_yaw_value.SetValue(0.3f);
+		cl_bob_yaw_direction.SetValue(0);
+		cl_bob_pitch_value.SetValue(0.4f);
+		cl_bob_pitch_direction.SetValue(0);
+		cl_bob_vectorma1_value.SetValue(0.1f);
+		cl_bob_vectorma2_value.SetValue(0.8f);
+		cl_bob_vectorma2_ignore.SetValue(0);
+		cl_bob_speed_add.SetValue(0);
+	}
+	else if (cl_bob_preset.GetInt() == 2)
+	{
+		Msg("Setting viewbob to CS:S preset...\n");
+		cl_bob_cycle.SetValue(0.8f);
+		cl_bob_up.SetValue(0.5f);
+		cl_bob_roll_value.SetValue(0.5f);
+		cl_bob_roll_direction.SetValue(1);
+		cl_bob_yaw_value.SetValue(0.3f);
+		cl_bob_yaw_direction.SetValue(0);
+		cl_bob_pitch_value.SetValue(0.4f);
+		cl_bob_pitch_direction.SetValue(0);
+		cl_bob_vectorma1_value.SetValue(0.4f);
+		cl_bob_vectorma2_value.SetValue(0.2f);
+		cl_bob_vectorma2_ignore.SetValue(1);
+		cl_bob_speed_add.SetValue(55);
+	}
+	else
+	{
+		Msg("That was not a vaild preset!\n");
+	}
+	cl_bob_preset.SetValue(0);
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : &origin - 
@@ -330,24 +407,42 @@ float CBaseHLCombatWeapon::CalcViewmodelBob( void )
 //-----------------------------------------------------------------------------
 void CBaseHLCombatWeapon::AddViewmodelBob( CBaseViewModel *viewmodel, Vector &origin, QAngle &angles )
 {
+	if (m_bIsIronsighted)
+		return;
+
+	//Bob preset setter was non-zero, call it
+	if (cl_bob_preset.GetBool())
+		HandleViewBobPresets();
+
 	Vector	forward, right;
 	AngleVectors( angles, &forward, &right, NULL );
 
 	CalcViewmodelBob();
 
 	// Apply bob, but scaled down to 40%
-	VectorMA( origin, g_verticalBob * 0.1f, forward, origin );
+	VectorMA( origin, g_verticalBob * cl_bob_vectorma1_value.GetFloat(), forward, origin );
 	
 	// Z bob a bit more
 	origin[2] += g_verticalBob * 0.1f;
 	
 	// bob the angles
-	angles[ ROLL ]	+= g_verticalBob * 0.5f;
-	angles[ PITCH ]	-= g_verticalBob * 0.4f;
+	if (cl_bob_roll_direction.GetBool())
+		angles[ ROLL ]	+= g_verticalBob * cl_bob_roll_value.GetFloat();
+	else
+		angles[ ROLL ]	-= g_verticalBob * cl_bob_roll_value.GetFloat();
 
-	angles[ YAW ]	-= g_lateralBob  * 0.3f;
+	if (cl_bob_pitch_direction.GetBool())
+		angles[ PITCH ]	+= g_verticalBob * cl_bob_pitch_value.GetFloat();
+	else
+		angles[ PITCH ]	-= g_verticalBob * cl_bob_pitch_value.GetFloat();
 
-	VectorMA( origin, g_lateralBob * 0.8f, right, origin );
+	if (cl_bob_yaw_direction.GetBool())
+		angles[ YAW ]	+= g_lateralBob  * cl_bob_yaw_value.GetFloat();
+	else
+		angles[ YAW ]	-= g_lateralBob  * cl_bob_yaw_value.GetFloat();
+
+	if (!cl_bob_vectorma2_ignore.GetBool())
+	VectorMA( origin, g_lateralBob * cl_bob_vectorma2_value.GetFloat(), right, origin );
 }
 
 //-----------------------------------------------------------------------------

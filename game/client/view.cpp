@@ -45,6 +45,7 @@
 #include "ScreenSpaceEffects.h"
 #include "sourcevr/isourcevirtualreality.h"
 #include "client_virtualreality.h"
+#include "hl2_gamerules.h"
 
 #if defined( REPLAY_ENABLED )
 #include "replay/ireplaysystem.h"
@@ -67,6 +68,13 @@ void ToolFramework_AdjustEngineViewport( int& x, int& y, int& width, int& height
 bool ToolFramework_SetupEngineView( Vector &origin, QAngle &angles, float &fov );
 bool ToolFramework_SetupEngineMicrophone( Vector &origin, QAngle &angles );
 
+int GetNearZ()
+{
+	if(HL2GameRules()->IsInHL1Map())
+		return 3;
+	else
+		return 7;
+}
 
 extern ConVar default_fov;
 extern bool g_bRenderingScreenshot;
@@ -107,13 +115,15 @@ extern ConVar cl_forwardspeed;
 static ConVar v_centermove( "v_centermove", "0.15");
 static ConVar v_centerspeed( "v_centerspeed","500" );
 
-#ifdef TF_CLIENT_DLL
+//SMOD: This is not a "CHEAT" damnit!
+//#ifdef TF_CLIENT_DLL
 // 54 degrees approximates a 35mm camera - we determined that this makes the viewmodels
 // and motions look the most natural.
 ConVar v_viewmodel_fov( "viewmodel_fov", "54", FCVAR_ARCHIVE );
-#else
-ConVar v_viewmodel_fov( "viewmodel_fov", "54", FCVAR_CHEAT );
-#endif
+//#else
+//ConVar v_viewmodel_fov( "viewmodel_fov", "54", FCVAR_CHEAT );
+//#endif
+
 ConVar mat_viewportscale( "mat_viewportscale", "1.0", FCVAR_ARCHIVE, "Scale down the main viewport (to reduce GPU impact on CPU profiling)", true, (1.0f / 640.0f), true, 1.0f );
 ConVar mat_viewportupscale( "mat_viewportupscale", "1", FCVAR_ARCHIVE, "Scale the viewport back up" );
 ConVar cl_leveloverview( "cl_leveloverview", "0", FCVAR_CHEAT );

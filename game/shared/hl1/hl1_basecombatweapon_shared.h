@@ -1,13 +1,13 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright ?1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
 //=============================================================================//
 
-#include "basecombatweapon_shared.h"
+#include "basehlcombatweapon_shared.h"
 
-#ifndef BASEHLCOMBATWEAPON_SHARED_H
-#define BASEHLCOMBATWEAPON_SHARED_H
+#ifndef BASEHL1COMBATWEAPON_SHARED_H
+#define BASEHL1COMBATWEAPON_SHARED_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -16,9 +16,9 @@
 #define CBaseHL1CombatWeapon C_BaseHL1CombatWeapon
 #endif
 
-class CBaseHL1CombatWeapon : public CBaseCombatWeapon
+class CBaseHL1CombatWeapon : public CBaseHLCombatWeapon
 {
-	DECLARE_CLASS( CBaseHL1CombatWeapon, CBaseCombatWeapon );
+	DECLARE_CLASS( CBaseHL1CombatWeapon, CBaseHLCombatWeapon );
 public:
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
@@ -29,23 +29,21 @@ public:
 public:
 // Server Only Methods
 #if !defined( CLIENT_DLL )
-	DECLARE_DATADESC();
-
+ //   DECLARE_DATADESC();
 	virtual void Precache();
 
 	void FallInit( void );						// prepare to fall to the ground
-	virtual void FallThink( void );						// make the weapon fall to the ground after spawning
-	bool CreateVPhysics( void );
+	void FallThink( void );						// make the weapon fall to the ground after spawning
 
 	void EjectShell( CBaseEntity *pPlayer, int iType );
 
 	Vector GetSoundEmissionOrigin() const;
-#else
+//#else
 
-	virtual void	AddViewmodelBob( CBaseViewModel *viewmodel, Vector &origin, QAngle &angles );
-	virtual	float	CalcViewmodelBob( void );
-
+//	virtual void	AddViewmodelBob( CBaseViewModel *viewmodel, Vector &origin, QAngle &angles );
+//	virtual	float	CalcViewmodelBob( void );
+	
 #endif
 };
 
-#endif // BASEHLCOMBATWEAPON_SHARED_H
+#endif // BASEHL1COMBATWEAPON_SHARED_H

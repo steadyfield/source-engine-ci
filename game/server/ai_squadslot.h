@@ -40,6 +40,7 @@ enum SQUAD_SLOT_t {
 
 	SQUAD_SLOT_SPECIAL_ATTACK,	// Combine Elite using the combine ball attack, for instance.
 
+	SQUAD_SLOT_ATTACK3, //SMOD
 	// ======================================
 	// IMPORTANT: This must be the last enum
 	// ======================================

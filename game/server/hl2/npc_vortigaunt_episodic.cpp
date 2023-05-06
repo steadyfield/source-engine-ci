@@ -3408,3 +3408,13 @@ void CFleshEffectTarget::InputSetRadius( inputdata_t &inputData )
 }
 
 #endif // HL2_EPISODIC
+
+//SMOD: Evil Vortigaunt NPC
+class CNPC_VortigauntEnemy : public CNPC_Vortigaunt
+{
+public:
+	DECLARE_CLASS(CNPC_VortigauntEnemy, CNPC_Vortigaunt);
+	Class_T Classify(void) { return CLASS_ALIEN_MILITARY; }
+};
+
+LINK_ENTITY_TO_CLASS(npc_vortigaunt_enemy, CNPC_VortigauntEnemy);

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		357 - hand gun
 //
@@ -6,8 +6,8 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "npcevent.h"
-#include "hl1mp_basecombatweapon_shared.h"
+#include "NPCEvent.h"
+#include "hl1mp_weapon_357.h"
 #ifdef CLIENT_DLL
 #include "c_baseplayer.h"
 #else
@@ -22,44 +22,9 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 
-#ifdef CLIENT_DLL
-#define CWeapon357 C_Weapon357
-#endif
+IMPLEMENT_NETWORKCLASS_ALIASED( HL1Weapon357, DT_HL1Weapon357 );
 
-//-----------------------------------------------------------------------------
-// CWeapon357
-//-----------------------------------------------------------------------------
-
-class CWeapon357 : public CBaseHL1MPCombatWeapon
-{
-	DECLARE_CLASS( CWeapon357, CBaseHL1CombatWeapon );
-public:
-	DECLARE_NETWORKCLASS(); 
-	DECLARE_PREDICTABLE();
-
-	CWeapon357( void );
-
-	void	Precache( void );
-	bool	Deploy( void );
-	void	PrimaryAttack( void );
-	void	SecondaryAttack( void );
-	bool	Reload( void );
-	void	WeaponIdle( void );
-	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-
-//	DECLARE_SERVERCLASS();
-//	DECLARE_DATADESC();
-
-private:
-	void	ToggleZoom( void );
-
-private:
-	CNetworkVar( float, m_fInZoom );
-};
-
-IMPLEMENT_NETWORKCLASS_ALIASED( Weapon357, DT_Weapon357 );
-
-BEGIN_NETWORK_TABLE( CWeapon357, DT_Weapon357 )
+BEGIN_NETWORK_TABLE( CHL1Weapon357, DT_HL1Weapon357 )
 #ifdef CLIENT_DLL
 	RecvPropFloat( RECVINFO( m_fInZoom ) ),
 #else
@@ -67,26 +32,26 @@ BEGIN_NETWORK_TABLE( CWeapon357, DT_Weapon357 )
 #endif
 END_NETWORK_TABLE()
 
-BEGIN_PREDICTION_DATA( CWeapon357 )
+BEGIN_PREDICTION_DATA( CHL1Weapon357 )
 #ifdef CLIENT_DLL
 	DEFINE_PRED_FIELD( m_fInZoom, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 #endif
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_357, CWeapon357 );
+//LINK_ENTITY_TO_CLASS( hl1_357, CHL1Weapon357 );
 
-PRECACHE_WEAPON_REGISTER( weapon_357 );
+//PRECACHE_WEAPON_REGISTER( hl1_357 );
 
-//IMPLEMENT_SERVERCLASS_ST( CWeapon357, DT_Weapon357 )
+//IMPLEMENT_SERVERCLASS_ST( CHL1Weapon357, DT_HL1Weapon357 )
 //END_SEND_TABLE()
 
-//BEGIN_DATADESC( CWeapon357 )
+//BEGIN_DATADESC( CHL1Weapon357 )
 //END_DATADESC()
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CWeapon357::CWeapon357( void )
+CHL1Weapon357::CHL1Weapon357( void )
 {
 	m_bReloadsSingly	= false;
 	m_bFiresUnderwater	= false;
@@ -96,7 +61,7 @@ CWeapon357::CWeapon357( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeapon357::Precache( void )
+void CHL1Weapon357::Precache( void )
 {
 	BaseClass::Precache();
 
@@ -105,7 +70,7 @@ void CWeapon357::Precache( void )
 #endif
 }
 
-bool CWeapon357::Deploy( void )
+bool CHL1Weapon357::Deploy( void )
 {
 // Bodygroup stuff not currently working correctly
 //	if ( g_pGameRules->IsMultiplayer() )
@@ -124,7 +89,7 @@ bool CWeapon357::Deploy( void )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CWeapon357::PrimaryAttack( void )
+void CHL1Weapon357::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -190,19 +155,21 @@ void CWeapon357::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CWeapon357::SecondaryAttack( void )
+void CHL1Weapon357::SecondaryAttack( void )
 {
+	return;
+
 	// only in multiplayer
-	if ( !g_pGameRules->IsMultiplayer() )
-	{
+	//if ( !g_pGameRules->IsMultiplayer() )
+	//{
 #ifndef CLIENT_DLL
 		// unless we have cheats on
-		if ( !sv_cheats->GetBool() )
-		{
-			return;
-		}
+		//if ( !sv_cheats->GetBool() )
+		//{
+		//	return;
+		//}
 #endif
-	}
+	//}
 
 	ToggleZoom();
 
@@ -210,7 +177,7 @@ void CWeapon357::SecondaryAttack( void )
 }
 
 
-bool CWeapon357::Reload( void )
+bool CHL1Weapon357::Reload( void )
 {
 	bool fRet;
 
@@ -227,8 +194,12 @@ bool CWeapon357::Reload( void )
 }
 
 
-void CWeapon357::WeaponIdle( void )
+void CHL1Weapon357::WeaponIdle( void )
 {
+	//SMOD: Ironsight fix
+	if (m_bIsIronsighted)
+		return;
+
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( pPlayer )
 	{
@@ -249,7 +220,7 @@ void CWeapon357::WeaponIdle( void )
 }
 
 
-bool CWeapon357::Holster( CBaseCombatWeapon *pSwitchingTo )
+bool CHL1Weapon357::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	if ( m_fInZoom )
 	{
@@ -260,7 +231,7 @@ bool CWeapon357::Holster( CBaseCombatWeapon *pSwitchingTo )
 }
 
 
-void CWeapon357::ToggleZoom( void )
+void CHL1Weapon357::ToggleZoom( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( !pPlayer )

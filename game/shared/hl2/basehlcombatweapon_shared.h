@@ -35,6 +35,8 @@ public:
 
 	virtual bool	WeaponShouldBeLowered( void );
 
+	virtual void	Precache( void );
+	virtual void	PrimaryAttack(void);
 			bool	CanLower();
 	virtual bool	Ready( void );
 	virtual bool	Lower( void );

@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -19,8 +19,8 @@
 #define	HUMAN_GIB_COUNT			6
 #define ALIEN_GIB_COUNT			4
 
-const char *pHumanGibsModel = "models/gibs/hgibs.mdl";
-const char *pAlienGibsModel = "models/gibs/agibs.mdl";
+const char *pHumanGibsModel = "models/gibs/hghl1.mdl";
+const char *pAlienGibsModel = "models/gibs/aghl1.mdl";
 
 void GetBloodColorHL1( int bloodtype, unsigned char &r, unsigned char &g, unsigned char &b )
 {
@@ -49,7 +49,7 @@ class C_HL1Gib : public C_Gib
 	typedef C_BaseAnimating BaseClass;
 public:
 	
-	static C_HL1Gib *CreateClientsideGib( const char *pszModelName, Vector vecOrigin, Vector vecForceDir, AngularImpulse vecAngularImp )
+	static C_HL1Gib *C_HL1Gib::CreateClientsideGib( const char *pszModelName, Vector vecOrigin, Vector vecForceDir, AngularImpulse vecAngularImp )
 	{
 		C_HL1Gib *pGib = new C_HL1Gib;
 

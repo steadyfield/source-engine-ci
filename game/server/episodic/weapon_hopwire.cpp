@@ -8,24 +8,24 @@
 #include "basehlcombatweapon.h"
 #include "player.h"
 #include "gamerules.h"
-#include "grenade_frag.h"
+#include "grenade_hopwire.h"
 #include "npcevent.h"
 #include "engine/IEngineSound.h"
 #include "items.h"
 #include "in_buttons.h"
 #include "soundent.h"
-#include "grenade_hopwire.h"
+#include "gamestats.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define GRENADE_TIMER	2.0f	//Seconds
+#define GRENADE_TIMER	3.0f //Seconds
 
 #define GRENADE_PAUSED_NO			0
 #define GRENADE_PAUSED_PRIMARY		1
 #define GRENADE_PAUSED_SECONDARY	2
 
-#define GRENADE_RADIUS	4.0f	// inches
+#define GRENADE_RADIUS	4.0f // inches
 
 //-----------------------------------------------------------------------------
 // Fragmentation grenades
@@ -36,6 +36,9 @@ class CWeaponHopwire: public CBaseHLCombatWeapon
 public:
 	DECLARE_SERVERCLASS();
 
+public:
+	CWeaponHopwire();
+
 	void	Precache( void );
 	void	Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
 	void	PrimaryAttack( void );
@@ -43,14 +46,14 @@ public:
 	void	DecrementAmmo( CBaseCombatCharacter *pOwner );
 	void	ItemPostFrame( void );
 
-	void	HandleFireOnEmpty( void );
-	bool	HasAnyAmmo( void );
 	bool	Deploy( void );
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 
 	int		CapabilitiesGet( void ) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
 	
 	bool	Reload( void );
+
+	bool	ShouldDisplayHUDHint() { return true; }
 
 private:
 	void	ThrowGrenade( CBasePlayer *pPlayer );
@@ -64,8 +67,6 @@ private:
 	int		m_AttackPaused;
 	bool	m_fDrawbackFinished;
 
-	CHandle<CGrenadeHopwire>	m_hActiveHopWire;
-
 	DECLARE_ACTTABLE();
 
 	DECLARE_DATADESC();
@@ -76,7 +77,6 @@ BEGIN_DATADESC( CWeaponHopwire )
 	DEFINE_FIELD( m_bRedraw, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_AttackPaused, FIELD_INTEGER ),
 	DEFINE_FIELD( m_fDrawbackFinished, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_hActiveHopWire, FIELD_EHANDLE ),
 END_DATADESC()
 
 acttable_t	CWeaponHopwire::m_acttable[] = 
@@ -89,8 +89,17 @@ IMPLEMENT_ACTTABLE(CWeaponHopwire);
 IMPLEMENT_SERVERCLASS_ST(CWeaponHopwire, DT_WeaponHopwire)
 END_SEND_TABLE()
 
-LINK_ENTITY_TO_CLASS( weapon_hopwire, CWeaponHopwire );
-PRECACHE_WEAPON_REGISTER(weapon_hopwire);
+LINK_ENTITY_TO_CLASS( weapon_blackhole, CWeaponHopwire );
+PRECACHE_WEAPON_REGISTER( weapon_blackhole );
+
+
+
+CWeaponHopwire::CWeaponHopwire() :
+	CBaseHLCombatWeapon(),
+	m_bRedraw( false )
+{
+	NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -101,10 +110,8 @@ void CWeaponHopwire::Precache( void )
 
 	UTIL_PrecacheOther( "npc_grenade_hopwire" );
 
-	PrecacheScriptSound( "WeaponFrag.Throw" );
-	PrecacheScriptSound( "WeaponFrag.Roll" );
-
-	m_bRedraw = false;
+	PrecacheScriptSound( "WeaponHopwire.Throw" );
+	PrecacheScriptSound( "WeaponHopwire.Roll" );
 }
 
 //-----------------------------------------------------------------------------
@@ -124,9 +131,6 @@ bool CWeaponHopwire::Deploy( void )
 //-----------------------------------------------------------------------------
 bool CWeaponHopwire::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
-	if ( m_hActiveHopWire != NULL )
-		return false;
-
 	m_bRedraw = false;
 	m_fDrawbackFinished = false;
 
@@ -199,18 +203,6 @@ void CWeaponHopwire::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatC
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Override the ammo behavior so we never disallow pulling the weapon out
-// Output : Returns true on success, false on failure.
-//-----------------------------------------------------------------------------
-bool CWeaponHopwire::HasAnyAmmo( void )
-{
-	if ( m_hActiveHopWire != NULL )
-		return true;
-
-	return BaseClass::HasAnyAmmo();
-}
-
-//-----------------------------------------------------------------------------
 // Purpose: 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
@@ -241,7 +233,6 @@ bool CWeaponHopwire::Reload( void )
 //-----------------------------------------------------------------------------
 void CWeaponHopwire::SecondaryAttack( void )
 {
-	/*
 	if ( m_bRedraw )
 		return;
 
@@ -271,21 +262,6 @@ void CWeaponHopwire::SecondaryAttack( void )
 	{
 		pPlayer->SwitchToNextBestWeapon( this );
 	}
-	*/
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Allow activation even if this is our last piece of ammo
-//-----------------------------------------------------------------------------
-void CWeaponHopwire::HandleFireOnEmpty( void )
-{
-	if ( m_hActiveHopWire!= NULL )
-	{
-		// FIXME: This toggle is hokey
-		m_bRedraw = false;
-		PrimaryAttack();
-		m_bRedraw = true;
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -297,33 +273,20 @@ void CWeaponHopwire::PrimaryAttack( void )
 		return;
 
 	CBaseCombatCharacter *pOwner  = GetOwner();
+	
 	if ( pOwner == NULL )
-		return;
-
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );;
-	if ( !pPlayer )
-		return;
-
-	// See if we're in trap mode
-	if ( hopwire_trap.GetBool() && ( m_hActiveHopWire != NULL ) )
-	{
-		// Spring the trap
-		m_hActiveHopWire->Detonate();
-		m_hActiveHopWire = NULL;
-
-		// Don't allow another throw for awhile
-		m_flTimeWeaponIdle = m_flNextPrimaryAttack = gpGlobals->curtime + 2.0f;
-
+	{ 
 		return;
 	}
 
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );;
+
+	if ( !pPlayer )
+		return;
+
 	// Note that this is a primary attack and prepare the grenade attack to pause.
-	/*
 	m_AttackPaused = GRENADE_PAUSED_PRIMARY;
 	SendWeaponAnim( ACT_VM_PULLBACK_HIGH );
-	*/
-	m_AttackPaused = GRENADE_PAUSED_SECONDARY;
-	SendWeaponAnim( ACT_VM_PULLBACK_LOW );
 	
 	// Put both of these off indefinitely. We do not know how long
 	// the player will hold the grenade.
@@ -331,12 +294,10 @@ void CWeaponHopwire::PrimaryAttack( void )
 	m_flNextPrimaryAttack = FLT_MAX;
 
 	// If I'm now out of ammo, switch away
-	/*
 	if ( !HasPrimaryAmmo() )
 	{
 		pPlayer->SwitchToNextBestWeapon( this );
 	}
-	*/
 }
 
 //-----------------------------------------------------------------------------
@@ -370,7 +331,7 @@ void CWeaponHopwire::ItemPostFrame( void )
 				break;
 
 			case GRENADE_PAUSED_SECONDARY:
-				if( !(pOwner->m_nButtons & (IN_ATTACK|IN_ATTACK2)) )
+				if( !(pOwner->m_nButtons & IN_ATTACK2) )
 				{
 					//See if we're ducking
 					if ( pOwner->m_nButtons & IN_DUCK )
@@ -431,16 +392,20 @@ void CWeaponHopwire::ThrowGrenade( CBasePlayer *pPlayer )
 	pPlayer->EyeVectors( &vForward, &vRight, NULL );
 	Vector vecSrc = vecEye + vForward * 18.0f + vRight * 8.0f;
 	CheckThrowPosition( pPlayer, vecEye, vecSrc );
+//	vForward[0] += 0.1f;
 	vForward[2] += 0.1f;
 
 	Vector vecThrow;
 	pPlayer->GetVelocity( &vecThrow, NULL );
 	vecThrow += vForward * 1200;
-	m_hActiveHopWire = static_cast<CGrenadeHopwire *> (HopWire_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(600,random->RandomInt(-1200,1200),0), pPlayer, GRENADE_TIMER ));
+	HopWire_Create(vecSrc, vec3_angle, vecThrow, AngularImpulse(600, random->RandomInt(-1200, 1200), 0), pPlayer, GRENADE_TIMER);
 
 	m_bRedraw = true;
 
 	WeaponSound( SINGLE );
+
+	m_iPrimaryAttacks++;
+	gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
 }
 
 //-----------------------------------------------------------------------------
@@ -459,11 +424,14 @@ void CWeaponHopwire::LobGrenade( CBasePlayer *pPlayer )
 	Vector vecThrow;
 	pPlayer->GetVelocity( &vecThrow, NULL );
 	vecThrow += vForward * 350 + Vector( 0, 0, 50 );
-	m_hActiveHopWire = static_cast<CGrenadeHopwire *> (HopWire_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(200,random->RandomInt(-600,600),0), pPlayer, GRENADE_TIMER ));
+	HopWire_Create(vecSrc, vec3_angle, vecThrow, AngularImpulse(200, random->RandomInt(-600, 600), 0), pPlayer, GRENADE_TIMER);
 
 	WeaponSound( WPN_DOUBLE );
 
 	m_bRedraw = true;
+
+	m_iPrimaryAttacks++;
+	gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
 }
 
 //-----------------------------------------------------------------------------
@@ -500,9 +468,13 @@ void CWeaponHopwire::RollGrenade( CBasePlayer *pPlayer )
 	QAngle orientation(0,pPlayer->GetLocalAngles().y,-90);
 	// roll it
 	AngularImpulse rotSpeed(0,0,720);
-	m_hActiveHopWire = static_cast<CGrenadeHopwire *> (HopWire_Create( vecSrc, orientation, vecThrow, rotSpeed, pPlayer, GRENADE_TIMER ));
+	HopWire_Create(vecSrc, orientation, vecThrow, rotSpeed, pPlayer, GRENADE_TIMER);
 
 	WeaponSound( SPECIAL1 );
 
 	m_bRedraw = true;
+
+	m_iPrimaryAttacks++;
+	gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
 }
+

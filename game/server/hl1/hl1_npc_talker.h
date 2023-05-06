@@ -1,5 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
-//
+//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============///
 // Purpose:		Base combat character with no AI
 //
 // $Workfile:     $
@@ -10,19 +9,23 @@
 #ifndef HL1TALKNPC_H
 #define HL1TALKNPC_H
 
+#pragma warning(push)
+#include <set>
+#pragma warning(pop)
+
 #ifdef _WIN32
 #pragma once
 #endif
 
 #include "soundflags.h"
 
-#include "ai_task.h"
-#include "ai_schedule.h"
-#include "ai_default.h"
-#include "ai_speech.h"
-#include "ai_basenpc.h"
-#include "ai_behavior.h"
-#include "ai_behavior_follow.h"
+#include "AI_Task.h"
+#include "AI_Schedule.h"
+#include "AI_Default.h"
+#include "AI_Speech.h"
+#include "AI_BaseNPC.h"
+#include "AI_Behavior.h"
+#include "AI_Behavior_Follow.h"
 #include "npc_talker.h"
 
 
@@ -81,11 +84,7 @@ public:
 	// Essentially does the opposite of what it says
 	virtual bool ShouldPlayerAvoid( void ) { return false; }
 
-	bool IsValidSpeechTarget( int flags, CBaseEntity *pEntity );
-
-protected:
 	virtual void 	FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	int FIdleSpeak ( void );
 
 private:
 	virtual void	DeclineFollowing( void ) {}

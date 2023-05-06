@@ -85,7 +85,7 @@ void CAchievementNotificationPanel::PerformLayout( void )
 	SetBgColor( Color( 0, 0, 0, 0 ) );
 	m_pLabelHeading->SetBgColor( Color( 0, 0, 0, 0 ) );
 	m_pLabelTitle->SetBgColor( Color( 0, 0, 0, 0 ) );
-	m_pPanelBackground->SetBgColor( Color( 128, 128, 128, 128 ) );
+	m_pPanelBackground->SetBgColor( Color( 62, 70, 55, 200 ) );
 }
 
 //-----------------------------------------------------------------------------

@@ -147,7 +147,7 @@ void CNPC_Odell::CreateWelder()
 	if ( welder )
 	{
 		welder->SetModel( "models/props_scart/welding_torch.mdl" );
-		welder->SetName( AllocPooledString("ODEL_WELDER") );
+		welder->SetName( AllocPooledString( "ODEL_WELDER" ) );
 		int iAttachment = LookupAttachment( "Welder_Holster" );
 		welder->SetParent(this, iAttachment);
 		welder->SetOwnerEntity(this);
@@ -183,7 +183,9 @@ void CNPC_Odell::HandleAnimEvent( animevent_t *pEvent )
 	{
 		int iAttachment = LookupAttachment( pEvent->options );
 		welder->SetParent(this, iAttachment);
-		welder->SetLocalAngles( QAngle( 0, 90, 0 ) );
+		// потом
+		welder->SetLocalAngles( QAngle( 65, 0, 0 ) );
+		welder->SetLocalOrigin( vec3_origin );
 	}
 
 	if( !stricmp( pEvent->options, "Welder_Holster" ) )

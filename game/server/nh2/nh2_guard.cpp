@@ -87,7 +87,7 @@ public:
 
 	void SetZombieModel( void );
 
-	Vector CNPC_NH_Guard::HeadTarget( const Vector &posSrc );
+	Vector HeadTarget( const Vector &posSrc );
 
 	virtual void PrescheduleThink( void );
 	virtual int SelectSchedule( void );

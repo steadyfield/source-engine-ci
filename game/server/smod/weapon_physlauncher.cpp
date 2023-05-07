@@ -290,7 +290,7 @@ studiohdr_t *CWeaponPhysLauncher::ModelHasPhys(const char *model)
 
 	MDLHandle_t h = mdlcache->FindMDL(model);
 	if(h == MDLHANDLE_INVALID)
-		return false;
+		return NULL;
 
 	studiohdr_t *pStudioHdr = mdlcache->GetStudioHdr(h);
 	if(!pStudioHdr)

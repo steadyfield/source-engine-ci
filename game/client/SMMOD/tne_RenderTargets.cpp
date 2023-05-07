@@ -1,6 +1,6 @@
 #include "cbase.h"
 #include "tne_RenderTargets.h"
-#include "materialsystem\imaterialsystem.h"
+#include "materialsystem/imaterialsystem.h"
 #include "rendertexture.h"
  
 ITexture* CTNERenderTargets::CreateScopeTexture( IMaterialSystem* pMaterialSystem )

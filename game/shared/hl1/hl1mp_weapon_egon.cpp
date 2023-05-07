@@ -6,11 +6,11 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "hl1mp_weapon_egon.h"
 #include "Sprite.h"
 #include "beam_shared.h"
-#include "Takedamageinfo.h"
+#include "takedamageinfo.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 

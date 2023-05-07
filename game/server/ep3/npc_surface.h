@@ -12,7 +12,7 @@
 #pragma once
 #endif
 
-#include "AI_BaseNPC.h"
+#include "ai_basenpc.h"
 #include "soundenvelope.h"
 #include "player_pickup.h"
 

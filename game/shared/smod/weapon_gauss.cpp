@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "weapon_gauss.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"

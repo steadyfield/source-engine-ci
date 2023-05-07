@@ -8,9 +8,9 @@
 #include "dt_utlvector_recv.h"
 #include "bone_setup.h"
 #include "c_ai_basenpc.h"
-#include "engine/IVDebugOverlay.h"
+#include "engine/ivdebugoverlay.h"
 
-#include "IVRenderView.h"
+#include "ivrenderview.h"
 #include "view_shared.h"
 #include "iviewrender.h"
 

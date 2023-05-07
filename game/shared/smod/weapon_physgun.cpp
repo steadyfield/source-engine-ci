@@ -12,7 +12,7 @@
 #endif
 #include "gamerules.h"
 #ifdef CLIENT_DLL
-#include "ClientEffectPrecacheSystem.h"
+#include "clienteffectprecachesystem.h"
 #endif
 #ifndef CLIENT_DLL
 #include "baseviewmodel.h"

@@ -26,7 +26,7 @@
 #ifndef CLIENT_DLL
 #include "smoke_trail.h"
 #include "sprite.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "beam_shared.h"
 #include "hl1_basegrenade.h"
 

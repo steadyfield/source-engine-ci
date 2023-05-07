@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "hl1mp_weapon_357.h"
 #ifdef CLIENT_DLL
 #include "c_baseplayer.h"

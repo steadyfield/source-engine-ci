@@ -6,9 +6,9 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "NPCEvent.h"
+#include "npcevent.h"
 #include "weapon_egon.h"
-#include "Takedamageinfo.h"
+#include "takedamageinfo.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 

@@ -3,7 +3,7 @@
 #include "hl1mp_gamerules.h"
 #include "viewport_panel_names.h"
 #include "gameeventdefs.h"
-#include <KeyValues.h>
+#include <keyvalues.h>
 #include "ammodef.h"
 
 #ifdef CLIENT_DLL

@@ -9,7 +9,7 @@
 #include "npcevent.h"
 #include "in_buttons.h"
 #include "hl1mp_basecombatweapon_shared.h"
-#include "hl1mp_Weapon_RPG.h"
+#include "hl1mp_weapon_rpg.h"
 
 #ifdef CLIENT_DLL
 #include "c_basehlplayer.h"

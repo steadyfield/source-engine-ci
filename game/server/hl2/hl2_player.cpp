@@ -47,7 +47,7 @@
 #include "filters.h"
 #include "tier0/icommandline.h"
 #include "SMMOD/mapadd.h"
-#include "basepropdoor.h"
+#include "BasePropDoor.h"
 #include "doors.h"
 
 #ifdef HL2_EPISODIC

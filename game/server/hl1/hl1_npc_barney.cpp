@@ -36,7 +36,7 @@
 #include	"ammodef.h"
 #include	"ai_behavior_follow.h"
 #include	"AI_Criteria.h"
-#include	"soundemittersystem/isoundemittersystembase.h"
+#include	"SoundEmitterSystem/isoundemittersystembase.h"
 #include	"hl2_gamerules.h"
 
 #define BA_ATTACK	"BA_ATTACK"

@@ -31,7 +31,7 @@
 #include	"ai_navigator.h"
 #include	"AI_behavior_follow.h"
 #include	"AI_Criteria.h"
-#include	"soundemittersystem/isoundemittersystembase.h"
+#include	"SoundEmitterSystem/isoundemittersystembase.h"
 
 #define SC_PLFEAR	"SC_PLFEAR"
 #define SC_FEAR		"SC_FEAR"

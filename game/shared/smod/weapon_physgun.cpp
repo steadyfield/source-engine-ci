@@ -30,7 +30,7 @@
 #ifndef CLIENT_DLL
 #include "player_pickup.h"
 #endif
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 #ifdef CLIENT_DLL
 #include "model_types.h"
 #include "view_shared.h"

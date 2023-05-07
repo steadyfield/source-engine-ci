@@ -23,7 +23,7 @@
 #include "effect_dispatch_data.h"
 #include "te_effect_dispatch.h"
 #include "hl1_ai_basenpc.h"
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 ConVar hl1_debug_sentence_volume( "hl1_debug_sentence_volume", "0" );
 ConVar hl1_fixup_sentence_sndlevel( "hl1_fixup_sentence_sndlevel", "1" );

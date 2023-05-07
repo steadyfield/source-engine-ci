@@ -45,7 +45,7 @@
 #include "player.h"
 #include "IEffects.h"
 #include "basecombatweapon.h"
-#include "soundemittersystem/isoundemittersystembase.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 //=========================================================
 // Monster's Anim Events Go Here

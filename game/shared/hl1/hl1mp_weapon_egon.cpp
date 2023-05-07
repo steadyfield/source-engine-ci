@@ -9,7 +9,7 @@
 #include "NPCEvent.h"
 #include "hl1mp_weapon_egon.h"
 #include "Sprite.h"
-#include "Beam_Shared.h"
+#include "beam_shared.h"
 #include "Takedamageinfo.h"
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"

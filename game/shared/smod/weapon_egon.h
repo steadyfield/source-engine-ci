@@ -6,7 +6,7 @@
 
 #include "hl1mp_basecombatweapon_shared.h"
 #include "Sprite.h"
-#include "Beam_Shared.h"
+#include "beam_shared.h"
 
 //-----------------------------------------------------------------------------
 // CWeaponEgonHD

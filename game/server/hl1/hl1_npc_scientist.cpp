@@ -29,7 +29,7 @@
 #include	"animation.h"
 #include	"engine/IEngineSound.h"
 #include	"ai_navigator.h"
-#include	"AI_behavior_follow.h"
+#include	"ai_behavior_follow.h"
 #include	"AI_Criteria.h"
 #include	"SoundEmitterSystem/isoundemittersystembase.h"
 

@@ -140,7 +140,7 @@ public:
 	//DEFINE_CUSTOM_AI;
 	DECLARE_DATADESC();
 
-	typedef CAI_BaseNPC BaseClass;
+	//typedef CAI_BaseNPC BaseClass;
 };
 
 BEGIN_DATADESC( CNPC_BaseTurret )

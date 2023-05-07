@@ -2,7 +2,7 @@
 name: build_smod13_android_apk
 
 on:
-  workflow_dispatch:
+  [push, workflow_dispatch]
 
 jobs:
 

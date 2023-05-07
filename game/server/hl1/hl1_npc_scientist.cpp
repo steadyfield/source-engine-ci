@@ -299,7 +299,7 @@ void CNPC_Scientist::SUB_LVFadeOut( void  )
 		dt = 0.1f;
 	}
 	m_nRenderMode = kRenderTransTexture;
-	int speed = max(3,256*dt); // fade out over 3 seconds
+	int speed = MAX(3,256*dt); // fade out over 3 seconds
 	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
 	NetworkStateChanged();
 
@@ -1168,7 +1168,7 @@ int CNPC_SittingScientist::FIdleSpeak ( void )
 	if (!IsOkToSpeak())
 		return FALSE;
 
-	// set global min delay for next conversation
+	// set global MIN delay for next conversation
 	GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
 
 	pitch = GetExpresser()->GetVoicePitch();
@@ -1190,7 +1190,7 @@ int CNPC_SittingScientist::FIdleSpeak ( void )
 		
 		IdleHeadTurn( pentFriend );
 		SENTENCEG_PlayRndSz( edict(), TLK_PQUESTION, 1.0, SNDLVL_TALKING, 0, pitch );
-		// set global min delay for next conversation
+		// set global MIN delay for next conversation
 		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
 		return TRUE;
 	}
@@ -1201,7 +1201,7 @@ int CNPC_SittingScientist::FIdleSpeak ( void )
 		Msg( "Making idle statement!\n" );
 
 		SENTENCEG_PlayRndSz( edict(), TLK_PIDLE, 1.0, SNDLVL_TALKING, 0, pitch );
-		// set global min delay for next conversation
+		// set global MIN delay for next conversation
 		GetExpresser()->BlockSpeechUntil( gpGlobals->curtime + random->RandomFloat(4.8, 5.2) );
 		return TRUE;
 	}

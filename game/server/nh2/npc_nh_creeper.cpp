@@ -563,7 +563,7 @@ void CNH2Creeper::PrescheduleThink( void )
 			// Zombie is close! Recalculate pitch.
 			int iPitch;
 
-			m_flDistFactor = min( 1.0, 1 - flDistNoBBox / CREEPER_EXCITE_DIST ); 
+			m_flDistFactor = MIN( 1.0, 1 - flDistNoBBox / CREEPER_EXCITE_DIST ); 
 			iPitch = CREEPER_MIN_PITCH + ( ( CREEPER_MAX_PITCH - CREEPER_MIN_PITCH ) * m_flDistFactor); 
 			ENVELOPE_CONTROLLER.SoundChangePitch( m_pMoanSound, iPitch, CREEPER_SOUND_UPDATE_FREQ );
 		}
@@ -1841,7 +1841,7 @@ bool CNH2Creeper::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDamage
 
 	// Break in half IF:
 	// 
-	// Take half or more of max health in DMG_BLAST
+	// Take half or more of MAX health in DMG_BLAST
 	if( (info.GetDamageType() & DMG_BLAST) && m_iHealth <= 0 )
 	{
 		return true;

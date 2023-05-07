@@ -39,17 +39,17 @@ IMPLEMENT_SERVERCLASS_ST(CNPC_Surface, DT_NPC_Surface)
 
 	SendPropUtlVector(
 		SENDINFO_UTLVECTOR( m_vecSurfacePos ),
-		MAX_SURFACE_ELEMENTS, // max elements4
+		MAX_SURFACE_ELEMENTS, // MAX elements4
 		SendPropVector( NULL, 0, sizeof( Vector ), -1, SPROP_COORD )),
 
 	SendPropUtlVector(
 		SENDINFO_UTLVECTOR( m_flSurfaceV ),
-		MAX_SURFACE_ELEMENTS, // max elements
+		MAX_SURFACE_ELEMENTS, // MAX elements
 		SendPropFloat( NULL, 0, sizeof( float ), 6, 0, 0.0, 1.0 )),
 
 	SendPropUtlVector(
 		SENDINFO_UTLVECTOR( m_flSurfaceR ),
-		MAX_SURFACE_ELEMENTS, // max elements
+		MAX_SURFACE_ELEMENTS, // MAX elements
 		SendPropFloat( NULL, 0, sizeof( float ), 6, 0, 0.0, 2.0 )),
 
 END_SEND_TABLE()
@@ -684,10 +684,10 @@ void CLennardJonesForce::addParticleForce(ImpParticle* a, ImpParticle* b, float 
 		// I tried this, and discovered that rather than averaging, I can take maybe take the
 		// larger of the two neighbor counts, so the attraction between two particles on the surface will be strong, but
 		// the attraction between a particle inside and a particle on the surface will be weak. I can also try
-		// taking the min so that the attraction between a particle on the surface and a particle inside the fluid will
+		// taking the MIN so that the attraction between a particle on the surface and a particle inside the fluid will
 		// be strong, but the attraction between two particles completely on the inside will be weak.
 		//
-		// int symmetric_neighbor_count = min(a->neighbor_count, b->neighbor_count);
+		// int symmetric_neighbor_count = MIN(a->neighbor_count, b->neighbor_count);
 		//
 		// Can try having neighbors only cause stronger attraction (no repulsion)
 		// Can try lower exponents for the LennardJones forces.
@@ -936,7 +936,7 @@ IMotionEvent::simresult_e CBlobFountainController::Simulate( IPhysicsMotionContr
 	}
 	else if(m_pOwner->m_iMode[nSphere] == 1)
 	{
-		m_pOwner->m_fRadius[nSphere] = min(1.0f, m_pOwner->m_fRadius[nSphere] + 3.0f*deltaTime);
+		m_pOwner->m_fRadius[nSphere] = MIN(1.0f, m_pOwner->m_fRadius[nSphere] + 3.0f*deltaTime);
 		if(m_pOwner->m_bContact[nSphere]) // vecVel.z < 0.1f && 
 		{
 			if(dist < 80.0f)
@@ -950,7 +950,7 @@ IMotionEvent::simresult_e CBlobFountainController::Simulate( IPhysicsMotionContr
 			}
 			else
 			{
-				m_pOwner->m_fRadius[nSphere] = 0.0f; //max(0.0f, m_pOwner->m_fRadius[nSphere] - 2.0f*deltaTime);
+				m_pOwner->m_fRadius[nSphere] = 0.0f; //MAX(0.0f, m_pOwner->m_fRadius[nSphere] - 2.0f*deltaTime);
 				m_pOwner->m_iContactTime[nSphere] += deltaTime;
 				if(m_pOwner->m_iContactTime[nSphere] >= 1.0f)
 				{
@@ -980,7 +980,7 @@ IMotionEvent::simresult_e CBlobFountainController::Simulate( IPhysicsMotionContr
 	#if 0
 	if(m_pOwner->m_bContact[nSphere]) // || (vecVel.z < -20.0f && pos.z < 40.0f))
 	{
-		m_pOwner->m_flSurfaceR[nSphere] = 0.0f; //max(0.0f, m_pOwner->m_flSurfaceR[nSphere] - 0.1f);
+		m_pOwner->m_flSurfaceR[nSphere] = 0.0f; //MAX(0.0f, m_pOwner->m_flSurfaceR[nSphere] - 0.1f);
 		m_pOwner->m_iContactTime[nSphere] ++;
 
 		//if(m_pOwner->m_flSurfaceR[nSphere] <= 0.0f)
@@ -1152,8 +1152,8 @@ void CNPC_BlobFountain::RunAI( void )
 			// move sphere towards center target
 			delta = vecGoal - estPos;
 			dist = VectorNormalize( delta );
-			// delta = delta * min( max( dist - m_flRadius * 4, 0 ), 500 ) * sv_surface_tension.GetFloat();
-			delta = delta * min( dist, 100 ) * 0.2; // sv_surface_tension.GetFloat();
+			// delta = delta * MIN( MAX( dist - m_flRadius * 4, 0 ), 500 ) * sv_surface_tension.GetFloat();
+			delta = delta * MIN( dist, 100 ) * 0.2; // sv_surface_tension.GetFloat();
 
 			/*
 			if(dist > 10.0f)
@@ -1278,7 +1278,7 @@ IMotionEvent::simresult_e CBlobFountainController::Simulate( IPhysicsMotionContr
 	}
 	else if(m_pOwner->m_iMode[nSphere] == 1)
 	{
-		m_pOwner->m_fRadius[nSphere] = min(1.0f, m_pOwner->m_fRadius[nSphere] + 3.0f*deltaTime);
+		m_pOwner->m_fRadius[nSphere] = MIN(1.0f, m_pOwner->m_fRadius[nSphere] + 3.0f*deltaTime);
 		if(m_pOwner->m_bContact[nSphere]) // vecVel.z < 0.1f && 
 		{
 			if(dist < 80.0f)
@@ -1292,7 +1292,7 @@ IMotionEvent::simresult_e CBlobFountainController::Simulate( IPhysicsMotionContr
 			}
 			else
 			{
-				m_pOwner->m_fRadius[nSphere] = 0.0f; //max(0.0f, m_pOwner->m_fRadius[nSphere] - 2.0f*deltaTime);
+				m_pOwner->m_fRadius[nSphere] = 0.0f; //MAX(0.0f, m_pOwner->m_fRadius[nSphere] - 2.0f*deltaTime);
 				m_pOwner->m_iContactTime[nSphere] += deltaTime;
 				if(m_pOwner->m_iContactTime[nSphere] >= 1.0f)
 				{
@@ -1322,7 +1322,7 @@ IMotionEvent::simresult_e CBlobFountainController::Simulate( IPhysicsMotionContr
 	#if 0
 	if(m_pOwner->m_bContact[nSphere]) // || (vecVel.z < -20.0f && pos.z < 40.0f))
 	{
-		m_pOwner->m_flSurfaceR[nSphere] = 0.0f; //max(0.0f, m_pOwner->m_flSurfaceR[nSphere] - 0.1f);
+		m_pOwner->m_flSurfaceR[nSphere] = 0.0f; //MAX(0.0f, m_pOwner->m_flSurfaceR[nSphere] - 0.1f);
 		m_pOwner->m_iContactTime[nSphere] ++;
 
 		//if(m_pOwner->m_flSurfaceR[nSphere] <= 0.0f)
@@ -1471,8 +1471,8 @@ void CNPC_BlobFountain::RunAI( void )
 			// move sphere towards center target
 			delta = vecGoal - estPos;
 			dist = VectorNormalize( delta );
-			// delta = delta * min( max( dist - m_flRadius * 4, 0 ), 500 ) * sv_surface_tension.GetFloat();
-			delta = delta * min( dist, 100 ) * 0.2; // sv_surface_tension.GetFloat();
+			// delta = delta * MIN( MAX( dist - m_flRadius * 4, 0 ), 500 ) * sv_surface_tension.GetFloat();
+			delta = delta * MIN( dist, 100 ) * 0.2; // sv_surface_tension.GetFloat();
 
 			/*
 			if(dist > 10.0f)
@@ -1653,7 +1653,7 @@ void CNPC_BlobArmTest::RunAI( void )
 					// repluse if they're too close, and they're not in the same group, and they're on an arm
 					dir = (estPos - estEffectorPos);
 					VectorNormalize( dir );
-					delta += dir * min( (flIdealDist2 - flDist2), 100 );
+					delta += dir * MIN( (flIdealDist2 - flDist2), 100 );
 					//NDebugOverlay::Line(m_vecSurfacePos[i], m_vecSurfacePos[j], 255, 0, 0, true, .1);
 				}
 				/*
@@ -1699,7 +1699,7 @@ void CNPC_BlobArmTest::RunAI( void )
 			if (DotProduct( dir, vecVel ) < 0.0)
 			{
 				float dist = VectorNormalize( dir );
-				delta += dir * min( dist, 100 );
+				delta += dir * MIN( dist, 100 );
 			}
 			//NDebugOverlay::Line(m_vecSurfacePos[i-1], estPos, 0, 255, 0, true, .1);
 			//Msg("%d : %.1f %.1f %.1f\n", i, delta.x, delta.y, delta.z );
@@ -1783,7 +1783,7 @@ int CNPC_BlobArmTest::MoveTowardsGoal( void )
 				delta = vecGoal - estPos;
 				//delta.z *= fabs( cos( gpGlobals->curtime * 0.5 ) );
 				dist = VectorNormalize( delta );
-				delta = delta * min( max( dist - m_flRadius * (bDoArms ? 8 : 10), 0 ), 500 ) * tension;
+				delta = delta * MIN( MAX( dist - m_flRadius * (bDoArms ? 8 : 10), 0 ), 500 ) * tension;
 				m_nOwnedSlot[i] = 0;
 				m_nTargetSlot[i] = 1;
 				m_flSurfaceV[i] = Approach( 0.0f, m_flSurfaceV[i], 0.2f );
@@ -1794,7 +1794,7 @@ int CNPC_BlobArmTest::MoveTowardsGoal( void )
 				delta = vecGoal - estPos;
 				//delta.z *= fabs( cos( gpGlobals->curtime * 0.5 ) );
 				dist = VectorNormalize( delta );
-				delta = delta * min( max( dist - m_flRadius * (bDoArms ? 8 : 10), 0 ), 500 ) * tension;
+				delta = delta * MIN( MAX( dist - m_flRadius * (bDoArms ? 8 : 10), 0 ), 500 ) * tension;
 				m_nOwnedSlot[i] = 0;
 				m_nTargetSlot[i] = 1;
 				m_flSurfaceV[i] = Approach( 0.0f, m_flSurfaceV[i], 0.2f );
@@ -1829,7 +1829,7 @@ int CNPC_BlobArmTest::MoveTowardsGoal( void )
 				{
 					if (m_nTargetSlot[i] == k)
 					{
-						m_nOwnedSlot[j] = max( m_nOwnedSlot[j], k );
+						m_nOwnedSlot[j] = MAX( m_nOwnedSlot[j], k );
 					}
 					else
 					{
@@ -1848,9 +1848,9 @@ int CNPC_BlobArmTest::MoveTowardsGoal( void )
 
 				//NDebugOverlay::Line( m_vecSurfacePos[j], m_vecSurfacePos[j] + out * flIdealDistance * m_nOwnedSlot[j], 255, 0, 0, true, .1);
 
-				delta = delta * min( max( dist - 0, 0), 250 ) * m_pSpheres[i]->GetMass();
+				delta = delta * MIN( MAX( dist - 0, 0), 250 ) * m_pSpheres[i]->GetMass();
 				//NDebugOverlay::Line(m_vecSurfacePos[j], m_vecSurfacePos[j] + out * flIdealDistance, 255, 0, 0, true, .1);
-				// m_flSurfaceV[i] = clamp( Approach( (m_nTargetSlot[i]) / (float)max( m_nOwnedSlot[j] + 1, m_nTargetSlot[i]), m_flSurfaceV[i], 0.2f ), 0.0f, 1.0f );
+				// m_flSurfaceV[i] = clamp( Approach( (m_nTargetSlot[i]) / (float)MAX( m_nOwnedSlot[j] + 1, m_nTargetSlot[i]), m_flSurfaceV[i], 0.2f ), 0.0f, 1.0f );
 				m_flSurfaceV[i] = Approach( (m_nTargetSlot[i]) / (float)nArmLength, m_flSurfaceV[i], 0.2f );
 				m_flSurfaceV[i] = clamp( m_flSurfaceV[i], 0.0f, 1.0f );
 			}
@@ -2053,7 +2053,7 @@ void CNPC_BlobDemoMonster::RunAI( void )
 	}
 	else
 	{
-		vecGoal = m_vecPrevGoal + forward * min( dist, m_bDoArms ? 16 : 48 );
+		vecGoal = m_vecPrevGoal + forward * MIN( dist, m_bDoArms ? 16 : 48 );
 	}
 	
 
@@ -2164,7 +2164,7 @@ void CNPC_BlobDemoMonster::RepulseNeighbors()
 					// repluse if they're too close, and they're not in the same group, and they're on an arm
 					dir = (estPos - estEffectorPos);
 					VectorNormalize( dir );
-					delta += dir * min( (flIdealDist2 - flDist2), 100 );
+					delta += dir * MIN( (flIdealDist2 - flDist2), 100 );
 					//NDebugOverlay::Line(m_vecSurfacePos[i], m_vecSurfacePos[j], 255, 0, 0, true, .1);
 				}
 				/*
@@ -2210,7 +2210,7 @@ void CNPC_BlobDemoMonster::RepulseNeighbors()
 			if (DotProduct( dir, vecVel ) < 0.0)
 			{
 				float dist = VectorNormalize( dir );
-				delta += dir * min( dist, 100 );
+				delta += dir * MIN( dist, 100 );
 			}
 			//NDebugOverlay::Line(m_vecSurfacePos[i-1], estPos, 0, 255, 0, true, .1);
 			//Msg("%d : %.1f %.1f %.1f\n", i, delta.x, delta.y, delta.z );
@@ -2261,7 +2261,7 @@ void CNPC_BlobDemoMonster::MoveTowardsGoal( void )
 				delta.z = 0;
 			//delta.z *= fabs( cos( gpGlobals->curtime * 0.5 ) );
 			dist = VectorNormalize( delta );
-			delta = delta * min( max( dist - m_flRadius * 8, 0 ), 500 ) * tension;
+			delta = delta * MIN( MAX( dist - m_flRadius * 8, 0 ), 500 ) * tension;
 			m_nOwnedSlot[i] = 0;
 			m_nTargetSlot[i] = 1;
 			m_flSurfaceV[i] = Approach( 0.0f, m_flSurfaceV[i], 0.2f );
@@ -2334,7 +2334,7 @@ void CNPC_BlobDemoMonster::CreateArms( const Vector &vecForward  )
 				delta = m_vecGoal - estPos;
 				//delta.z *= fabs( cos( gpGlobals->curtime * 0.5 ) );
 				dist = VectorNormalize( delta );
-				delta = delta * min( max( dist - m_flRadius * 5, 0 ), 500 ) * tension;
+				delta = delta * MIN( MAX( dist - m_flRadius * 5, 0 ), 500 ) * tension;
 				if (m_bDoContactZ)
 					delta.z = 0;
 				m_nOwnedSlot[i] = 0;
@@ -2353,7 +2353,7 @@ void CNPC_BlobDemoMonster::CreateArms( const Vector &vecForward  )
 				}
 
 				// Vector target =  m_vecSurfacePos[j] + out * flIdealDistance * (m_nTargetSlot[i]);
-				int n = min( j + m_nTargetSlot[i], i - 1);
+				int n = MIN( j + m_nTargetSlot[i], i - 1);
 				Vector target =  m_vecSurfacePos[j];
 				if (i != j)
 				{
@@ -2374,7 +2374,7 @@ void CNPC_BlobDemoMonster::CreateArms( const Vector &vecForward  )
 				{
 					if (m_nTargetSlot[i] == k)
 					{
-						m_nOwnedSlot[j] = max( m_nOwnedSlot[j], k );
+						m_nOwnedSlot[j] = MAX( m_nOwnedSlot[j], k );
 					}
 					else
 					{
@@ -2393,9 +2393,9 @@ void CNPC_BlobDemoMonster::CreateArms( const Vector &vecForward  )
 
 				//NDebugOverlay::Line( m_vecSurfacePos[j], m_vecSurfacePos[j] + out * flIdealDistance * m_nOwnedSlot[j], 255, 0, 0, true, .1);
 
-				delta = delta * min( max( dist - 0, 0), 250 ) * m_pSpheres[i]->GetMass();
+				delta = delta * MIN( MAX( dist - 0, 0), 250 ) * m_pSpheres[i]->GetMass();
 				//NDebugOverlay::Line(m_vecSurfacePos[j], m_vecSurfacePos[j] + out * flIdealDistance, 255, 0, 0, true, .1);
-				// m_flSurfaceV[i] = clamp( Approach( (m_nTargetSlot[i]) / (float)max( m_nOwnedSlot[j] + 1, m_nTargetSlot[i]), m_flSurfaceV[i], 0.2f ), 0.0f, 1.0f );
+				// m_flSurfaceV[i] = clamp( Approach( (m_nTargetSlot[i]) / (float)MAX( m_nOwnedSlot[j] + 1, m_nTargetSlot[i]), m_flSurfaceV[i], 0.2f ), 0.0f, 1.0f );
 				m_flSurfaceV[i] = Approach( (m_nTargetSlot[i]) / (float)nArmLength, m_flSurfaceV[i], 0.2f );
 				m_flSurfaceV[i] = clamp( m_flSurfaceV[i], 0.0f, 1.0f );
 			}

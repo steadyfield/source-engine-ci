@@ -573,13 +573,13 @@ int C_NPC_Surface::DrawModel( int flags )
 
 			IMesh* pMesh = pRenderContext->GetDynamicMesh( true );
 
-			int vertMax = min( 24000 / 51, 32768 / (84 * 3) );
+			int vertMax = MIN( 24000 / 51, 32768 / (84 * 3) );
 
 			int j = 0;
 			// Msg( "point %.2f %.2f %.2f\n", m_vecSurfacePos[0].x, m_vecSurfacePos[0].y, m_vecSurfacePos[0].z );
 			while (j < n_particles)
 			{
-				int total = min( n_particles - j, vertMax );
+				int total = MIN( n_particles - j, vertMax );
 
 				CMeshBuilder meshBuilder;
 				meshBuilder.Begin( pMesh, MATERIAL_TRIANGLES, total * 51, total * 84 * 3 );
@@ -764,10 +764,10 @@ int C_NPC_Surface::DrawModel( int flags )
 				Point3D vec = (pParticle - pCenter);
 
 				imp_particle->center = pParticle;
-				//imp_particle->setFieldScale( max(1.2f - vec.length()/30.0f, 0.25f) );
+				//imp_particle->setFieldScale( MAX(1.2f - vec.length()/30.0f, 0.25f) );
 
 				// interpolants[0..2] is the color. interpolants[3] is the v coordinate
-				// imp_particle->interpolants[3] = min(max(1.4f - vec.length()/17.0f, 0.0f), 1.0f);
+				// imp_particle->interpolants[3] = MIN(MAX(1.4f - vec.length()/17.0f, 0.0f), 1.0f);
 				// interpolants2[0..2] is the tangent vector.
 				// interpolants3[0..2] and interpolants4[0..2] are the normal and
 				// binormal which are used to generate a u coordinate

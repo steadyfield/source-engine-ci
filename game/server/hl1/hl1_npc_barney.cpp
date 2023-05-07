@@ -509,7 +509,7 @@ void CHL1NPC_Barney::SUB_LVFadeOut( void  )
 		dt = 0.1f;
 	}
 	m_nRenderMode = kRenderTransTexture;
-	int speed = max(3,256*dt); // fade out over 3 seconds
+	int speed = MAX(3,256*dt); // fade out over 3 seconds
 	SetRenderColorA( UTIL_Approach( 0, m_clrRender->a, speed ) );
 	NetworkStateChanged();
 

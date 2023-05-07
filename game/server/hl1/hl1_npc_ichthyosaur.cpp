@@ -347,10 +347,10 @@ void CHL1NPC_Ichthyosaur::MoveExecute_Alive(float flInterval)
 		m_SaveVelocity = vecDir * m_flFlyingSpeed;
 	}
 
-	// If we're attacking, accelerate to max speed
+	// If we're attacking, accelerate to MAX speed
 	if (m_bOnAttack && m_flFlyingSpeed < m_flMaxSpeed)
 	{
-		m_flFlyingSpeed = min( m_flMaxSpeed, m_flFlyingSpeed+40 );
+		m_flFlyingSpeed = MIN( m_flMaxSpeed, m_flFlyingSpeed+40 );
 	}
 
 	if (m_flFlyingSpeed < 180)

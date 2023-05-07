@@ -893,7 +893,7 @@ void CNPC_Barnacle::PullEnemyTorwardsMouth( bool bAdjustEnemyOrigin )
 			{
 				// get us there in a second
 				Vector desiredVelocity;
-				float distToMove = min(distFromCenter, 24.0f * dt);
+				float distToMove = MIN(distFromCenter, 24.0f * dt);
 				desiredVelocity.x = vToCenter.x * distToMove;
 				desiredVelocity.y = vToCenter.y * distToMove;
 				desiredVelocity.z = 0;
@@ -2279,7 +2279,7 @@ static impactdamagetable_t gBarnacleImpactDamageTable =
 	VPHYSICS_LARGE_OBJECT_MASS,		// large mass in kg 
 	4,			// large mass scale (anything over 500kg does 4X as much energy to read from damage table)
 	5,			// large mass falling scale (emphasize falling/crushing damage over sideways impacts since the stress will kill you anyway)
-	0.0f,		// min vel
+	0.0f,		// MIN vel
 };
 
 

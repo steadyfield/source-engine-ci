@@ -557,7 +557,7 @@ void CNH2Demon::PrescheduleThink( void )
 			// Zombie is close! Recalculate pitch.
 			int iPitch;
 
-			m_flDistFactor = min( 1.0, 1 - flDistNoBBox / DEMON_EXCITE_DIST ); 
+			m_flDistFactor = MIN( 1.0, 1 - flDistNoBBox / DEMON_EXCITE_DIST ); 
 			iPitch = DEMON_MIN_PITCH + ( ( DEMON_MAX_PITCH - DEMON_MIN_PITCH ) * m_flDistFactor); 
 			ENVELOPE_CONTROLLER.SoundChangePitch( m_pMoanSound, iPitch, DEMON_SOUND_UPDATE_FREQ );
 		}
@@ -1874,7 +1874,7 @@ bool CNH2Demon::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDamageTh
 
 	// Break in half IF:
 	// 
-	// Take half or more of max health in DMG_BLAST
+	// Take half or more of MAX health in DMG_BLAST
 	if( (info.GetDamageType() & DMG_BLAST) && m_iHealth <= 0 )
 	{
 		return true;

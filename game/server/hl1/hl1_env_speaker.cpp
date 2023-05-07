@@ -101,7 +101,7 @@ void CHL1Speaker::SpeakerThink( void )
 	// Wait for the talking characters to finish first.
 	if ( !g_AIFriendliesTalkSemaphore.IsAvailable( this ) || !g_AIFoesTalkSemaphore.IsAvailable( this ) )
 	{
-		float releaseTime = max( g_AIFriendliesTalkSemaphore.GetReleaseTime(), g_AIFoesTalkSemaphore.GetReleaseTime() );
+		float releaseTime = MAX( g_AIFriendliesTalkSemaphore.GetReleaseTime(), g_AIFoesTalkSemaphore.GetReleaseTime() );
 		SetNextThink( gpGlobals->curtime + releaseTime + random->RandomFloat( 5, 10 ) );
 		return;
 	}

@@ -442,16 +442,16 @@ bool CNPC_Apache::FireGun( )
 	angles.x = AngleNormalize(angles.x);	
 
 	if (angles.x > m_angGun.x)
-		m_angGun.x = min( angles.x, m_angGun.x + 12 );
+		m_angGun.x = MIN( angles.x, m_angGun.x + 12 );
 	if (angles.x < m_angGun.x)
-		m_angGun.x = max( angles.x, m_angGun.x - 12 );
+		m_angGun.x = MAX( angles.x, m_angGun.x - 12 );
 	if (angles.y > m_angGun.y)
-		m_angGun.y = min( angles.y, m_angGun.y + 12 );
+		m_angGun.y = MIN( angles.y, m_angGun.y + 12 );
 	if (angles.y < m_angGun.y)
-		m_angGun.y = max( angles.y, m_angGun.y - 12 );
+		m_angGun.y = MAX( angles.y, m_angGun.y - 12 );
 
 	// hacks - shouldn't be hardcoded, oh well.
-	// limit it so it doesn't pop if you try to set it to the max value
+	// limit it so it doesn't pop if you try to set it to the MAX value
 	m_angGun.y = clamp( m_angGun.y, -89.9, 89.9 );
 	m_angGun.x = clamp( m_angGun.x, -9.9, 44.9 );
 

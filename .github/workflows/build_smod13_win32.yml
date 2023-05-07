@@ -6,7 +6,7 @@ on:
 
 jobs:
 
-  build-srceng-win-episodic:
+  build-srceng-win-smod13:
     runs-on: windows-latest
 
     steps:

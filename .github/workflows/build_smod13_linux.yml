@@ -1,0 +1,35 @@
+#smod13
+name: build_smod13_linux
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build-smod13-linux-i386:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build linux-i386
+      run: |
+        scripts/build-ubuntu-i386.sh
+    - uses: actions/upload-artifact@v3
+      with:
+        name: smod13-linux32
+        path: ./to_upload
+        if-no-files-found: error
+
+  build-smod13-linux-amd64:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build linux-amd64
+      run: |
+        scripts/build-ubuntu-amd64.sh
+    - uses: actions/upload-artifact@v3
+      with:
+        name: smod13-linux64
+        path: ./to_upload
+        if-no-files-found: error

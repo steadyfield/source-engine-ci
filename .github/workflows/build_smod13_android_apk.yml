@@ -1,0 +1,36 @@
+#smod13
+name: build_smod13_android_apk
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  Build-apk-for-android:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cloning apk repo and preparing for building
+      run: |
+        git clone https://github.com/steadyfield/modlauncher-waf
+        sudo apt-get update
+        sudo apt-get install -f -y openjdk-8-jre zip apksigner
+    - name: Build android-armv7a
+      run: |
+        scripts/build-android-armv7a.sh
+    - name: Build-android-aarch64
+      run: |
+        scripts/build-android-aarch64.sh
+    - name: Finally build apk
+      run: |
+        scripts/build-apk.sh
+    - name: Rename apk
+      run: |
+         mv modlauncher-waf/build/android/mod-signed.apk smod13-release.apk
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: smod13-apk
+        path: smod13-release.apk

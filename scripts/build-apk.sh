@@ -6,9 +6,9 @@ export MODNAMESTRING=SMOD13
 git pull
 sudo apt install -y imagemagick
 ./mod.sh
-wget https://raw.githubusercontent.com/ItzVladik/extras/main/mi_logo.png
-mv mi_logo.png android/
-./android/scripts/conv.sh android/mi_logo.png
+wget https://raw.githubusercontent.com/steadyfield/srceng-android/android-fixes/res/drawable-xxxhdpi/ic_launcher.png
+mv ic_launcher.png android/
+./android/scripts/conv.sh android/ic_launcher.png
 cp -r res android/
 ./waf configure -T release &&
 ./waf build

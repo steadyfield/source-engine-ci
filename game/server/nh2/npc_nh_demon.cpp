@@ -1474,8 +1474,8 @@ void CNH2Demon::LeapAttackTouch( CBaseEntity *pOther )
 	Vector forward;
 	AngleVectors( GetLocalAngles(), &forward );
 	QAngle qaPunch( 15, random->RandomInt(-5,5), random->RandomInt(-5,5) );
-	
-	ClawAttack( GetClawAttackRange(), 5, qaPunch, forward * 500, ZOMBIE_BLOOD_BOTH_HANDS );
+	forward = forward * 500;
+	ClawAttack( GetClawAttackRange(), 5, qaPunch, forward, ZOMBIE_BLOOD_BOTH_HANDS );
 
 	SetTouch( NULL );
 }

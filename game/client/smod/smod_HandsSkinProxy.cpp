@@ -4,9 +4,9 @@
 //
 //=============================================================================//
 #include "cbase.h"
-#include "materialsystem/IMaterialProxy.h"
-#include "materialsystem/IMaterialVar.h"
-#include "materialsystem/ITexture.h"
+#include "materialsystem/imaterialproxy.h"
+#include "materialsystem/imaterialvar.h"
+#include "materialsystem/itexture.h"
 #include "c_basehlplayer.h"
 #include "hl2_gamerules.h"
 #include "proxyentity.h"

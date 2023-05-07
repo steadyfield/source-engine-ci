@@ -409,7 +409,7 @@ bool C_NPC_Surface::UsesFullFrameBufferTexture()
 	return m_pMaterial->NeedsFullFrameBufferTexture();
 }
 
-__forceinline float sqr(float a) { return a*a; }
+inline float sqr(float a) { return a*a; }
 
 Vector lastPoint0Pos;
 

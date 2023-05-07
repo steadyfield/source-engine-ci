@@ -1082,7 +1082,9 @@ void CNH2Creeper::HandleAnimEvent( animevent_t *pEvent )
 		AngleVectors( GetLocalAngles(), NULL, &right, NULL );
 		right = right * -50;
 
-		ClawAttack( GetClawAttackRange(), 3, QAngle( -3, -5, -3 ), right, ZOMBIE_BLOOD_RIGHT_HAND );
+		QAngle qa( -3, -5, -3 );
+
+		ClawAttack( GetClawAttackRange(), 3, qa, right, ZOMBIE_BLOOD_RIGHT_HAND );
 		return;
 	}
 
@@ -1091,7 +1093,10 @@ void CNH2Creeper::HandleAnimEvent( animevent_t *pEvent )
 		Vector right;
 		AngleVectors( GetLocalAngles(), NULL, &right, NULL );
 		right = right * 50;
-		ClawAttack( GetClawAttackRange(), 3, QAngle( -3, 5, -3 ), right, ZOMBIE_BLOOD_LEFT_HAND );
+
+		QAngle qa( -3, -5, -3 );
+
+		ClawAttack( GetClawAttackRange(), 3, qa, right, ZOMBIE_BLOOD_LEFT_HAND );
 		return;
 	}
 

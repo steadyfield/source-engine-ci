@@ -6,10 +6,11 @@
 //=============================================================================//
 #include "cbase.h"
 #include "hl2mp_gamerules.h"
+#include "cs_ammodef.h"
 #include "viewport_panel_names.h"
 #include "gameeventdefs.h"
 #include <KeyValues.h>
-#include "ammodef.h"
+//#include "ammodef.h"
 
 #ifdef CLIENT_DLL
 	#include "c_hl2mp_player.h"
@@ -28,6 +29,7 @@
 	#include "iscorer.h"
 	#include "hl2mp_player.h"
 	#include "weapon_hl2mpbasehlmpcombatweapon.h"
+	#include "weapon_hl2mpbase.h"
 	#include "team.h"
 	#include "voice_gamemgr.h"
 	#include "hl2mp_gameinterface.h"
@@ -920,9 +922,9 @@ bool CHL2MPRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 #define BULLET_IMPULSE(grains, ftpersec)	((ftpersec)*12*BULLET_MASS_GRAINS_TO_KG(grains)*BULLET_IMPULSE_EXAGGERATION)
 
 
-CAmmoDef *GetAmmoDef()
+CAmmoDef* GetAmmoDef()
 {
-	static CAmmoDef def;
+	static CCSAmmoDef def;
 	static bool bInitted = false;
 	
 	if ( !bInitted )
@@ -940,6 +942,48 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
 		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
 		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
+
+		def.AddAmmoType(BULLET_PLAYER_50AE, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_50AE_max", 2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14);
+		def.AddAmmoType(BULLET_PLAYER_762MM, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_762mm_max", 2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14);
+		def.AddAmmoType(BULLET_PLAYER_556MM, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_556mm_max", 2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14);
+		def.AddAmmoType(BULLET_PLAYER_556MM_BOX, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_556mm_box_max", 2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14);
+		def.AddAmmoType(BULLET_PLAYER_338MAG, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_338mag_max", 2800 * BULLET_IMPULSE_EXAGGERATION, 0, 12, 16);
+		def.AddAmmoType(BULLET_PLAYER_9MM, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_9mm_max", 2000 * BULLET_IMPULSE_EXAGGERATION, 0, 5, 10);
+		def.AddAmmoType(BULLET_PLAYER_BUCKSHOT, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_buckshot_max", 600 * BULLET_IMPULSE_EXAGGERATION, 0, 3, 6);
+		def.AddAmmoType(BULLET_PLAYER_45ACP, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_45acp_max", 2100 * BULLET_IMPULSE_EXAGGERATION, 0, 6, 10);
+		def.AddAmmoType(BULLET_PLAYER_357SIG, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_357sig_max", 2000 * BULLET_IMPULSE_EXAGGERATION, 0, 4, 8);
+		def.AddAmmoType(BULLET_PLAYER_57MM, DMG_BULLET, TRACER_LINE, 0, 0, "ammo_57mm_max", 2000 * BULLET_IMPULSE_EXAGGERATION, 0, 4, 8);
+		def.AddAmmoType(AMMO_TYPE_HEGRENADE, DMG_BLAST, TRACER_LINE, 0, 0, "ammo_hegrenade_max", 1, 0);
+		def.AddAmmoType(AMMO_TYPE_FLASHBANG, 0, TRACER_LINE, 0, 0, "ammo_flashbang_max", 1, 0);
+		def.AddAmmoType(AMMO_TYPE_SMOKEGRENADE, 0, TRACER_LINE, 0, 0, "ammo_smokegrenade_max", 1, 0);
+
+		//Adrian: I set all the prices to 0 just so the rest of the buy code works
+		//This should be revisited.
+		def.AddAmmoCost(BULLET_PLAYER_50AE, 0, 7);
+		def.AddAmmoCost(BULLET_PLAYER_762MM, 0, 30);
+		def.AddAmmoCost(BULLET_PLAYER_556MM, 0, 30);
+		def.AddAmmoCost(BULLET_PLAYER_556MM_BOX, 0, 30);
+		def.AddAmmoCost(BULLET_PLAYER_338MAG, 0, 10);
+		def.AddAmmoCost(BULLET_PLAYER_9MM, 0, 30);
+		def.AddAmmoCost(BULLET_PLAYER_BUCKSHOT, 0, 8);
+		def.AddAmmoCost(BULLET_PLAYER_45ACP, 0, 25);
+		def.AddAmmoCost(BULLET_PLAYER_357SIG, 0, 13);
+		def.AddAmmoCost(BULLET_PLAYER_57MM, 0, 50);
+
+
+		def.AddAmmoType("9mmRound", DMG_BULLET | DMG_NEVERGIB, TRACER_LINE, "sk_plr_dmg_9mm_bullet", "sk_npc_dmg_9mm_bullet", "sk_max_9mm_bullet", BULLET_IMPULSE(500, 1325), 0);
+		def.AddAmmoType("357Round", DMG_BULLET | DMG_NEVERGIB, TRACER_NONE, "sk_plr_dmg_357_bullet", NULL, "sk_max_357_bullet", BULLET_IMPULSE(650, 6000), 0);
+		def.AddAmmoType("MP5_Grenade", DMG_BURN | DMG_BLAST, TRACER_NONE, "sk_plr_dmg_mp5_grenade", NULL, "sk_max_mp5_grenade", 0, 0);
+		def.AddAmmoType("RPG_Rocket", DMG_BURN | DMG_BLAST, TRACER_NONE, "sk_plr_dmg_rpg", NULL, "sk_max_rpg_rocket", 0, 0);
+		def.AddAmmoType("Uranium", DMG_ENERGYBEAM, TRACER_NONE, NULL, NULL, "sk_max_uranium", 0, 0);
+		def.AddAmmoType("Hornet", DMG_BULLET, TRACER_NONE, "sk_plr_dmg_hornet", "sk_npc_dmg_hornet", "sk_max_hornet", BULLET_IMPULSE(100, 1200), 0);
+		def.AddAmmoType("Snark", DMG_SLASH, TRACER_NONE, "sk_snark_dmg_bite", NULL, "sk_max_snark", 0, 0);
+		def.AddAmmoType("TripMine", DMG_BURN | DMG_BLAST, TRACER_NONE, "sk_plr_dmg_tripmine", NULL, "sk_max_tripmine", 0, 0);
+		def.AddAmmoType("Satchel", DMG_BURN | DMG_BLAST, TRACER_NONE, "sk_plr_dmg_satchel", NULL, "sk_max_satchel", 0, 0);
+
+		def.AddAmmoType("12mmRound", DMG_BULLET | DMG_NEVERGIB, TRACER_LINE, NULL, "sk_npc_dmg_12mm_bullet", NULL, BULLET_IMPULSE(300, 1200), 0);
+
+		def.AddAmmoType("Gravity", DMG_CRUSH, TRACER_NONE, 0, 0, 8, 0, 0);
 	}
 
 	return &def;

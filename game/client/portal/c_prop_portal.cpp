@@ -23,7 +23,7 @@
 #include "prop_portal_shared.h"
 #include "particles_new.h"
 
-#include "c_portal_player.h"
+#include "c_hl2mp_player.h"
 
 #include "c_pixel_visibility.h"
 
@@ -140,7 +140,7 @@ void __MsgFunc_EntityPortalled(bf_read &msg)
 
 
 	if( bIsPlayer )
-		((C_Portal_Player *)pEntity)->PlayerPortalled( pPortal );
+		((C_HL2MP_Player *)pEntity)->PlayerPortalled( pPortal );
 
 	if ( pEntity->IsToolRecording() )
 	{
@@ -281,7 +281,7 @@ void C_Prop_Portal::Simulate()
 
 
 	//Find objects that are intersecting the portal and mark them for later replication on the remote portal's side
-	C_Portal_Player *pLocalPlayer = C_Portal_Player::GetLocalPlayer();
+	C_HL2MP_Player *pLocalPlayer = C_HL2MP_Player::GetLocalHL2MPPlayer();
 	C_BaseViewModel *pLocalPlayerViewModel = pLocalPlayer->GetViewModel();
 
 	CBaseEntity *pEntsNearPortal[1024];
@@ -332,7 +332,7 @@ void C_Prop_Portal::Simulate()
 			C_BaseCombatWeapon *pWeapon = dynamic_cast<C_BaseCombatWeapon*>( pEntity );
 			if ( pWeapon )
 			{
-				C_Portal_Player *pPortalPlayer = ToPortalPlayer( pWeapon->GetOwner() );
+				C_HL2MP_Player *pPortalPlayer = ToPortalPlayer( pWeapon->GetOwner() );
 				if ( pPortalPlayer ) 
 				{
 					if ( pPortalPlayer->GetActiveWeapon() != pWeapon )
@@ -632,7 +632,7 @@ void C_Prop_Portal::OnDataChanged( DataUpdateType_t updateType )
 
 			if( pRemote ) //now, see if we need to fake light coming through a portal
 			{
-#if 0
+#if 1
 				Vector vLightAtRemotePortal( vec3_origin ), vLightAtLocalPortal( vec3_origin );
 
 				if( pRemote ) //get lighting at remote portal
@@ -642,7 +642,7 @@ void C_Prop_Portal::OnDataChanged( DataUpdateType_t updateType )
 
 				//now get lighting at the local portal
 				{
-					engine->ComputeLighting( ptOrigin, NULL, false, vLightAtLocalPortal, NULL );
+					engine->ComputeLighting( m_ptOrigin, NULL, false, vLightAtLocalPortal, NULL );
 				}
 
 				//Vector vLightDiff = vLightAtLocalPortal - vLightAtRemotePortal;
@@ -665,8 +665,8 @@ void C_Prop_Portal::OnDataChanged( DataUpdateType_t updateType )
 						else
 						{
 							vColor = vLightAtRemotePortal;
-							vLightForward = vForward;
-							ptLightOrigin = ptOrigin;
+							vLightForward = m_vForward;
+							ptLightOrigin = m_ptOrigin;
 						}
 
 						//clamp color values
@@ -742,7 +742,7 @@ void C_Prop_Portal::OnDataChanged( DataUpdateType_t updateType )
 						state.m_NearZ = 4.0f;
 						state.m_FarZ = 500.0f;
 						state.m_nSpotlightTextureFrame = 0;
-						state.m_pSpotlightTexture = PortalDrawingMaterials::PortalLightTransfer_ShadowTexture;
+						state.m_pSpotlightTexture = s_FlatBasicPortalDrawingMaterials.m_Materials.m_PortalLightTransfer_ShadowTexture;
 						state.m_fConstantAtten = 0.0f;
 						state.m_fLinearAtten = 500.0f;
 						state.m_fQuadraticAtten = 0.0f;			

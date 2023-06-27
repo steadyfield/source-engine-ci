@@ -5,27 +5,27 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "fx_cs_shared.h"
 
 
 #if defined( CLIENT_DLL )
 
 	#define CWeaponM3 C_WeaponM3
-	#include "c_cs_player.h"
+	#include "c_hl2mp_player.h"
 
 #else
 
-	#include "cs_player.h"
+	#include "hl2mp_player.h"
 	#include "te_shotgun_shot.h"
 
 #endif
 
 
-class CWeaponM3 : public CWeaponCSBase
+class CWeaponM3 : public CWeaponHL2MPBase
 {
 public:
-	DECLARE_CLASS( CWeaponM3, CWeaponCSBase );
+	DECLARE_CLASS( CWeaponM3, CWeaponHL2MPBase );
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 	
@@ -96,7 +96,7 @@ float CWeaponM3::GetSpread() const
 
 void CWeaponM3::PrimaryAttack()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 
@@ -180,7 +180,7 @@ void CWeaponM3::PrimaryAttack()
 
 bool CWeaponM3::Reload()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return false;
 
@@ -238,7 +238,7 @@ bool CWeaponM3::Reload()
 		SendReloadEvents();
 #endif
 		
-		CCSPlayer *pPlayer = GetPlayerOwner();
+		CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 
 		if ( pPlayer )
 			 pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
@@ -252,7 +252,7 @@ bool CWeaponM3::Reload()
 
 void CWeaponM3::WeaponIdle()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 

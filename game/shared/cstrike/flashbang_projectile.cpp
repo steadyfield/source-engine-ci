@@ -8,10 +8,10 @@
 #include "flashbang_projectile.h"
 #include "shake.h"
 #include "engine/IEngineSound.h"
-#include "cs_player.h"
+#include "hl2mp_player.h"
 #include "dlight.h"
 #include "KeyValues.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "collisionutils.h"
 #include "particle_smokegrenade.h"
 #include "smoke_fog_overlay_shared.h"
@@ -192,14 +192,14 @@ void RadiusFlash(
 				if ( bPlayer )
 				{
     				// blind players and bots
-					CCSPlayer *player = static_cast< CCSPlayer * >( pEntity );
+					CHL2MP_Player *player = static_cast< CHL2MP_Player * >( pEntity );
 
                     //=============================================================================
                     // HPE_BEGIN:
                     // [tj] Store who was responsible for the most recent flashbang blinding.
                     //=============================================================================
                      
-                    CCSPlayer *attacker = ToCSPlayer (pevAttacker);
+                    CHL2MP_Player *attacker = ToCSPlayer (pevAttacker);
                     if (attacker && player)
                     {
                         player->SetLastFlashbangAttacker(attacker);
@@ -292,7 +292,7 @@ void CFlashbangProjectile::Detonate()
 	EmitSound( "Flashbang.Explode" );	
 
 	// tell the bots a flashbang grenade has exploded
-	CCSPlayer *player = ToCSPlayer(GetThrower());
+	CHL2MP_Player *player = ToCSPlayer(GetThrower());
 	if ( player )
 	{
 		IGameEvent * event = gameeventmanager->CreateEvent( "flashbang_detonate" );

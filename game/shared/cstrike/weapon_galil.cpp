@@ -11,11 +11,11 @@
 #if defined( CLIENT_DLL )
 
 	#define CWeaponGalil C_WeaponGalil
-	#include "c_cs_player.h"
+	#include "c_hl2mp_player.h"
 
 #else
 
-	#include "cs_player.h"
+	#include "hl2mp_player.h"
 
 #endif
 
@@ -64,7 +64,7 @@ float CWeaponGalil::GetInaccuracy() const
 {
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
-		CCSPlayer *pPlayer = GetPlayerOwner();
+		CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 		if ( !pPlayer )
 			return 0.0f;
 	
@@ -81,7 +81,7 @@ float CWeaponGalil::GetInaccuracy() const
 
 void CWeaponGalil::PrimaryAttack()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 
@@ -97,7 +97,7 @@ void CWeaponGalil::PrimaryAttack()
 		return;
 
 	// CSBaseGunFire can kill us, forcing us to drop our weapon, if we shoot something that explodes
-	pPlayer = GetPlayerOwner();
+	pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 

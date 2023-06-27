@@ -15,6 +15,11 @@
 #include "coordsize.h"
 #include "rumble_shared.h"
 
+#ifdef CLIENT_DLL
+#include "hl2/hl2_player_shared.h"
+#include "util_shared.h"
+#endif // CLIENT_DLL
+
 #if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
 	#include "hl_movedata.h"
 #endif
@@ -35,6 +40,31 @@ extern IFileSystem *filesystem;
 	static ConVar dispcoll_drawplane( "dispcoll_drawplane", "0" );
 #endif
 
+#ifdef CLIENT_DLL
+
+	//cam viewbob
+	ConVar cl_viewbob_enabled("cl_viewbob_enabled", "0", 0, "Oscillation Toggle");
+	ConVar cl_viewbob_enabled_z("cl_viewbob_enabled_z", "1");
+
+	ConVar cl_viewbob_drop_xscale("cl_viewbob_drop_xscale", "1");
+	ConVar cl_viewbob_drop_yscale("cl_viewbob_drop_yscale", "1");
+
+	ConVar cl_viewbob_xtimer("cl_viewbob_xtimer", "10", 0, "Speed of Oscillation");
+	ConVar cl_viewbob_ytimer("cl_viewbob_ytimer", "2.5", 0, "Speed of Oscillation");
+	ConVar cl_viewbob_ztimer("cl_viewbob_ztimer", "5", 0, "Speed of Oscillation");
+
+	ConVar cl_viewbob_onland_force("cl_viewbob_onland_force", "0.01");
+
+	ConVar cl_viewbob_xscale("cl_viewbob_xscale", "0.01", 0, "Magnitude of Oscillation");
+	ConVar cl_viewbob_yscale("cl_viewbob_yscale", "0.01", 0, "Magnitude of Oscillation");
+	ConVar cl_viewbob_zscale("cl_viewbob_zscale", "0.02", 0, "Magnitude of Oscillation");
+
+	ConVar cl_viewbob_xoffset("cl_viewbob_xoffset", "100", 0, "Division xoffset");
+	ConVar cl_viewbob_yoffset("cl_viewbob_yoffset", "100", 0, "Division xoffset");
+	ConVar cl_viewbob_zoffset("cl_viewbob_zoffset", "100", 0, "Division xoffset");
+
+	ConVar cl_viewbob_jump_scale("cl_viewbob_jump_scale", "2", 0, "Magnitude of jump Oscillation (float)"); 
+#endif // !CLIENT
 
 // tickcount currently isn't set during prediction, although gpGlobals->curtime and
 // gpGlobals->frametime are. We should probably set tickcount (to player->m_nTickBase),
@@ -1730,7 +1760,7 @@ void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel
 
 	// If not adding any, done.
 	if (addspeed <= 0)
-		return;
+		addspeed = 0;
 
 	// Determine acceleration speed after acceleration
 	accelspeed = accel * wishspeed * gpGlobals->frametime * player->m_surfaceFriction;
@@ -1764,7 +1794,6 @@ void CGameMovement::AirMove( void )
 	// Copy movement amounts
 	fmove = mv->m_flForwardMove;
 	smove = mv->m_flSideMove;
-	
 	// Zero out z components of movement vectors
 	forward[2] = 0;
 	right[2]   = 0;
@@ -1915,6 +1944,41 @@ void CGameMovement::WalkMove( void )
 	fmove = mv->m_flForwardMove;
 	smove = mv->m_flSideMove;
 
+#ifdef CLIENT_DLL
+	if (cl_viewbob_enabled.GetBool() && !engine->IsPaused())
+	{
+		CHL2_Player* HLplayer = dynamic_cast<CHL2_Player*>(player);
+		if (!HLplayer->IsSprinting())
+		{
+			float xoffset = sin(gpGlobals->curtime * cl_viewbob_xtimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_xscale.GetFloat() / cl_viewbob_xoffset.GetFloat();
+			float yoffset = sin(2 * gpGlobals->curtime * cl_viewbob_ytimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_yscale.GetFloat() / cl_viewbob_yoffset.GetFloat();
+			float zoffset = sin(gpGlobals->curtime * cl_viewbob_ztimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(xoffset, yoffset, zoffset));
+
+		}
+		else
+		{
+			float xoffset = sin(gpGlobals->curtime * (cl_viewbob_xtimer.GetFloat() * 2)) * player->GetAbsVelocity().Length() * cl_viewbob_xscale.GetFloat() / cl_viewbob_xoffset.GetFloat();
+			float yoffset = sin(2 * gpGlobals->curtime * (cl_viewbob_ytimer.GetFloat() * 2)) * player->GetAbsVelocity().Length() * cl_viewbob_yscale.GetFloat() / cl_viewbob_yoffset.GetFloat();
+
+			float zoffset = sin(2 * gpGlobals->curtime * cl_viewbob_ztimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(xoffset, yoffset, zoffset));
+
+		}
+
+		if (smove > 0)
+		{
+			float zoffset = 2.5 * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(0, 0, zoffset));
+		}
+		else if (smove < 0)
+		{
+			float zoffset = 2.5 * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(0, 0, -zoffset));
+		}
+	}
+#endif
+
 	// Zero out z components of movement vectors
 	if ( g_bMovementOptimizations )
 	{
@@ -2017,6 +2081,14 @@ void CGameMovement::WalkMove( void )
 	VectorSubtract( mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
 
 	StayOnGround();
+}
+
+void CGameMovement::OnLand(float fVelocity)
+{
+#ifdef CLIENT_DLL
+	if (cl_viewbob_enabled.GetBool())
+		player->ViewPunch(QAngle(fVelocity * cl_viewbob_onland_force.GetFloat(), 0, 0));
+#endif // CLIENT_DLL
 }
 
 //-----------------------------------------------------------------------------
@@ -2403,8 +2475,9 @@ bool CGameMovement::CheckJumpButton( void )
 	if ( player->m_Local.m_bSlowMovement )
 		return false;
 #endif
+	static const ConVar* sv_autojump = g_pCVar->FindVar("sv_autojump");
 
-	if ( mv->m_nOldButtons & IN_JUMP )
+	if ( mv->m_nOldButtons & IN_JUMP && sv_autojump->GetFloat() == 0)
 		return false;		// don't pogo stick
 
 	// Cannot jump will in the unduck transition.
@@ -2418,6 +2491,20 @@ bool CGameMovement::CheckJumpButton( void )
 
 	// In the air now.
     SetGroundEntity( NULL );
+#ifdef CLIENT_DLL
+	if (cl_viewbob_enabled.GetBool() && !engine->IsPaused())
+	{
+		if (mv->m_flForwardMove >= 0)
+		{
+			player->ViewPunch(QAngle(cl_viewbob_jump_scale.GetFloat(), 0, 0));
+		}
+		else
+		{
+			player->ViewPunch(QAngle(-cl_viewbob_jump_scale.GetFloat(), 0, 0));
+		}
+	}
+#endif // CLIENT_DLL
+
 	
 	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
 	
@@ -2465,7 +2552,7 @@ bool CGameMovement::CheckJumpButton( void )
 	}
 
 	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
-#if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
+/*#if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 	if ( gpGlobals->maxClients == 1 )
 	{
 		CHLMoveData *pMoveData = ( CHLMoveData* )mv;
@@ -2493,7 +2580,7 @@ bool CGameMovement::CheckJumpButton( void )
 		// Add it on
 		VectorAdd( (vecForward*flSpeedAddition), mv->m_vecVelocity, mv->m_vecVelocity );
 	}
-#endif
+#endif*/
 
 	FinishGravity();
 

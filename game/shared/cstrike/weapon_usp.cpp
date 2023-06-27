@@ -5,26 +5,26 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "fx_cs_shared.h"
 
 
 #if defined( CLIENT_DLL )
 
 	#define CWeaponUSP C_WeaponUSP
-	#include "c_cs_player.h"
+	#include "c_hl2mp_player.h"
 
 #else
 
-	#include "cs_player.h"
+	#include "hl2mp_player.h"
 
 #endif
 
 
-class CWeaponUSP : public CWeaponCSBase
+class CWeaponUSP : public CWeaponHL2MPBase
 {
 public:
-	DECLARE_CLASS( CWeaponUSP, CWeaponCSBase );
+	DECLARE_CLASS( CWeaponUSP, CWeaponHL2MPBase );
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 	
@@ -234,7 +234,7 @@ float CWeaponUSP::GetInaccuracy() const
 {
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
-		CCSPlayer *pPlayer = GetPlayerOwner();
+		CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 		if ( !pPlayer )
 			return 0.0f;
 
@@ -268,7 +268,7 @@ float CWeaponUSP::GetInaccuracy() const
 
 void CWeaponUSP::PrimaryAttack()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 

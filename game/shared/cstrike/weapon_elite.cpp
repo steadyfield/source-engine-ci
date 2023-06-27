@@ -5,27 +5,27 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "fx_cs_shared.h"
 
 
 #if defined( CLIENT_DLL )
 
 	#define CWeaponElite C_WeaponElite
-	#include "c_cs_player.h"
+	#include "c_hl2mp_player.h"
 	#include "c_te_effect_dispatch.h"
 
 #else
 
-	#include "cs_player.h"
+	#include "hl2mp_player.h"
 
 #endif
 
 
-class CWeaponElite : public CWeaponCSBase
+class CWeaponElite : public CWeaponHL2MPBase
 {
 public:
-	DECLARE_CLASS( CWeaponElite, CWeaponCSBase );
+	DECLARE_CLASS( CWeaponElite, CWeaponHL2MPBase );
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 	
@@ -148,7 +148,7 @@ float CWeaponElite::GetInaccuracy() const
 {
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
-		CCSPlayer *pPlayer = GetPlayerOwner();
+		CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 		if ( !pPlayer )
 			return 0.0f;
 
@@ -170,7 +170,7 @@ float CWeaponElite::GetInaccuracy() const
 
 void CWeaponElite::PrimaryAttack()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 
@@ -291,7 +291,7 @@ void CWeaponElite::WeaponIdle()
 	{
 		if( event == 5001 )
 		{
-			C_CSPlayer *pPlayer = ToCSPlayer( GetOwner() );
+			C_HL2MP_Player *pPlayer = ToCSPlayer( GetOwner() );
 			if( pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed() )
 				return true;
 			

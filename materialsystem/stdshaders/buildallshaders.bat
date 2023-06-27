@@ -44,20 +44,21 @@ REM PC SHADERS
 REM ****************
 if /i "%ALLSHADERS_CONFIG%" == "pc" (
   %BUILD_SHADER% stdshader_dx9_20b
-  %BUILD_SHADER% stdshader_dx9_20b_new	-dx9_30
-  %BUILD_SHADER% stdshader_dx9_30		-dx9_30	-force30
+  %BUILD_SHADER% stdshader_dx9_20b_new
+  %BUILD_SHADER% stdshader_dx9_30		-force30
   rem %BUILD_SHADER% stdshader_dx10     -dx10
 )
 
 REM ****************
 REM X360 SHADERS
 REM ****************
-if /i "%ALLSHADERS_CONFIG%" == "x360" (
-  %BUILD_SHADER% stdshader_dx9_20b      %ARG_X360% %ARG_EXTRA%
-  %BUILD_SHADER% stdshader_dx9_20b_new	%ARG_X360% %ARG_EXTRA%
-  rem %BUILD_SHADER% stdshader_dx9_30   %ARG_X360% %ARG_EXTRA%
-  rem %BUILD_SHADER% stdshader_dx10     %ARG_X360% %ARG_EXTRA%
-)
+
+rem if /i "%ALLSHADERS_CONFIG%" == "x360" (
+rem   %BUILD_SHADER% stdshader_dx9_20b      %ARG_X360% %ARG_EXTRA%
+rem   %BUILD_SHADER% stdshader_dx9_20b_new	%ARG_X360% %ARG_EXTRA%
+rem   rem %BUILD_SHADER% stdshader_dx9_30   %ARG_X360% %ARG_EXTRA%
+rem   rem %BUILD_SHADER% stdshader_dx10     %ARG_X360% %ARG_EXTRA%
+rem )
 
 REM ****************
 REM END

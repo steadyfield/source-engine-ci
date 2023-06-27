@@ -8,10 +8,10 @@
 #include "smokegrenade_projectile.h"
 #include "sendproxy.h"
 #include "particle_smokegrenade.h"
-#include "cs_player.h"
+#include "hl2mp_player.h"
 #include "KeyValues.h"
 #include "bot_manager.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 
 #define GRENADE_MODEL "models/Weapons/w_eq_smokegrenade_thrown.mdl"
 
@@ -98,7 +98,7 @@ void CSmokeGrenadeProjectile::Think_Detonate()
 		}
 
 		// tell the bots a smoke grenade has exploded
-		CCSPlayer *player = ToCSPlayer(GetThrower());
+		CHL2MP_Player *player = ToCSPlayer(GetThrower());
 		if ( player )
 		{
 			IGameEvent * event = gameeventmanager->CreateEvent( "smokegrenade_detonate" );

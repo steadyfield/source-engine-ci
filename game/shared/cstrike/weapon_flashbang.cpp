@@ -5,7 +5,7 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "gamerules.h"
 #include "npcevent.h"
 #include "engine/IEngineSound.h"
@@ -17,7 +17,7 @@
 
 #else
 
-	#include "cs_player.h"
+	#include "hl2mp_player.h"
 	#include "items.h"
 	#include "flashbang_projectile.h"
 

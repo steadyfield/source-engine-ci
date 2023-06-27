@@ -18,15 +18,16 @@
 #ifdef CLIENT_DLL
 	class C_BaseAnimatingOverlay;
 	class C_WeaponCSBase;
+	class C_WeaponHL2MPBase;
 	// Avoid redef warnings
 	#undef CBaseAnimatingOverlay
 	#define CBaseAnimatingOverlay C_BaseAnimatingOverlay
-	#define CWeaponCSBase C_WeaponCSBase
-	#define CCSPlayer C_CSPlayer
+	#define CWeaponHL2MPBase C_WeaponHL2MPBase
+	#define CHL2MP_Player C_HL2MP_Player
 #else
 	class CBaseAnimatingOverlay;
-	class CWeaponCSBase; 
-	class CCSPlayer;
+	class CWeaponHL2MPBase; 
+	class CHL2MP_Player;
 #endif
 
 
@@ -45,7 +46,9 @@ enum PlayerAnimEvent_t
 	PLAYERANIMEVENT_RELOAD_LOOP,	///< w_model partial reload for shotguns
 	PLAYERANIMEVENT_RELOAD_END,		///< w_model partial reload for shotguns
 	PLAYERANIMEVENT_CLEAR_FIRING,	///< clear animations on the firing layer
-	
+	PLAYERANIMEVENT_DIE,
+	PLAYERANIMEVENT_FIRE_GUN,
+
 	PLAYERANIMEVENT_COUNT
 };
 
@@ -66,7 +69,7 @@ public:
 class ICSPlayerAnimStateHelpers
 {
 public:
-	virtual CWeaponCSBase* CSAnim_GetActiveWeapon() = 0;
+	virtual CWeaponHL2MPBase* CSAnim_GetActiveWeapon() = 0;
 	virtual bool CSAnim_CanMove() = 0;
 };
 

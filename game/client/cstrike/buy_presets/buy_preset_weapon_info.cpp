@@ -8,13 +8,13 @@
 
 #include "buy_preset_debug.h"
 #include "buy_presets.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "cs_ammodef.h"
 #include "cs_gamerules.h"
 #include "cstrike/bot/shared_util.h"
 #include <vgui/ILocalize.h>
 #include <vgui_controls/Controls.h>
-#include "c_cs_player.h"
+#include "c_hl2mp_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -203,7 +203,7 @@ bool CanBuyWeapon( CSWeaponID currentPrimaryID, CSWeaponID currentSecondaryID, C
 		 return false;
 	}
 
-	C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *pPlayer = C_HL2MP_Player::GetLocalCSPlayer();
 	if ( !pPlayer )
 		return false;
 
@@ -295,7 +295,7 @@ void FillClientAmmo( int ammo[MAX_AMMO_TYPES] )
 		ammo[i] = 0;
 	}
 
-	C_CSPlayer *localPlayer = CCSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *localPlayer = CHL2MP_Player::GetLocalCSPlayer();
 	if ( !localPlayer )
 		return;
 
@@ -322,15 +322,15 @@ void FillClientAmmo( int ammo[MAX_AMMO_TYPES] )
 //-----------------------------------------------------------------------------
 // Purpose: returns the weapon in the specified slot
 //-----------------------------------------------------------------------------
-CWeaponCSBase *GetWeaponInSlot( int iSlot, int iSlotPos )
+CWeaponHL2MPBase *GetWeaponInSlot( int iSlot, int iSlotPos )
 {
-	C_CSPlayer *player = C_CSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *player = C_HL2MP_Player::GetLocalCSPlayer();
 	if ( !player )
 		return NULL;
 
 	for ( int i = 0; i < MAX_WEAPONS; i++ )
 	{
-		CWeaponCSBase *pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetWeapon(i));
+		CWeaponHL2MPBase *pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetWeapon(i));
 		
 		if ( pWeapon == NULL )
 			continue;
@@ -349,12 +349,12 @@ CWeaponCSBase *GetWeaponInSlot( int iSlot, int iSlotPos )
  */
 CSWeaponID GetClientWeaponID( bool primary )
 {
-	C_CSPlayer *localPlayer = CCSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *localPlayer = CHL2MP_Player::GetLocalCSPlayer();
 	if ( !localPlayer )
 		return WEAPON_NONE;
 
 	int slot = (primary)?0:1;
-	CWeaponCSBase *pWeapon = GetWeaponInSlot( slot, slot );
+	CWeaponHL2MPBase *pWeapon = GetWeaponInSlot( slot, slot );
 	if ( !pWeapon )
 		return WEAPON_NONE;
 

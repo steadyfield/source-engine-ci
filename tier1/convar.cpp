@@ -327,7 +327,7 @@ CCommand::CCommand()
 
 	Reset();
 }
-
+/*
 CCommand::CCommand( int nArgC, const char **ppArgV )
 {
 	Assert( nArgC > 0 );
@@ -371,7 +371,7 @@ CCommand::CCommand( int nArgC, const char **ppArgV )
 			*pSBuf++ = ' ';
 		}
 	}
-}
+}*/
 
 void CCommand::Reset()
 {
@@ -384,17 +384,19 @@ characterset_t* CCommand::DefaultBreakSet()
 {
 	return &s_BreakSet;
 }
-/*
+
 bool CCommand::GetQuoted(const char* pCommand, int maxlen, int& index, int i) {
 	int c = 0;
 	for (; index < maxlen; index++) {
 		if (pCommand[index] == '"') {
-			m_pArgvBuffer[i][c] = '\x00';
+			m_ppArgv[i][c] = '\x00';
+			index++;
 			return true;
 		}
-		m_pArgvBuffer[i][c] = pCommand[index];
+		m_ppArgv[i][c] = pCommand[index];
 		c++;
 	}
+	m_ppArgv[i][c] = '\x00';
 	return false;
 }
 
@@ -402,16 +404,22 @@ bool CCommand::GetApostrophed(const char* pCommand, int maxlen, int& index, int 
 	int c = 0;
 	for (; index < maxlen; index++) {
 		if (pCommand[index] == '\'') {
-			m_pArgvBuffer[i][c] = '\x00';
+			m_ppArgv[i][c] = '\x00';
+			index++;
 			return true;
 		}
-		m_pArgvBuffer[i][c] = pCommand[index];
+		m_ppArgv[i][c] = pCommand[index];
 		c++;
 	}
+	m_ppArgv[i][c] = '\x00';
 	return false;
 }
 
 bool CCommand::GetArgument(const char* pCommand, int maxlen, int& index, int i) {
+	while (index < maxlen && (pCommand[index] == ' ' || pCommand[index] == '\t'))
+	{
+		index++;
+	}
 	if (pCommand[index] == '"') {
 		index++;
 		return GetQuoted(pCommand, maxlen, index, i);
@@ -423,12 +431,18 @@ bool CCommand::GetArgument(const char* pCommand, int maxlen, int& index, int i) 
 	int c = 0;
 	for (; index < maxlen; index++) {
 		if (pCommand[index] == ' ') {
-			m_pArgvBuffer[i][c] = '\x00';
+			m_ppArgv[i][c] = '\x00';
+			index++;
 			return true;
 		}
-		m_pArgvBuffer[i][c] = pCommand[index];
+		m_ppArgv[i][c] = pCommand[index];
 		c++;
 	}
+	m_ppArgv[i][c] = '\x00';
+	char processed[512] = { 0 };
+	int bracketindex = 0;
+	ParseBrackets(processed, bracketindex, i, false);
+	strcpy(m_ppArgv[i], processed);
 	return true;
 }
 
@@ -440,17 +454,99 @@ int CCommand::GetArguments(const char* pCommand) {
 		return false;
 	}
 	int index = 0;
-	for (int i = 0; i < COMMAND_MAX_ARGC) {
-		if (!GetArgument(pCommand, maxlen, index, i)) {
+	//Msg("CMD: |%s|\n", pCommand);
+	for (int i = 0; i < COMMAND_MAX_ARGC; i++) {
+		if (!(GetArgument(pCommand, maxlen, index, i))) {
+			if (i == 0) {
+				m_nArgv0Size = index;
+			}
 			return i;
 		}
+		//Msg("%i: |%s|\n", i, m_ppArgv[i]);
+		if (i == 0) {
+			m_nArgv0Size = index;
+		}
 		if (index >= maxlen) {
+			if (i == 0) {
+				m_nArgv0Size = index;
+			}
 			return i;
 		}
 	}
 	return COMMAND_MAX_ARGC - 1;
 }
-*/
+
+int CCommand::ParseBrackets(char* output, int& index, int i, bool inconvar)
+{
+	char convarname[COMMAND_MAX_LENGTH] = { 0 };
+	int j = 0;
+	while (index < COMMAND_MAX_LENGTH && j < COMMAND_MAX_LENGTH && m_ppArgv[i][index])
+	{
+		if (index == 0 || m_ppArgv[i][index - 1] != '\\')
+		{
+			if (m_ppArgv[i][index] == '[')
+			{
+				index++;
+				if (inconvar)
+				{
+					j += ParseBrackets(convarname, index, i, true);
+				}
+				else
+				{
+					j += ParseBrackets(output, index, i, true);
+				}
+				continue;
+			}else if (m_ppArgv[i][index] == ']' && inconvar)
+			{
+				convarname[j] = 0;
+				char convarvalue[512] = { 0 };
+				ConVar *cvar = g_pCVar->FindVar(convarname);
+				int len = 0;
+				if (cvar)
+				{
+					strcat(output, cvar->GetString());
+					len = strlen(cvar->GetString());
+				}
+				index++;
+				return len;
+			}
+		}
+		if (inconvar)
+		{
+			convarname[j] = m_ppArgv[i][index];
+		}
+		else
+		{
+			output[j] = m_ppArgv[i][index];
+		}
+		j++;
+		index++;
+	}
+	if (j < COMMAND_MAX_LENGTH)
+	{
+		output[j] = 0;
+	}
+	return 0;
+}
+
+bool CCommand::Tokenize(const char* pCommand, characterset_t* pBreakSet)
+{
+	Reset();
+	//Msg("CMD: |%s|\n", pCommand);
+	if (!pCommand)
+		return false;
+	int nLen = Q_strlen(pCommand);
+	if (nLen >= COMMAND_MAX_LENGTH - 1)
+	{
+		Warning("CCommand::Tokenize: Encountered command which overflows the tokenizer buffer.. Skipping!\n");
+		return false;
+	}
+
+	memcpy(m_pArgSBuffer, pCommand, nLen + 1);
+	m_nArgc = GetArguments(pCommand)+1;
+	return true;
+}
+/*
 bool CCommand::Tokenize( const char *pCommand, characterset_t *pBreakSet )
 {
 	Reset();
@@ -529,7 +625,7 @@ bool CCommand::Tokenize( const char *pCommand, characterset_t *pBreakSet )
 	return true;
 }
 
-
+*/
 //-----------------------------------------------------------------------------
 // Helper function to parse arguments to commands.
 //-----------------------------------------------------------------------------
@@ -1055,7 +1151,7 @@ void ConVar::Create( const char *pName, const char *pDefaultValue, int flags /*=
 	m_StringLength = V_strlen( m_pszDefaultValue ) + 1;
 	m_pszString = new char[m_StringLength];
 	memcpy( m_pszString, m_pszDefaultValue, m_StringLength );
-	
+
 	m_bHasMin = bMin;
 	m_fMinVal = fMin;
 	m_bHasMax = bMax;

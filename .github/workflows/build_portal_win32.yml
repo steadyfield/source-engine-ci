@@ -1,0 +1,26 @@
+#portal
+name: build_portal_win32
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build-srceng-win-portal:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: |
+        #
+        git submodule init;git submodule update
+        ./waf.bat configure -T release --prefix=./win --disable-warns --build-game=portal
+        
+        ./waf.bat install --target=client,server -j4
+        cat build/config.log > ./win/info.txt
+    - uses: actions/upload-artifact@v3
+      with:
+        name: portal-win32
+        path: ./win
+        if-no-files-found: error

@@ -1,0 +1,25 @@
+#sourcebox
+name: build_sourcebox_win32
+
+on: [push, workflow_dispatch]
+
+jobs:
+
+  build-srceng-win-sourcebox:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: |
+        #
+        git submodule init;git submodule update
+        ./waf.bat configure -T release --prefix=./win --disable-warns --build-game=hl2mp
+        
+        ./waf.bat install
+        cat build/config.log > ./win/info.txt
+    - uses: actions/upload-artifact@v3
+      with:
+        name: sourcebox-win32
+        path: ./win
+        if-no-files-found: error

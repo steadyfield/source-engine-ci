@@ -5036,36 +5036,33 @@ void CC_Ent_Remove( const CCommand& args )
 {
 	CBaseEntity *pEntity = NULL;
 
-	// If no name was given set bits based on the picked
-	pEntity = UTIL_GetCommandClient();
-
-	/*if (FStrEq(args[1], ""))
+	if (FStrEq(args[1], ""))
 	{
-		pEntity = UTIL_GetCommandClient();
+		pEntity = FindPickerEntity(UTIL_GetCommandClient());
 	}
-	else 
+	else
 	{
-		int index = atoi( args[1] );
-		if ( index )
+		int index = atoi(args[1]);
+		if (index)
 		{
-			pEntity = CBaseEntity::Instance( index );
+			pEntity = CBaseEntity::Instance(index);
 		}
 		else
 		{
 			// Otherwise set bits based on name or classname
-			CBaseEntity *ent = NULL;
-			while ( (ent = gEntList.NextEnt(ent)) != NULL )
+			CBaseEntity* ent = NULL;
+			while ((ent = gEntList.NextEnt(ent)) != NULL)
 			{
-				if (  (ent->GetEntityName() != NULL_STRING	&& FStrEq(args[1], STRING(ent->GetEntityName())))	|| 
-					(ent->m_iClassname != NULL_STRING	&& FStrEq(args[1], STRING(ent->m_iClassname))) ||
-					(ent->GetClassname()!=NULL && FStrEq(args[1], ent->GetClassname())))
+				if ((ent->GetEntityName() != NULL_STRING && FStrEq(args[1], STRING(ent->GetEntityName()))) ||
+					(ent->m_iClassname != NULL_STRING && FStrEq(args[1], STRING(ent->m_iClassname))) ||
+					(ent->GetClassname() != NULL && FStrEq(args[1], ent->GetClassname())))
 				{
 					pEntity = ent;
 					break;
 				}
 			}
-		}*/
-
+		}
+	}
 	// Found one?
 	if ( pEntity )
 	{
@@ -5079,13 +5076,7 @@ static ConCommand ent_remove("ent_remove", CC_Ent_Remove, "Removes the given ent
 void CC_Ent_RemoveAll( const CCommand& args )
 {
 	// If no name was given remove based on the picked
-	CBaseEntity *pEntity = UTIL_GetCommandClient();
-	if (pEntity)
-	{
-		Msg("Removed %s(%s)\n", STRING(pEntity->m_iClassname), pEntity->GetDebugName());
-		UTIL_Remove(pEntity);
-	}
-	/*if (args.ArgC() < 2)
+	if (args.ArgC() < 2)
 	{
 		Msg( "Removes all entities of the specified type\n\tArguments:   	{entity_name} / {class_name}\n" );
 	}
@@ -5113,7 +5104,7 @@ void CC_Ent_RemoveAll( const CCommand& args )
 		{
 			Msg( "No %s found.\n", args[1] );
 		}
-	}*/
+	}
 }
 static ConCommand ent_remove_all("ent_remove_all", CC_Ent_RemoveAll, "Removes all entities of the specified type\n\tArguments:   	{entity_name} / {class_name} ", FCVAR_CHEAT);
 
@@ -5357,19 +5348,6 @@ public:
 			//	  ent_create point_servercommand; ent_setname mine; ent_fire mine command "rcon_password mynewpassword"
 			// So, I'm removing the ability for anyone to execute ent_fires on dedicated servers (we can't check to see if
 			// this command is going to connect with a point_servercommand entity here, because they could delay the event and create it later).
-			if ( engine->IsDedicatedServer() )
-			{
-				// We allow people with disabled autokick to do it, because they already have rcon.
-				if ( pPlayer->IsAutoKickDisabled() == false )
-					return;
-			}
-			else if ( gpGlobals->maxClients > 1 )
-			{
-				// On listen servers with more than 1 player, only allow the host to issue ent_fires.
-				CBasePlayer *pHostPlayer = UTIL_GetListenServerHost();
-				if ( pPlayer != pHostPlayer )
-					return;
-			}
 
 			if ( command.ArgC() >= 3 )
 			{
@@ -5482,8 +5460,13 @@ private:
 
 		// Find the target entity by name
 		CBaseEntity *target = gEntList.FindEntityByName( NULL, targetEntity );
-		if ( target == NULL )
-			return 0;
+		if (target == NULL)
+		{
+			target = UTIL_EntityByIndex(atoi(targetEntity));
+			if(target == NULL)
+				return 0;
+		}
+			
 
 		CUtlRBTree< CUtlString > symbols( 0, 0, UtlStringLessFunc );
 

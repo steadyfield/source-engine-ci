@@ -926,6 +926,9 @@ void CFuncTank::Activate( void )
 			if ( pProp )
 			{
 				pProp->m_bUseHitboxesForRenderBox = true;
+#ifdef HL2MP
+				pProp->m_bClientSideAnimation = false;
+#endif
 			}
 		}
 	}

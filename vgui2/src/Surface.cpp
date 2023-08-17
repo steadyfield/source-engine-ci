@@ -1872,7 +1872,7 @@ bool CWin32Surface::LoadBMP(Texture *texture, const char *filename)
 				PLAT(_currentContextPanel)->hdc, 
 				32, &texture->_dib );
 
-			unsigned char *rgba = (unsigned char *)( pDIB + sizeof( BITMAPINFOHEADER ) + 256 * sizeof( RGBQUAD ) );
+			unsigned int rgba = sizeof( BITMAPINFOHEADER );
 
 			// Copy raw data
 			for (j = 0; j < texture->_tall; j++)
@@ -1881,15 +1881,14 @@ bool CWin32Surface::LoadBMP(Texture *texture, const char *filename)
 				{
 					int y = (texture->_tall - j - 1);
 
-					int offs = ( y * texture->_wide + i);
+					int offs = ( y * texture->_wide + i) * 4;
 					int offsdest = (j * texture->_wide + i) * 4;
-					unsigned char *src = ((unsigned char *)rgba) + offs;
-					char *dst = ((char*)texture->_dib) + offsdest;
-					
-					dst[0] = lpbmi->bmiColors[ *src ].rgbRed;
-					dst[1] = lpbmi->bmiColors[ *src ].rgbGreen;
-					dst[2] = lpbmi->bmiColors[ *src ].rgbBlue;
-					dst[3] = (unsigned char)255;
+					unsigned int src = rgba + offs;
+					unsigned char *dst = ((unsigned char *)texture->_dib) + offsdest;
+					dst[0] = pDIB[ src ];
+					dst[1] = pDIB[ src + 1 ];
+					dst[2] = pDIB[ src + 2 ];
+					dst[3] = pDIB[ src + 3 ];
 				}
 			}
 

@@ -49,10 +49,10 @@ RootPanel::RootPanel( Panel *parent, const char *name ) : BaseClass( parent, nam
 	
 	SetMinimizeButtonVisible( true );	
 
-	SetSize( 846, 770 );
-	SetMinimumSize(846, 770);	
+	SetSize( 300, 300 );
+	SetMinimumSize(100, 100);	
 	SetTitle( "Updater" , true);
-
+	
 }
 
 //-----------------------------------------------------------------------------

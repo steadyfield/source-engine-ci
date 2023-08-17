@@ -305,6 +305,11 @@ bool MenuButton::IsDropMenuButtonStyle() const
 	return m_bDropMenuButtonStyle;
 }
 
+void MenuButton::PaintBackground()
+{
+	return;
+}
+
 void MenuButton::Paint(void)
 {
 	BaseClass::Paint();

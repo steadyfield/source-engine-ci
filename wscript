@@ -133,6 +133,23 @@ projects={
 		'vstdlib',
 		'vtf',
 		'stub_steam'
+	],
+	'updater':[
+		'tier0',
+		'tier1',
+		'tier2',
+		'tier3',
+		'vgui2/vgui_controls',
+		'vgui2/src',
+		'vstdlib',
+		'filesystem',
+		'vpklib',
+		'inputsystem',
+		'vgui2/matsys_controls',
+		'vgui2/vgui_surfacelib',
+		'appframework',
+		'stub_steam',
+		'utils/updater'
 	]
 }
 
@@ -265,6 +282,9 @@ def options(opt):
 
 	grp.add_option('-D', '--debug-engine', action = 'store_true', dest = 'DEBUG_ENGINE', default = False,
 		help = 'build with -DDEBUG [default: %default]')
+	
+	grp.add_option('-u', '--updater', action = 'store_true', dest = 'UPDATER', default = False,
+		help = 'build the updater [default: %default]')
 
 	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = 'int', default = sys.platform != 'win32',
 		help = 'build engine with SDL [default: %default]')
@@ -574,6 +594,7 @@ def configure(conf):
 	conf.env.append_unique('INCLUDES', [os.path.abspath('common/')])
 
 	check_deps( conf )
+	conf.env.UPDATER = conf.options.UPDATER
 
 	# indicate if we are packaging for Linux/BSD
 	if conf.env.DEST_OS != 'android':
@@ -583,8 +604,6 @@ def configure(conf):
 			conf.env.LIBDIR = conf.env.PREFIX+'/bin'+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'/'
 		conf.env.TESTDIR = conf.env.PREFIX+'/tests/'
 		conf.env.BINDIR = conf.env.PREFIX
-
-		
 	else:
 		conf.env.LIBDIR = conf.env.BINDIR = conf.env.PREFIX
 
@@ -596,6 +615,8 @@ def configure(conf):
 		conf.add_subproject(projects['tests'])
 	elif conf.options.DEDICATED:
 		conf.add_subproject(projects['dedicated'])
+	elif conf.options.UPDATER:
+		conf.add_subproject(projects['updater'])
 	else:
 		conf.add_subproject(projects['game'])
 
@@ -619,6 +640,8 @@ def build(bld):
 		bld.add_subproject(projects['tests'])
 	elif bld.env.DEDICATED:
 		bld.add_subproject(projects['dedicated'])
+	elif bld.env.UPDATER:
+		bld.add_subproject(projects['updater'])
 	else:
 		if bld.env.TOGLES:
 			projects['game'] += ['togles']

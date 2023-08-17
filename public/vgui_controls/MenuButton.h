@@ -54,6 +54,7 @@ public:
 	virtual void OnCursorEntered();
 
 	virtual void Paint();
+	virtual void PaintBackground();
 	virtual void PerformLayout();
 	virtual void ApplySchemeSettings( IScheme *pScheme );
 	virtual void OnCursorMoved( int x, int y );

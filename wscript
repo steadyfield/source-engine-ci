@@ -344,7 +344,8 @@ def check_deps(conf):
 			'wininet',
 			'ole32',
 			'shlwapi',
-			'imm32'
+			'imm32',
+			'oleaut32'
 		]
 
 		if conf.env.COMPILER_CC == 'msvc':
@@ -419,6 +420,9 @@ def check_deps(conf):
 		conf.check(lib='dxguid', uselib_store='DXGUID')
 		if conf.options.OPUS:
 			conf.check(lib='opus', uselib_store='OPUS')
+		if conf.options.UPDATER:
+			conf.check(lib='curl', uselib_store='CURL')
+			conf.check(lib='bit7z', uselib_store='BIT7Z')
 
 		# conf.multicheck(*a, run_all_tests = True, mandatory = True)
 
@@ -641,6 +645,10 @@ def build(bld):
 	elif bld.env.DEDICATED:
 		bld.add_subproject(projects['dedicated'])
 	elif bld.env.UPDATER:
+		if bld.env.DEST_OS == 'win32':
+			sdl_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, 'libcurl.dll')
+			sz_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, '7zxa.dll')
+			bld.install_files(bld.env.LIBDIR, [sdl_path,sz_path])
 		bld.add_subproject(projects['updater'])
 	else:
 		if bld.env.TOGLES:

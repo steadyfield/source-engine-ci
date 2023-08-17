@@ -8,6 +8,7 @@
 #include <io.h>
 #include <stdio.h>
 
+
 #include <vgui/ILocalize.h>
 #include <vgui/ISurface.h>
 #include <vgui/IVGui.h>
@@ -16,7 +17,6 @@
 #include "appframework/tier3app.h"
 #include "tier0/icommandline.h"
 #include "inputsystem/iinputsystem.h"
-#include "matsys_controls/QCGenerator.h"
 #include "filesystem_init.h"
 #include "RootPanel.h"
 
@@ -27,6 +27,10 @@
 #define QCGENERATOR_WRITE_PATH     "DEFAULT_WRITE_PATH"
 
 RootPanel* g_pMainFrame = 0;
+CHttpDownloader* g_pAPIDownloader = 0;
+UpdaterDownloadHandler* g_pUpdateDownloadHandler = 0;
+CHttpDownloader* g_pFileDownloader = 0;
+GameDownloadHandler* g_pGameDownloadHandler = 0;
 
 // Dummy window
 static WNDCLASS staticWndclass = { NULL };
@@ -64,6 +68,14 @@ const char* GetBaseDirectory(void)
 	return path;
 }
 
+
+void InitalizeDownloader(void)
+{
+	g_pUpdateDownloadHandler = new UpdaterDownloadHandler();
+	g_pAPIDownloader = new CHttpDownloader(g_pUpdateDownloadHandler);
+	g_pGameDownloadHandler = new GameDownloadHandler();
+	g_pFileDownloader = new CHttpDownloader(g_pGameDownloadHandler);
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Setup all our VGUI info
@@ -189,6 +201,8 @@ void ExampleApp::PostShutdown()
 //-----------------------------------------------------------------------------
 int ExampleApp::Main()
 {
+	InitalizeDownloader();
+
 	// Run app frame loop
 	InitializeVGUI();
 
@@ -196,10 +210,13 @@ int ExampleApp::Main()
 	while (vgui::ivgui()->IsRunning())
 	{
 		Sleep(10);
+		g_pAPIDownloader->Think();
+		g_pFileDownloader->Think();
 		vgui::ivgui()->RunFrame();
 	}
 
 	ShutdownVGUI();
-
+	g_pAPIDownloader->AbortDownloadAndCleanup();
+	delete g_pAPIDownloader;
 	return 1;
 }

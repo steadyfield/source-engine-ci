@@ -34,10 +34,12 @@ def build(bld):
         '../../common/',
 		'../common',
 		'../../vgui2/include',
-		'../../vgui2/controls'
+		'../../vgui2/controls',
+		'../../thirdparty/curl/include',
+		'../../thirdparty/bit7z'
         ]
-	defines = []
-	libs = ['appframework','matsys_controls','tier0','tier1','tier2','tier3','vgui2','vgui_controls','USER32','SHELL32']
+	defines = ["CURL_STATICLIB"]
+	libs = ['appframework','matsys_controls','tier0','tier1','tier2','tier3','vgui2','vgui_controls','USER32','SHELL32', 'CURL', 'BIT7Z','OLEAUT32']
 	install_path = bld.env.LIBDIR
 	bld(
 		source   = source,

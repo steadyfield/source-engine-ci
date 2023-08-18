@@ -1443,6 +1443,12 @@ inline bool Plat_IsInDebugSession( bool bForceRecheck = false ) { return false; 
 	#define DEST_OS DEST_OS_BASE
 #endif
 
+#if defined(UPDATER)
+	#define BIN_FOLDER "updater"
+#else
+	#define BIN_FOLDER "bin"
+#endif
+
 //-----------------------------------------------------------------------------
 // Returns true if running on a 64 bit (windows) OS
 //-----------------------------------------------------------------------------

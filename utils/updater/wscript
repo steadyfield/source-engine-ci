@@ -6,7 +6,7 @@ import os
 #import vpc_parser
 
 top = '.'
-PROJECT_NAME = 'updater'
+PROJECT_NAME = 'libupdater'
 
 def options(opt):
 	# stub
@@ -41,11 +41,11 @@ def build(bld):
 	defines = ["CURL_STATICLIB"]
 	libs = ['appframework','matsys_controls','tier0','tier1','tier2','tier3','vgui2','vgui_controls','USER32','SHELL32', 'CURL', 'BIT7Z','OLEAUT32']
 	install_path = bld.env.LIBDIR
-	bld(
+	bld.shlib(
 		source   = source,
 		target   = PROJECT_NAME,
 		name     = PROJECT_NAME,
-		features = 'c cxx cxxprogram',
+		features = 'c cxx',
 		includes = includes,
 		defines  = defines,
 		use      = libs,

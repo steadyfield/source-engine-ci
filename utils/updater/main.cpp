@@ -136,7 +136,12 @@ public:
 	virtual void Destroy() {}
 };
 
-DEFINE_WINDOWED_STEAM_APPLICATION_OBJECT(ExampleApp);
+//int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+static ExampleApp __s_ApplicationObject; 
+static CSteamApplication __s_SteamApplicationObject(&__s_ApplicationObject); 
+DLL_EXPORT int UpdaterMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+	return AppMain(hInstance, hPrevInstance, lpCmdLine, nCmdShow, &__s_SteamApplicationObject);
+};
 
 
 //-----------------------------------------------------------------------------
@@ -169,8 +174,6 @@ bool ExampleApp::PreInit()
 	char dirName[MAX_PATH];
 	Q_strncpy(dirName, GetBaseDirectory(), sizeof(dirName));
 	Q_AppendSlash( dirName, sizeof( dirName ) );
-	Q_strncat( dirName, "..", sizeof( dirName ), COPY_ALL_CHARACTERS );
-	Q_AppendSlash(dirName, sizeof(dirName));
 	Q_strncat(dirName, "sourcebox", sizeof(dirName), COPY_ALL_CHARACTERS);
 
 	if (!BaseClass::SetupSearchPaths(dirName, true, true))

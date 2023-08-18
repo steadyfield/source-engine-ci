@@ -597,8 +597,6 @@ const wchar* GetBaseDirectory(void)
 	{
 		GetModuleFileName((HMODULE)GetAppInstance(), path, sizeof(path));
 		Q_StripLastDir(path, sizeof(path));	// Get rid of the filename.
-		Q_StripTrailingSlash(path);
-		Q_StripLastDir(path, sizeof(path));	// Get rid of the filename.
 		V_strtowcs(path, MAX_PATH, wpath, MAX_PATH<<1);
 	}
 	return wpath;

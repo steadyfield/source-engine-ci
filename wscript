@@ -149,7 +149,8 @@ projects={
 		'vgui2/vgui_surfacelib',
 		'appframework',
 		'stub_steam',
-		'utils/updater'
+		'utils/updater',
+		'utils/updater_launcher'
 	]
 }
 
@@ -186,6 +187,9 @@ def define_platform(conf):
 		conf.options.SDL = False
 		conf.define('DEDICATED', 1)
 
+	if conf.options.UPDATER:
+		conf.define("UPDATER", 1)
+		
 	if conf.options.TESTS:
 		conf.define('UNITTESTS', 1)
 
@@ -603,9 +607,9 @@ def configure(conf):
 	# indicate if we are packaging for Linux/BSD
 	if conf.env.DEST_OS != 'android':
 		if conf.options.DEDICATED:
-			conf.env.LIBDIR = conf.env.PREFIX+'/bin'+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'_srcds/'
+			conf.env.LIBDIR = conf.env.PREFIX+('/updater' if conf.options.UPDATER else '/bin')+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'_srcds/'
 		else:
-			conf.env.LIBDIR = conf.env.PREFIX+'/bin'+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'/'
+			conf.env.LIBDIR = conf.env.PREFIX+('/updater' if conf.options.UPDATER else '/bin')+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'/'
 		conf.env.TESTDIR = conf.env.PREFIX+'/tests/'
 		conf.env.BINDIR = conf.env.PREFIX
 	else:

@@ -322,7 +322,7 @@ bool FileSystem_GetExecutableDir( char *exedir, int exeDirLen )
 		}
 		if ( pProject )
 		{
-			Q_snprintf( exedir, exeDirLen, "%s%c..%cbin_" DEST_OS, pProject, CORRECT_PATH_SEPARATOR, CORRECT_PATH_SEPARATOR );
+			Q_snprintf(exedir, exeDirLen, "%s%c..%c" BIN_FOLDER "_" DEST_OS, pProject, CORRECT_PATH_SEPARATOR, CORRECT_PATH_SEPARATOR);
 			return true;
 		}
 		return false;
@@ -344,12 +344,12 @@ bool FileSystem_GetExecutableDir( char *exedir, int exeDirLen )
 
 	Q_FixSlashes( exedir );
 
-	const char* libDir = "bin_" DEST_OS;
+	const char* libDir = BIN_FOLDER "_" DEST_OS;
 
 	// Return the bin directory as the executable dir if it's not in there
 	// because that's really where we're running from...
 	char ext[MAX_PATH];
-	Q_StrRight( exedir, sizeof("bin_" DEST_OS), ext, sizeof(ext));
+	Q_StrRight( exedir, sizeof(BIN_FOLDER "_" DEST_OS), ext, sizeof(ext));
 	if ( ext[0] != CORRECT_PATH_SEPARATOR || Q_stricmp( ext+1, libDir ) != 0 )
 	{
 		Q_strncat( exedir, CORRECT_PATH_SEPARATOR_S, exeDirLen, COPY_ALL_CHARACTERS );

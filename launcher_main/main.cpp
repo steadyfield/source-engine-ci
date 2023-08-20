@@ -28,7 +28,7 @@
 #define MAX_PATH PATH_MAX
 #endif
 
-#include "tier0/basetypes.h"
+
 
 #ifdef WIN32
 typedef int (*LauncherMain_t)( HINSTANCE hInstance, HINSTANCE hPrevInstance, 
@@ -92,10 +92,14 @@ static char *GetBaseDir( const char *pszBuffer )
 	return basedir;
 }
 
+
 #ifdef WIN32
+
 
 int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
+	
+
 	// Must add 'bin' to the path....
 	char* pPath = getenv("PATH");
 

@@ -10,6 +10,7 @@
 #include <windows.h>
 #include "shlwapi.h" // registry stuff
 #include <direct.h>
+#include <winreg.h>
 #elif defined(POSIX)
 	#define O_EXLOCK 0
 	#include <sys/types.h>
@@ -56,6 +57,8 @@
 #include "reslistgenerator.h"
 #include "tier1/fmtstr.h"
 #include "sourcevr/isourcevirtualreality.h"
+#include "tier1/KeyValues.h"
+#include "tier0/basetypes.h"
 
 #define VERSION_SAFE_STEAM_API_INTERFACES
 #include "steam/steam_api.h"
@@ -1193,6 +1196,169 @@ static const char *BuildCommand()
 
 extern void InitGL4ES();
 
+
+#ifdef WIN32
+
+
+bool DesiredApp(int appid)
+{
+	switch (appid)
+	{
+	case 220: //hl2
+	case 240: //cs:s
+	case 360: //hldm:s
+	case 380: //ep1
+	case 400: //portal
+	case 420: //ep2
+		return true;
+	default:
+		return false;
+	}
+}
+
+KeyValues* GetKeyvaluesFromFile(const char* dir, const char* name)
+{
+	FILE* fp = fopen(dir, "r");
+	fseek(fp, 0L, SEEK_END);
+	int sz = ftell(fp);
+	char* fileRead = (char*)malloc(sz);
+	rewind(fp);
+	fread((void*)fileRead, sz, 1, fp);
+	KeyValues* keyv = new KeyValues(name);
+	keyv->LoadFromBuffer(name, fileRead);
+	fclose(fp);
+	free(fileRead);
+	return keyv;
+}
+
+void PatchSearchPath(KeyValues* keyv, const char* find, const char* basepath)
+{
+	char replace[MAX_PATH];
+	V_strcpy(replace, basepath);
+	V_strcat(replace, find,MAX_PATH);
+	int findlen = V_strlen(find);
+	for (KeyValues* value = keyv->GetFirstValue(); value; value = value->GetNextValue())
+	{
+		const char* str = value->GetString();
+		if (!str)
+			continue;
+		int len = V_strlen(str);
+		if (len >= findlen && V_strcmp(str + len - findlen, find) == 0)
+		{
+			value->SetStringValue(replace);
+			return;
+		}
+	}
+}
+
+void GetAppManifest(char* steamApps, const char* appid, const char* path)
+{
+	char manifestDir[MAX_PATH];
+	V_strncpy(manifestDir, steamApps, MAX_PATH);
+	V_strncat(manifestDir, "appmanifest_", MAX_PATH);
+	V_strncat(manifestDir, appid, MAX_PATH);
+	V_strncat(manifestDir, ".acf", MAX_PATH);
+	KeyValues* appmanifest = GetKeyvaluesFromFile(manifestDir, "AppState");
+	const char* installDir = appmanifest->GetString("installdir");
+	char appDir[MAX_PATH];
+	V_strncpy(appDir, path, MAX_PATH);
+	V_AppendSlash(appDir, MAX_PATH);
+	V_strncat(appDir, "steamapps", MAX_PATH);
+	V_AppendSlash(appDir, MAX_PATH);
+	V_strncat(appDir, "common", MAX_PATH);
+	V_AppendSlash(appDir, MAX_PATH);
+	V_strncat(appDir, installDir, MAX_PATH);
+	V_AppendSlash(appDir, MAX_PATH);
+	V_FixSlashes(appDir, '/');
+	V_FixDoubleSlashes(appDir);
+
+	char gameinfoDir[MAX_PATH];
+	V_strncpy(gameinfoDir, GetBaseDirectory(), MAX_PATH);
+	V_StripFilename(gameinfoDir);
+	V_strncat(gameinfoDir, DEFAULT_HL2_GAMEDIR, MAX_PATH);
+	V_AppendSlash(gameinfoDir, MAX_PATH);
+	V_strncat(gameinfoDir, "gameinfo.txt", MAX_PATH);
+	KeyValues* gameinfo = GetKeyvaluesFromFile(gameinfoDir, "GameInfo");
+	KeyValues* searchpaths = gameinfo->FindKey("FileSystem", true)->FindKey("SearchPaths", true);
+	switch (Q_atoi(appid))
+	{
+	case 220: //hl2
+		PatchSearchPath(searchpaths, "hl2", appDir);
+		PatchSearchPath(searchpaths, "hl2/hl2_textures.vpk", appDir);
+		PatchSearchPath(searchpaths, "hl2/hl2_sound_vo_english.vpk", appDir);
+		PatchSearchPath(searchpaths, "hl2/hl2_sound_misc.vpk", appDir);
+		PatchSearchPath(searchpaths, "hl2/hl2_misc.vpk", appDir);
+		PatchSearchPath(searchpaths, "platform/platform_misc.vpk", appDir);
+		PatchSearchPath(searchpaths, "platform", appDir);
+		break;
+	case 240: //cs:s
+		PatchSearchPath(searchpaths, "cstrike/cstrike_pak.vpk", appDir);
+		break;
+	case 360: //hldm:s
+		PatchSearchPath(searchpaths, "hl1/hl1_pak.vpk", appDir);
+		PatchSearchPath(searchpaths, "hl1mp/hl1mp_pak.vpk", appDir);
+		break;
+	case 380: //ep1
+		PatchSearchPath(searchpaths, "episodic/ep1_pak.vpk", appDir);
+		break;
+	case 400: //portal
+		PatchSearchPath(searchpaths, "portal/portal_pak.vpk", appDir);
+		break;
+	case 420: //ep2
+		PatchSearchPath(searchpaths, "ep2/ep2_pak.vpk", appDir);
+		break;
+	default:
+		char stupidwarning[128];
+		snprintf(stupidwarning, 128, "YOU FORGOT TO ADD THE GAME (%s) TO GetAppManifest() IN launcher/launcher.cpp", appid);
+		MessageBox(NULL, stupidwarning, "YOU BUFFOON", MB_OK | MB_ICONEXCLAMATION);
+		break;
+	}
+	appmanifest->deleteThis();
+	CUtlBuffer buf;
+	gameinfo->RecursiveSaveToFile(buf, 0);
+	//Msg((char*)buf.Base());
+	gameinfo->deleteThis();
+	FILE* fp = fopen(gameinfoDir, "w");
+	fwrite(buf.Base(), 1, buf.PeekStringLength(), fp);
+	fclose(fp);
+	
+
+}
+
+
+void CreateGameinfo()
+{
+	UTIL_ComputeBaseDir();
+	char steamDir[MAX_PATH];
+	DWORD BufferSize = 8192;
+	RegGetValue(HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Valve\\Steam", "InstallPath", RRF_RT_REG_SZ, NULL, (PVOID)&steamDir, &BufferSize);
+	V_FixDoubleSlashes(steamDir);
+	V_AppendSlash(steamDir, MAX_PATH);
+	V_strncat(steamDir, "steamapps", MAX_PATH);
+	V_AppendSlash(steamDir, MAX_PATH);
+	char steamApps[MAX_PATH];
+	V_strncpy(steamApps, steamDir, MAX_PATH);
+	V_strncat(steamDir, "libraryfolders.vdf", MAX_PATH);
+	KeyValues* libraryfolders = GetKeyvaluesFromFile(steamDir, "libraryfolders");
+	for (KeyValues* folder = libraryfolders->GetFirstTrueSubKey(); folder; folder = folder->GetNextTrueSubKey())
+	{
+		//Msg("%s %x\n", folder->GetName(), folder->FindKey("apps")->GetFirstValue());
+		for (KeyValues* app = folder->FindKey("apps", true)->GetFirstValue(); app; app = app->GetNextValue())
+		{
+			const char* appid = app->GetName();
+
+			if (DesiredApp(Q_atoi(appid)))
+			{
+				GetAppManifest(steamApps, appid, folder->GetString("path"));
+			}
+		}
+	}
+	libraryfolders->deleteThis();
+}
+
+#endif
+
+
 //-----------------------------------------------------------------------------
 // Purpose: The real entry point for the application
 // Input  : hInstance - 
@@ -1207,6 +1373,9 @@ DLL_EXPORT int LauncherMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR
 DLL_EXPORT int LauncherMain( int argc, char **argv )
 #endif
 {
+#ifdef WIN32
+	CreateGameinfo();
+#endif
 #if (defined(LINUX) || defined(PLATFORM_BSD)) && !defined ANDROID
 	// Temporary fix to stop us from crashing in printf/sscanf functions that don't expect
 	//  localization to mess with your "." and "," float seperators. Mac OSX also sets LANG

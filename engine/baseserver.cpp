@@ -2084,8 +2084,8 @@ CBaseClient *CBaseServer::CreateFakeClient( const char *name )
 
 	// fake some cvar settings
 	//fakeclient->SetUserCVar( "name", name ); // set already by Connect()
-	fakeclient->SetUserCVar( "rate", "30000" );
-	fakeclient->SetUserCVar( "cl_updaterate", "20" );
+	fakeclient->SetUserCVar( "rate", "131072");
+	fakeclient->SetUserCVar( "cl_updaterate", "64" );
 	fakeclient->SetUserCVar( "cl_interp_ratio", "1.0" );
 	fakeclient->SetUserCVar( "cl_interp", "0.1" );
 	fakeclient->SetUserCVar( "cl_interpolate", "0" );

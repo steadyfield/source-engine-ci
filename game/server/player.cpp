@@ -113,6 +113,8 @@ ConVar cl_forwardspeed( "cl_forwardspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT
 ConVar cl_backspeed( "cl_backspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 #endif // CSTRIKE_DLL
 
+ConVar  sv_disable_explosion_ringing("sv_disable_explosion_ringing", "0", FCVAR_NOTIFY, "If enabled, will disable sound of ringing while near an explosion.");
+
 // This is declared in the engine, too
 ConVar	sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
 
@@ -1420,6 +1422,7 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 //-----------------------------------------------------------------------------
 void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 {
+
 	float lastDamage = info.GetDamage();
 
 	float distanceFromPlayer = 9999.0f;
@@ -1429,12 +1432,13 @@ void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 	{
 		Vector delta = GetAbsOrigin() - inflictor->GetAbsOrigin();
 		distanceFromPlayer = delta.Length();
+		
 	}
 
 	bool ear_ringing = distanceFromPlayer < MIN_EAR_RINGING_DISTANCE ? true : false;
 	bool shock = lastDamage >= MIN_SHOCK_AND_CONFUSION_DAMAGE;
 
-	if ( !shock && !ear_ringing )
+	if ( !shock && !ear_ringing || sv_disable_explosion_ringing.GetBool())
 		return;
 
 	int effect = shock ? 

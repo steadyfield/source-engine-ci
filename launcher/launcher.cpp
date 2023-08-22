@@ -1278,7 +1278,6 @@ void GetAppManifest(const char* appid, const char* path)
 	char gameinfoDir[MAX_PATH];
 	V_strncpy(gameinfoDir, GetBaseDirectory(), MAX_PATH);
 	V_AppendSlash(gameinfoDir, MAX_PATH);
-	//V_StripFilename(gameinfoDir);
 	V_strncat(gameinfoDir, DEFAULT_HL2_GAMEDIR, MAX_PATH);
 	V_AppendSlash(gameinfoDir, MAX_PATH);
 	V_strncat(gameinfoDir, "gameinfo.txt", MAX_PATH);

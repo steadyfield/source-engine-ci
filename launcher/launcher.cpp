@@ -1251,10 +1251,13 @@ void PatchSearchPath(KeyValues* keyv, const char* find, const char* basepath)
 	}
 }
 
-void GetAppManifest(char* steamApps, const char* appid, const char* path)
+void GetAppManifest(const char* appid, const char* path)
 {
 	char manifestDir[MAX_PATH];
-	V_strncpy(manifestDir, steamApps, MAX_PATH);
+	V_strncpy(manifestDir, path, MAX_PATH);
+	V_AppendSlash(manifestDir, MAX_PATH);
+	V_strncat(manifestDir, "steamapps", MAX_PATH);
+	V_AppendSlash(manifestDir, MAX_PATH);
 	V_strncat(manifestDir, "appmanifest_", MAX_PATH);
 	V_strncat(manifestDir, appid, MAX_PATH);
 	V_strncat(manifestDir, ".acf", MAX_PATH);
@@ -1349,7 +1352,7 @@ void CreateGameinfo()
 
 			if (DesiredApp(Q_atoi(appid)))
 			{
-				GetAppManifest(steamApps, appid, folder->GetString("path"));
+				GetAppManifest(appid, folder->GetString("path"));
 			}
 		}
 	}

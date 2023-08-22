@@ -113,7 +113,10 @@ ConVar cl_forwardspeed( "cl_forwardspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT
 ConVar cl_backspeed( "cl_backspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 #endif // CSTRIKE_DLL
 
+
+ConVar  sv_disable_explosion_damage("sv_disable_explosion_damage", "0", FCVAR_NOTIFY, "If enabled, will disable damage from explosions.");
 ConVar  sv_disable_explosion_ringing("sv_disable_explosion_ringing", "0", FCVAR_NOTIFY, "If enabled, will disable sound of ringing while near an explosion.");
+ConVar  sv_disable_underwater_damage("sv_disable_underwater_damage", "0", FCVAR_NOTIFY, "If enabled, will disable damage from no oxygen.");
 
 // This is declared in the engine, too
 ConVar	sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
@@ -1124,6 +1127,13 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	// Already dead
 	if ( !IsAlive() )
 		return 0;
+	if (bitsDamage & DMG_BLAST)
+	{
+		if (sv_disable_explosion_damage.GetBool()) {
+
+			return 0;
+		}
+	}
 	// go take the damage first
 
 	
@@ -1403,6 +1413,10 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	if ( bitsDamage & DMG_BLAST )
 	{
 		OnDamagedByExplosion( info );
+		if (sv_disable_explosion_damage.GetBool()) {
+
+			return 0;
+		}
 	}
 
 	return fTookDamage;
@@ -1937,7 +1951,7 @@ void CBasePlayer::WaterMove()
 		return;
 	}
 
-	if ( m_iHealth < 0 || !IsAlive() )
+	if ( m_iHealth < 0 || !IsAlive())
 	{
 		UpdateUnderwaterState();
 		return;
@@ -1948,7 +1962,7 @@ void CBasePlayer::WaterMove()
 	// waterlevel 2 - waist in water (WL_Waist)
 	// waterlevel 3 - head in water (WL_Eyes)
 
-	if (GetWaterLevel() != WL_Eyes || CanBreatheUnderwater()) 
+	if (GetWaterLevel() != WL_Eyes || CanBreatheUnderwater() || sv_disable_underwater_damage.GetBool())
 	{
 		// not underwater
 		

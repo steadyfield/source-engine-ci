@@ -21,7 +21,8 @@
 
 extern Vector			g_vecAttackDir;		// In globals.cpp
 
-BEGIN_DATADESC( CGib )
+BEGIN_DATADESC(CGib)
+
 
 	// gibs are not saved/restored
 //	DEFINE_FIELD( m_bloodColor, FIELD_INTEGER ),
@@ -46,6 +47,8 @@ BEGIN_DATADESC( CGib )
 END_DATADESC()
 
 
+ConVar sv_disable_head_gibs("sv_disable_head_gibs", "0", FCVAR_NOTIFY, "Disables spawning gibs such as skulls using impulse 102.");
+
 // HACKHACK -- The gib velocity equations don't work
 void CGib::LimitVelocity( void )
 {
@@ -64,6 +67,10 @@ void CGib::LimitVelocity( void )
 
 void CGib::SpawnStickyGibs( CBaseEntity *pVictim, Vector vecOrigin, int cGibs )
 {
+
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	int i;
 
 	if ( g_Language.GetInt() == LANGUAGE_GERMAN )
@@ -117,6 +124,9 @@ void CGib::SpawnStickyGibs( CBaseEntity *pVictim, Vector vecOrigin, int cGibs )
 
 void CGib::SpawnHeadGib( CBaseEntity *pVictim )
 {
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	CGib *pGib = CREATE_ENTITY( CGib, "gib" );
 
 	if ( g_Language.GetInt() == LANGUAGE_GERMAN )
@@ -272,7 +282,11 @@ void CGib::SpawnSpecificGibs(	CBaseEntity*	pVictim,
 								float			vMaxVelocity, 
 								const char*		cModelName,
 								float			flLifetime)
-{
+{	
+
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	for (int i=0;i<nNumGibs;i++)
 	{
 		CGib *pGib = CREATE_ENTITY( CGib, "gib" );
@@ -295,6 +309,10 @@ void CGib::SpawnSpecificGibs(	CBaseEntity*	pVictim,
 //------------------------------------------------------------------------------
 void CGib::SpawnRandomGibs( CBaseEntity *pVictim, int cGibs, GibType_e eGibType )
 {
+
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	int cSplat;
 
 	for ( cSplat = 0 ; cSplat < cGibs ; cSplat++ )
@@ -582,6 +600,10 @@ void CGib::StickyGibTouch ( CBaseEntity *pOther )
 //
 void CGib::Spawn( const char *szGibModel )
 {
+
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 	SetFriction(0.55); // deading the bounce a bit
 	
@@ -621,6 +643,10 @@ void CGib::Spawn( const char *szGibModel )
 //-----------------------------------------------------------------------------
 void CGib::Spawn( const char *szGibModel, float flLifetime )
 {
+
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	Spawn( szGibModel );
 	m_lifeTime = flLifetime;
 	SetThink ( &CGib::SUB_FadeOut );
@@ -632,6 +658,7 @@ LINK_ENTITY_TO_CLASS( gib, CGib );
 
 CBaseEntity *CreateRagGib( const char *szModel, const Vector &vecOrigin, const QAngle &vecAngles, const Vector &vecForce, float flFadeTime, bool bShouldIgnite )
 {
+
 	CRagGib *pGib;
 
 	pGib = (CRagGib*)CreateEntityByName( "raggib" );
@@ -652,14 +679,23 @@ CBaseEntity *CreateRagGib( const char *szModel, const Vector &vecOrigin, const Q
 			pAnimating->Ignite( random->RandomFloat( 8.0, 12.0 ), false );
 		}
 	}
+	float realFadeTime = flFadeTime;
 
-	pGib->Spawn( szModel, vecOrigin, vecForce, flFadeTime );
+	if (sv_disable_head_gibs.GetBool()) {
+		realFadeTime = 1;
+	}
+
+	pGib->Spawn( szModel, vecOrigin, vecForce, realFadeTime);
 
 	return pGib;
 }
 
 void CRagGib::Spawn( const char *szModel, const Vector &vecOrigin, const Vector &vecForce, float flFadeTime = 0.0 )
 {
+
+	if (sv_disable_head_gibs.GetBool()) {
+		return;
+	}
 	SetSolid( SOLID_BBOX );
 	AddSolidFlags( FSOLID_NOT_SOLID );
 	SetModel( szModel );

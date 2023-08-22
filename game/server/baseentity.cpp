@@ -99,6 +99,7 @@ ConVar sv_netvisdist( "sv_netvisdist", "10000", FCVAR_CHEAT | FCVAR_DEVELOPMENTO
 ConVar sv_smg_jumping("sv_smg_jumping", "0");
 ConVar sv_smg_jumping_any_source("sv_smg_jumping_any_source", "0");
 ConVar sv_no_self_damage("sv_no_self_damage", "0");
+ConVar sv_disable_all_damage("sv_disable_all_damage", "0", FCVAR_NOTIFY, "Disable anything taking damage. Can break some maps.");
 
 
 // This table encodes edict data.
@@ -1453,6 +1454,9 @@ void CBaseEntity::TakeDamage( const CTakeDamageInfo &inputInfo )
 		m_vecAbsVelocity += inputInfo.GetDamageForce() / 40.0;
 	}
 
+
+	if (sv_disable_all_damage.GetBool())
+		return;
 	if (sv_no_self_damage.GetBool() && inputInfo.GetAttacker() == this)
 		return;
 

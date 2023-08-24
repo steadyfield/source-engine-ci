@@ -339,7 +339,9 @@ void CStaticCollisionPolyhedronCache::Update( void )
 
 				if (j + 2 >= meshTriList.indexCount)
 				{
-					goto nextDisp;
+					physcollision->PolysoupDestroy(pDispCollideSoup);
+					++i;
+					continue;
 				}
 
 				unsigned short i0 = meshTriList.indices[j + 0];
@@ -351,7 +353,9 @@ void CStaticCollisionPolyhedronCache::Update( void )
 
 				if (i0 >= meshTriList.vertexCount || i1 >= meshTriList.vertexCount || i2 >= meshTriList.vertexCount)
 				{
-					goto nextDisp;
+					physcollision->PolysoupDestroy(pDispCollideSoup);
+					++i;
+					continue;
 				}
 
 				Vector v0 = meshTriList.pVerts[i0];
@@ -369,7 +373,9 @@ void CStaticCollisionPolyhedronCache::Update( void )
 
 			if (!collide)
 			{
-				goto nextDisp;
+				physcollision->PolysoupDestroy(pDispCollideSoup);
+				++i;
+				continue;
 			}
 			
 			CPhysConvex* ConvexesArray[1024];
@@ -439,7 +445,6 @@ void CStaticCollisionPolyhedronCache::Update( void )
 
 			m_DisplacementIndices.AddToTail(cacheInfo);
 
-			nextDisp:
 			physcollision->PolysoupDestroy(pDispCollideSoup);
 			++i;
 		}

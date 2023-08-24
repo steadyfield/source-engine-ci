@@ -42,7 +42,7 @@ CCallQueue *GetPortalCallQueue();
 extern IPhysicsConstraintEvent *g_pConstraintEvents;
 
 static ConVar sv_portal_collision_sim_bounds_x( "sv_portal_collision_sim_bounds_x", "200", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
-static ConVar sv_portal_collision_sim_bounds_y( "sv_portal_collision_sim_bounds_y", "200", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
+static ConVar sv_portal_collision_sim_bounds_y( "sv_portal_collision_sim_bounds_y", "300", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
 static ConVar sv_portal_collision_sim_bounds_z( "sv_portal_collision_sim_bounds_z", "252", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
 
 //#define DEBUG_PORTAL_SIMULATION_CREATION_TIMES //define to output creation timings to developer 2
@@ -1690,7 +1690,7 @@ void CPortalSimulator::CreateLocalCollision( void )
 	if (m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.Count() != 0)
 	{
 		m_InternalData.Simulation.Static.World.Displacements.pCollideable = ConvertPolyhedronsToCollideable(m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.Base(), m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.Count());
-/*
+
 #ifdef CLIENT_DLL
 		Vector* outVerts;
 		int vertCount = physcollision->CreateDebugMesh(m_InternalData.Simulation.Static.World.Displacements.pCollideable, &outVerts);
@@ -1704,7 +1704,7 @@ void CPortalSimulator::CreateLocalCollision( void )
 
 		physcollision->DestroyDebugMesh(vertCount, outVerts);
 #endif
-*/
+
 	}
 	STOPDEBUGTIMER( worldBrushTimer );
 	DEBUGTIMERONLY( DevMsg( 2, "[PSDT:%d] %sWorld Brushes=%fms\n", GetPortalSimulatorGUID(), TABSPACING, worldBrushTimer.GetDuration().GetMillisecondsF() ); );
@@ -2040,7 +2040,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 								if (vPoint.z > vAABBMaxs.z) continue;
 								bool tri = true;
 								bool dual = false;
-								/*
+								
 								for (int m = 0; m != pClippedPropPolyhedron->iPolygonCount; m++)
 								{
 									Msg("Poly %i\n", m);
@@ -2051,7 +2051,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 										Msg("Vert %i: %i %i  |  %i %i\n", indice.iEndPointIndex, line.iPointIndices[0], line.iPointIndices[1], line.iPointIndices[1 - indice.iEndPointIndex], line.iPointIndices[indice.iEndPointIndex]);
 									}
 								}
-								*/
+								
 								for (int l = 0; l != pClippedPropPolyhedron->iPolygonCount; l++)
 								{
 									if (l == 0 && pClippedPropPolyhedron->pPolygons[l].iIndexCount == 2)
@@ -2150,7 +2150,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 
 										
 										m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.AddToTail(pReturn);
-/*
+
 #ifdef CLIENT_DLL
 										if (pReturn->iLineCount)
 										{
@@ -2160,7 +2160,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 											}
 										}
 #endif
-*/
+
 
 										pReturn = CPolyhedron_AllocByNew::Allocate(3, 3, 6, 2);
 
@@ -2251,13 +2251,13 @@ void CPortalSimulator::CreatePolyhedrons( void )
 										m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.AddToTail(pReturn);
 
 										
-										/*if (pReturn->iLineCount)
+										if (pReturn->iLineCount)
 										{
 											for (int j = 1; j < pReturn->iLineCount; j++)
 											{
 												DebugDrawLine(pReturn->pVertices[pReturn->pLines[j].iPointIndices[0]], pReturn->pVertices[pReturn->pLines[j].iPointIndices[1]], 255, 127, 0, true, 10.0f);
 											}
-										}*/
+										}
 										break;
 									}
 								}
@@ -2269,7 +2269,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 										pClippedPropPolyhedron->iPolygonCount--;
 									}
 									m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.AddToTail(pClippedPropPolyhedron);
-/*#ifdef CLIENT_DLL
+#ifdef CLIENT_DLL
 									if (pClippedPropPolyhedron->iLineCount)
 									{
 										for (int j = 1; j < pClippedPropPolyhedron->iLineCount; j++)
@@ -2278,7 +2278,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 										}
 									}
 #endif
-*/
+
 								}
 								/*
 								Vector* pVertices = pClippedPropPolyhedron->pVertices;

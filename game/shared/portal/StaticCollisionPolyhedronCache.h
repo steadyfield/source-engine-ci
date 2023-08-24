@@ -15,7 +15,6 @@
 #include "tier1/utlmap.h"
 
 
-
 class CStaticCollisionPolyhedronCache : public CAutoGameSystem
 {
 public:
@@ -26,6 +25,7 @@ public:
 	void Shutdown( void );
 
 	const CPolyhedron *GetBrushPolyhedron( int iBrushNumber );
+	int GetDisplacementPolyhedrons(int iDisplacementNumber, CPolyhedron** pOutputPolyhedronArray, int iOutputArraySize);
 	int GetStaticPropPolyhedrons( ICollideable *pStaticProp, CPolyhedron **pOutputPolyhedronArray, int iOutputArraySize );
 
 private:
@@ -44,6 +44,15 @@ private:
 	CUtlVector<CPolyhedron *> m_StaticPropPolyhedrons;
 	CUtlMap<ICollideable *, StaticPropPolyhedronCacheInfo_t> m_CollideableIndicesMap;
 
+	struct DisplacementPolyhedronCacheInfo_t
+	{
+		int iStartIndex;
+		int iNumPolyhedrons;
+		int iDisplacementIndex; //helps us remap ICollideable pointers when the map is restarted
+	};
+
+	CUtlVector<CPolyhedron *> m_DisplacementPolyhedrons;
+	CUtlVector<DisplacementPolyhedronCacheInfo_t> m_DisplacementIndices;
 
 	void Clear( void );
 	void Update( void );

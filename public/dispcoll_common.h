@@ -310,6 +310,8 @@ protected:
 
 #ifdef ENGINE_DLL
 	memhandle_t						m_hCache;
+#else
+	void*							m_unused;
 #endif
 
 	int								m_nPower;								// Size of the displacement ( 2^power + 1 )

@@ -3345,6 +3345,7 @@ void CRendering3dView::BuildWorldRenderLists( bool bDrawEntities, int iForceView
 		render->BuildWorldLists( m_pWorldRenderList, m_pWorldListInfo, 
 			( m_pCustomVisibility ) ? m_pCustomVisibility->m_iForceViewLeaf : iForceViewLeaf, 
 			pVisData, bShadowDepth, pReflectionWaterHeight );
+		
 
 		if ( bUseCache && !pVisData )
 		{
@@ -4310,12 +4311,13 @@ void CRendering3dView::DrawTranslucentRenderables( bool bInSkybox, bool bShadowD
 				SafeRelease( m_pWorldRenderList );
 				SafeRelease( m_pWorldListInfo );
 				BuildWorldRenderLists( ((m_DrawFlags & DF_DRAW_ENTITITES) != 0), m_pCustomVisibility ? m_pCustomVisibility->m_iForceViewLeaf : -1, false );
-
+				
 				AssertMsg( m_DrawFlags & DF_DRAW_ENTITITES, "It shouldn't be possible to get here if this wasn't set, needs special case investigation" );
 				for( int i = m_pRenderablesList->m_RenderGroupCounts[RENDER_GROUP_TRANSLUCENT_ENTITY]; --i >= 0; )
 				{
 					m_pRenderablesList->m_RenderGroups[RENDER_GROUP_TRANSLUCENT_ENTITY][i].m_pRenderable->ComputeFxBlend();
 				}
+				
 			}
 
 			if( r_depthoverlay.GetBool() )
@@ -4516,7 +4518,10 @@ void CRendering3dView::DrawTranslucentRenderables( bool bInSkybox, bool bShadowD
 			nDetailLeafCount = 0;
 		}
 	}
-
+	//if (m_pWorldListInfo->m_pActualLeafIndex == 0)
+	//{
+	//	Msg("UH OH\n");
+	//}
 	// Draw the rest of the surfaces in world leaves
 	DrawTranslucentWorldAndDetailPropsInLeaves( iPrevLeaf, 0, nEngineDrawFlags, nDetailLeafCount, pDetailLeafList, bShadowDepth );
 

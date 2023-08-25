@@ -44,6 +44,20 @@ extern IPhysicsConstraintEvent *g_pConstraintEvents;
 static ConVar sv_portal_collision_sim_bounds_x( "sv_portal_collision_sim_bounds_x", "200", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
 static ConVar sv_portal_collision_sim_bounds_y( "sv_portal_collision_sim_bounds_y", "300", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
 static ConVar sv_portal_collision_sim_bounds_z( "sv_portal_collision_sim_bounds_z", "252", FCVAR_REPLICATED, "Size of box used to grab collision geometry around placed portals. These should be at the default size or larger only!" );
+/*
+CON_COMMAND_F(debug_view_broken_brushes, "testing", FCVAR_CLIENTDLL)
+{
+	for (int i = 0; i < g_StaticCollisionPolyhedronCache.m_BrokenBrushes.Count(); i++)
+	{
+		const CPolyhedron* poly = g_StaticCollisionPolyhedronCache.GetBrushPolyhedron(g_StaticCollisionPolyhedronCache.m_BrokenBrushes[i]);
+		for (int l = 0; l < poly->iLineCount; l++)
+		{
+			unsigned short* indices = poly->pLines[l].iPointIndices;
+			DebugDrawLine(poly->pVertices[indices[0]], poly->pVertices[indices[1]], 255, 0, 0, true, 10000.0f);
+		}
+	}
+}
+*/
 
 //#define DEBUG_PORTAL_SIMULATION_CREATION_TIMES //define to output creation timings to developer 2
 //#define DEBUG_PORTAL_COLLISION_ENVIRONMENTS //define this to allow for glview collision dumps of portal simulators
@@ -1690,7 +1704,7 @@ void CPortalSimulator::CreateLocalCollision( void )
 	if (m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.Count() != 0)
 	{
 		m_InternalData.Simulation.Static.World.Displacements.pCollideable = ConvertPolyhedronsToCollideable(m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.Base(), m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.Count());
-
+		/*
 #ifdef CLIENT_DLL
 		Vector* outVerts;
 		int vertCount = physcollision->CreateDebugMesh(m_InternalData.Simulation.Static.World.Displacements.pCollideable, &outVerts);
@@ -1703,7 +1717,7 @@ void CPortalSimulator::CreateLocalCollision( void )
 		}
 
 		physcollision->DestroyDebugMesh(vertCount, outVerts);
-#endif
+#endif*/
 
 	}
 	STOPDEBUGTIMER( worldBrushTimer );
@@ -2041,7 +2055,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 								bool tri = true;
 								bool dual = false;
 								
-								for (int m = 0; m != pClippedPropPolyhedron->iPolygonCount; m++)
+								/*for (int m = 0; m != pClippedPropPolyhedron->iPolygonCount; m++)
 								{
 									Msg("Poly %i\n", m);
 									for (int n = 0; n != pClippedPropPolyhedron->pPolygons[m].iIndexCount; n++)
@@ -2050,7 +2064,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 										Polyhedron_IndexedLine_t line = pClippedPropPolyhedron->pLines[indice.iLineIndex];
 										Msg("Vert %i: %i %i  |  %i %i\n", indice.iEndPointIndex, line.iPointIndices[0], line.iPointIndices[1], line.iPointIndices[1 - indice.iEndPointIndex], line.iPointIndices[indice.iEndPointIndex]);
 									}
-								}
+								}*/
 								
 								for (int l = 0; l != pClippedPropPolyhedron->iPolygonCount; l++)
 								{
@@ -2150,7 +2164,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 
 										
 										m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.AddToTail(pReturn);
-
+										/*
 #ifdef CLIENT_DLL
 										if (pReturn->iLineCount)
 										{
@@ -2160,7 +2174,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 											}
 										}
 #endif
-
+*/
 
 										pReturn = CPolyhedron_AllocByNew::Allocate(3, 3, 6, 2);
 
@@ -2269,7 +2283,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 										pClippedPropPolyhedron->iPolygonCount--;
 									}
 									m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.AddToTail(pClippedPropPolyhedron);
-#ifdef CLIENT_DLL
+									/*#ifdef CLIENT_DLL
 									if (pClippedPropPolyhedron->iLineCount)
 									{
 										for (int j = 1; j < pClippedPropPolyhedron->iLineCount; j++)
@@ -2277,7 +2291,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 											DebugDrawLine(pClippedPropPolyhedron->pVertices[pClippedPropPolyhedron->pLines[j].iPointIndices[0]] - Vector(0.0, 0.0, 4.0), pClippedPropPolyhedron->pVertices[pClippedPropPolyhedron->pLines[j].iPointIndices[1]] - Vector(0.0, 0.0, 4.0), (int)col.x, (int)col.y, (int)col.z, true, 7.0f);
 										}
 									}
-#endif
+#endif*/
 
 								}
 								/*

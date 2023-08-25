@@ -2264,7 +2264,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 
 										m_InternalData.Simulation.Static.World.Displacements.Polyhedrons.AddToTail(pReturn);
 
-										
+										/*
 										if (pReturn->iLineCount)
 										{
 											for (int j = 1; j < pReturn->iLineCount; j++)
@@ -2272,6 +2272,7 @@ void CPortalSimulator::CreatePolyhedrons( void )
 												DebugDrawLine(pReturn->pVertices[pReturn->pLines[j].iPointIndices[0]], pReturn->pVertices[pReturn->pLines[j].iPointIndices[1]], 255, 127, 0, true, 10.0f);
 											}
 										}
+										*/
 										break;
 									}
 								}

@@ -18,7 +18,7 @@
 
 #ifdef ENGINE_DLL
 template<typename T>
-class CDispVector : public CUtlVector<T, CHunkMemory<T> >
+class CDispVector : public CUtlVector<T, CUtlMemoryAligned<T, 16> >
 {
 };
 #else
@@ -311,7 +311,7 @@ protected:
 #ifdef ENGINE_DLL
 	memhandle_t						m_hCache;
 #else
-	void*							m_unused;
+	memhandle_t						m_unused;
 #endif
 
 	int								m_nPower;								// Size of the displacement ( 2^power + 1 )

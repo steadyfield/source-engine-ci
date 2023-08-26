@@ -487,8 +487,8 @@ bool LoadStudioModel( char const* pModelName, CUtlBuffer& buf )
 	}
 
 	// ensure reset
-	pHdr->unused_pVertexBase = NULL;
-	pHdr->unused_pIndexBase  = NULL;
+	pHdr->pStudioHdr2()->pVertexBase = NULL;
+	pHdr->pStudioHdr2()->pIndexBase  = NULL;
 
 	return true;
 }
@@ -1102,9 +1102,9 @@ void CVradStaticPropMgr::Shutdown()
 		studiohdr_t *pStudioHdr = m_StaticPropDict[i].m_pStudioHdr;
 		if ( pStudioHdr )
 		{
-			if ( pStudioHdr->unused_pVertexBase )
+			if ( pStudioHdr->pStudioHdr2()->pVertexBase )
 			{
-				free( pStudioHdr->unused_pVertexBase );
+				free( pStudioHdr->pStudioHdr2()->pVertexBase );
 			}
 			free( pStudioHdr );
 		}
@@ -2062,9 +2062,9 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	studiohdr_t *pActiveStudioHdr = static_cast<studiohdr_t *>(pModelData);
 	Assert( pActiveStudioHdr );
 
-	if ( pActiveStudioHdr->unused_pVertexBase )
+	if ( pActiveStudioHdr->pStudioHdr2()->pVertexBase )
 	{
-		return (vertexFileHeader_t *)pActiveStudioHdr->unused_pVertexBase;
+		return (vertexFileHeader_t *)pActiveStudioHdr->pStudioHdr2()->pVertexBase.m_pData;
 	}
 
 	// mandatory callback to make requested data resident
@@ -2123,7 +2123,7 @@ const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void *pModelData )
 	free( pVvdHdr );
 	pVvdHdr = pNewVvdHdr;
 
-	pActiveStudioHdr->unused_pVertexBase = (void*)pVvdHdr;
+	pActiveStudioHdr->pStudioHdr2()->pVertexBase = (void*)pVvdHdr;
 	return pVvdHdr;
 }
 

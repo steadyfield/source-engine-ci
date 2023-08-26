@@ -171,22 +171,24 @@ bool ExampleApp::PreInit()
 	FileSystem_SetErrorMode(FS_ERRORMODE_AUTO);
 
 	// We only want to use the gameinfo.txt that is in the bin\vconfig directory.
+	/*
 	char dirName[MAX_PATH];
 	Q_strncpy(dirName, GetBaseDirectory(), sizeof(dirName));
 	Q_AppendSlash( dirName, sizeof( dirName ) );
-	Q_strncat(dirName, "sourcebox", sizeof(dirName), COPY_ALL_CHARACTERS);
+	Q_strncat(dirName, "updater_win64", sizeof(dirName), COPY_ALL_CHARACTERS);
 
 	if (!BaseClass::SetupSearchPaths(dirName, true, true))
 	{
 		::MessageBox(NULL, "Error", "Unable to initialize file system\n", MB_OK);
 		return false;
 	}
-
+	*/
 	// the "base dir" so we can scan mod name
 	g_pFullFileSystem->AddSearchPath(GetBaseDirectory(), QCGENERATOR_MAIN_PATH_ID);
 
 	// the main platform dir
 	g_pFullFileSystem->AddSearchPath("platform", "PLATFORM", PATH_ADD_TO_HEAD);
+	g_pFullFileSystem->AddSearchPath(".\\updater_" DEST_OS, "GAME", PATH_ADD_TO_HEAD);
 	//g_pFullFileSystem->AddSearchPath( ".\\QCGenerator\\", QCGENERATOR_WRITE_PATH, PATH_ADD_TO_HEAD );
 
 	return true;

@@ -460,6 +460,7 @@ def configure(conf):
 		projects['game'] += ['utils/bzip2']
 		projects['dedicated'] += ['utils/bzip2']
 		projects['game'] += ['utils/lzma','utils/vbsp','utils/vrad','utils/vrad_launcher','utils/vvis','utils/vvis_launcher']
+		
 	if conf.options.OPUS or conf.env.DEST_OS == 'android':
 		projects['game'] += ['engine/voice_codecs/opus']
 
@@ -639,6 +640,7 @@ def build(bld):
 	if bld.env.DEST_OS == 'win32':
 		projects['game'] += ['utils/bzip2']
 		projects['dedicated'] += ['utils/bzip2']
+		projects['game'] += ['utils/lzma','utils/vbsp','utils/vrad','utils/vrad_launcher','utils/vvis','utils/vvis_launcher']
 
 	if bld.env.OPUS or bld.env.DEST_OS == 'android':
 		projects['game'] += ['engine/voice_codecs/opus']
@@ -660,4 +662,5 @@ def build(bld):
 		elif bld.env.GL:
 			projects['game'] += ['togl']
 
+		print(projects['game'])
 		bld.add_subproject(projects['game'])

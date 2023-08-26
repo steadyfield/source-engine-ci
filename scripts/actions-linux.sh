@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+git submodule init && git submodule update
+
 echo "Setup dependencies"
 sudo apt update -y
 sudo apt install -y automake autoconf libtool build-essential gcc-multilib g++-multilib pkg-config ccache libsdl2-dev libfreetype6-dev libfontconfig1-dev libopenal-dev libjpeg-dev libpng-dev libcurl4-gnutls-dev libbz2-dev libedit-dev git

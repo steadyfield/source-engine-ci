@@ -4,14 +4,6 @@ name: Build
 on: [workflow_dispatch]
 
 jobs:
-  #build-linux-i386:
-  #  runs-on: ubuntu-latest
-
-  #  steps:
-  #  - uses: actions/checkout@v2
-  #  - name: Build linux-i386
-  #    run: |
-  #      scripts/build-ubuntu-i386.sh
 
   build-linux-amd64:
     runs-on: ubuntu-latest
@@ -24,17 +16,31 @@ jobs:
 
   actions-android:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Build For Android
       run: |
         scripts/actions-android.sh
 
-    - name: Upload .apk
+    - name: Upload artifact
       uses: actions/upload-artifact@v3.1.2
       with:
+        name: "sourcebox-android"
         path: ./patcher/patched-aligned-debugSigned.apk
+
+  actions-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build For Linux
+      run: |
+        scripts/actions-linux.sh
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: "sourcebox-linux"
+        path: ./built/*
 
   build-windows-i386:
     runs-on: windows-2019

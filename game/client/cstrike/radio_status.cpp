@@ -251,7 +251,7 @@ bool CRadioStatus::Init()
 	}
 
 	if ( IsErrorMaterial( m_pHeadLabelMaterial ) )
-		return false;
+		return true;
 
 	m_pHeadLabelMaterial->IncrementReferenceCount();
 

@@ -223,8 +223,11 @@ bool IGameSystem::InitAllSystems()
 		Q_snprintf( sz, sizeof( sz ), "%s->Init():Finish", sys->Name() );
 		XBX_rTimeStampLog( Plat_FloatTime(), sz );
 #endif
-		if ( !valid )
+		if (!valid)
+		{
+			Msg("Failed to load %s\n", sys->Name());
 			return false;
+		}
 	}
 
 	return true;

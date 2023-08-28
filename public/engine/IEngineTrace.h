@@ -25,6 +25,7 @@ class ICollideable;
 class QAngle;
 class CTraceListData;
 class CPhysCollide;
+class CDispCollTree;
 struct cplane_t;
 
 //-----------------------------------------------------------------------------
@@ -174,6 +175,10 @@ public:
 
 	//finds brushes in an AABB, prone to some false positives
 	virtual void GetBrushesInAABB( const Vector &vMins, const Vector &vMaxs, CUtlVector<int> *pOutput, int iContentsMask = 0xFFFFFFFF ) = 0;
+
+	virtual bool GetDisplacementInfo(int displacementIndex, CDispCollTree*& output) = 0;
+
+	virtual void GetDisplacementsInAABB(const Vector& vMins, const Vector& vMaxs, CUtlVector<int>* pOutput) = 0;
 
 	//Creates a CPhysCollide out of all displacements wholly or partially contained in the specified AABB
 	virtual CPhysCollide* GetCollidableFromDisplacementsInAABB( const Vector& vMins, const Vector& vMaxs ) = 0;

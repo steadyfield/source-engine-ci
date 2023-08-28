@@ -27,7 +27,7 @@
 #include <string.h>
 #define MAX_PATH PATH_MAX
 #endif
-
+#include "tier0/platform.h"
 
 
 #ifdef WIN32

@@ -92,8 +92,12 @@ void WinPanel_Round::InitLayout()
 	LoadControlSettings("Resource/UI/Win_Round.res");
 
 	CAvatarImagePanel* pMVP_Avatar = dynamic_cast<CAvatarImagePanel*>(FindChildByName("MVP_Avatar"));
-	pMVP_Avatar->SetDefaultAvatar(scheme()->GetImage( CSTRIKE_DEFAULT_AVATAR, true));
-	pMVP_Avatar->SetShouldDrawFriendIcon(false);
+	if (pMVP_Avatar)
+	{
+		vgui::IImage* avatar = scheme()->GetImage(CSTRIKE_DEFAULT_AVATAR, true);
+		pMVP_Avatar->SetDefaultAvatar(avatar);
+		pMVP_Avatar->SetShouldDrawFriendIcon(false);
+	}
 }
 
 

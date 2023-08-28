@@ -106,8 +106,8 @@ void RootPanel::OnCommand( const char *command )
 {		
 	if (strcmp(command, "UpdateSourceBox") == 0)
 	{
-		//g_pAPIDownloader->BeginDownload("https://api.github.com/repos/SourceBoxGame/SourceBox/releases/latest");
-		g_pAPIDownloader->BeginDownload("http://192.168.1.30:27000/latest.json");
+		g_pAPIDownloader->BeginDownload("https://api.github.com/repos/SourceBoxGame/SourceBox/releases/latest");
+		//g_pAPIDownloader->BeginDownload("http://192.168.1.30:27000/latest.json");
 	}
 	else
 	{
@@ -558,6 +558,12 @@ void UpdaterDownloadHandler::OnDownloadComplete(CHttpDownloader* pDownloader, co
 	g_pRootPanel->SetProgress(0.1);
 	KeyValuesJSONParser* parser = new KeyValuesJSONParser((const char*)pData,pDownloader->GetBytesDownloaded());
 	KeyValues* keyvalues = parser->ParseFile();
+	if (!keyvalues)
+	{
+		::MessageBoxA(0, parser->m_szErrMsg, "Updater error", MB_OK);
+		exit(1);
+		return;
+	}
 	KeyValues* assets = keyvalues->FindKey("assets");
 	if (!assets)
 		return;
@@ -615,7 +621,9 @@ void GameDownloadHandler::OnDownloadComplete(CHttpDownloader* pDownloader, const
 	}
 	catch (const bit7z::BitException& ex)
 	{
-		Msg("%s\n",ex.what());
+		::MessageBoxA(0,"%s\n",ex.what(),MB_OK);
+		exit(0);
+		return;
 	}
 	
 }

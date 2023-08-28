@@ -11,29 +11,11 @@ PROJECT_NAME = 'vbsp'
 def options(opt):
 	return
 
-games = {
-	'hl2': ['vbsp.vpc'],
-	'hl2mp': ['vbsp.vpc'],
-	'hl1': ['vbsp.vpc'],
-	'episodic': ['vbsp.vpc'],
-	'portal': ['vbsp.vpc'],
-	'hl1mp': ['vbsp.vpc'],
-	'cstrike': ['vbsp.vpc'],
-	'dod': ['vbsp.vpc'],
-	'sourcebox': ['vbsp.vpc']
-}
-
 def configure(conf):
-	game = conf.options.GAMES
-	conf.env.GAMES = game
-
-	conf.env.append_unique('DEFINES', ['DISABLE_STEAM=1'])
-
-	if game not in games.keys():
-		conf.fatal("Couldn't find game: ", game)
+	return
 
 def build(bld):
-	game = vpc_parser.parse_vpcs( bld.env, games[bld.env.GAMES], '../..' )
+	game = vpc_parser.parse_vpcs( bld.env, ['vbsp.vpc'], '../..' )
    
     
 	includes = [

@@ -1714,6 +1714,14 @@ void CProp_Portal::ForceEntityToFitInPortalWall( CBaseEntity *pEntity )
 			physcollision->TraceBox( ray, m_PortalSimulator.m_DataAccess.Simulation.Static.Wall.Local.Brushes.pCollideable, vec3_origin, vec3_angle, &ShortestTrace );
 		}
 
+		if (m_PortalSimulator.m_DataAccess.Simulation.Static.Wall.Local.Displacements.pCollideable)
+		{
+			trace_t TempTrace;
+			physcollision->TraceBox(ray, m_PortalSimulator.m_DataAccess.Simulation.Static.Wall.Local.Displacements.pCollideable, vec3_origin, vec3_angle, &TempTrace);
+			if (TempTrace.fraction < ShortestTrace.fraction)
+				ShortestTrace = TempTrace;
+		}
+
 		/*if( pEnvironment->LocalCollide.pWorldCollide )
 		{
 			trace_t TempTrace;

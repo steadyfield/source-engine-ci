@@ -659,6 +659,14 @@ bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 		return false;
 	}
 
+#ifdef WIN32
+	if ( m_ShaderAPIFactory == 0 )
+	{
+		::MessageBoxA(0, "Could not create shaders. Make sure you have DirectX 9.0c installed.", "Engine Error", MB_OK);
+		return false;
+	}
+#endif
+
 	// Get at the interfaces exported by the shader DLL
 	g_pShaderDeviceMgr = (IShaderDeviceMgr*)m_ShaderAPIFactory( SHADER_DEVICE_MGR_INTERFACE_VERSION, 0 );
 	if ( !g_pShaderDeviceMgr )

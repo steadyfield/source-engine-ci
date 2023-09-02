@@ -11,9 +11,6 @@
 #include "vgui_controls/PanelListPanel.h"
 #include "vgui_controls/PropertySheet.h"
 #include "vgui_controls/Button.h"
-#include "vgui_controls/CheckButton.h"
-#include "vgui_controls/RadioButton.h"
-#include "vgui_controls/Label.h"
 #include "vgui_controls/TreeView.h"
 #include "vgui_controls/InputDialog.h"
 #include "vgui_controls/Tooltip.h"
@@ -43,16 +40,13 @@ private:
 	vgui::Button* m_pSaveButton;
 	vgui::Button* m_pSaveAsButton;
 	vgui::Button* m_pApplyButton;
+	vgui::Label* m_pFileLabel;
 	vgui::TreeView* m_pFileList;
 	vgui::InputDialog* m_pDialog;
 	CUtlVector<char> m_sFileBuffer;
 	char m_sCurrentFile[MAX_PATH] = { 0 };
 
 	vgui::PropertySheet* m_pTabs;
-	vgui::Button* m_pPreviewButton;
-	vgui::CheckButton* m_pPreviewCheckButton;
-	vgui::RadioButton* m_pPreviewRadioButton;
-	vgui::Label* m_pPreviewLabel;
 };
 
 //----------------------------------------------------------------------------------------

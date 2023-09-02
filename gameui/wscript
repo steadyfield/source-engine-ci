@@ -93,6 +93,8 @@ def build(bld):
 		'OptionsSubPortal.cpp',
 		'OptionsSubVideo.cpp',
 		'OptionsSubVoice.cpp',
+		'../game/client/vgui_schemeeditor.cpp',
+		'OptionsSubScheme.cpp',
 		'../public/tier0/memoverride.cpp',
 	]
 
@@ -110,7 +112,8 @@ def build(bld):
 		'../public/tier1',
 		'../common',
 		'../common/GameUI',
-		'../thirdparty'
+		'../thirdparty',
+		'../game/client'
 	]
 
 	defines = []

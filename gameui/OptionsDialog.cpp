@@ -29,6 +29,7 @@
 #include "OptionsSubMultiplayer.h"
 #include "OptionsSubDifficulty.h"
 #include "OptionsSubPortal.h"
+#include "OptionsSubScheme.h"
 #ifdef WIN32
 // NVNT haptic configuration dialog
 #include "OptionsSubHaptics.h"
@@ -108,6 +109,8 @@ COptionsDialog::COptionsDialog(vgui::Panel *parent) : PropertyDialog(parent, "Op
 		m_pOptionsSubMultiplayer = new COptionsSubMultiplayer(this);
 		AddPage(m_pOptionsSubMultiplayer, "#GameUI_Multiplayer");
 	}
+
+	AddPage(new COptionsSubScheme(this), "Scheme Editor");
 
 //	double s5 = system()->GetCurrentTime();
 //	Msg("COptionsDialog::COptionsDialog(): %.3fms\n", (float)(s5 - s4) * 1000.0f);

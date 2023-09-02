@@ -2,8 +2,6 @@
 //
 //=======================================================================================//
 
-#include "cbase.h"
-#include "strtools.h"
 #include "vgui_schemeeditor.h"
 #include "vgui/IBorder.h"
 #include "vgui/ISurface.h"
@@ -33,8 +31,8 @@ public:
 	virtual void ApplySchemeSettings(IScheme* pScheme);
 	DECLARE_GET_SET(int, _min, Min)
 	DECLARE_GET_SET(int, _max, Max)
-	int GetValue() { return _value; } 
-	void SetValue(int val) { _value = Clamp(val,_min,_max); }
+	int GetValue() { return _value; }
+	void SetValue(int val) { _value = Clamp(val, _min, _max); }
 
 private:
 	bool _dragging;
@@ -64,7 +62,7 @@ void Knob::Paint()
 {
 	int wide, tall;
 	GetSize(wide, tall);
-	int radius = min(wide, tall)/2;
+	int radius = min(wide, tall) / 2;
 	Color notchCol = GetFgColor();
 	float percent = 0.0;
 	surface()->DrawSetColor(_lightcolor);
@@ -73,7 +71,7 @@ void Knob::Paint()
 	int bordery;
 	int oldborderx = radius - (int)(cosf(percent) * radius);
 	int oldbordery = radius - (int)(sinf(percent) * radius);
-	for (int i = 1; i < 16; i++) 
+	for (int i = 1; i < 16; i++)
 	{
 		percent = ((float)i / 16.0 - 0.25) * M_PI_F;
 		borderx = radius - (int)(cosf(percent) * radius);
@@ -94,20 +92,19 @@ void Knob::Paint()
 		oldbordery = bordery;
 	}
 	surface()->DrawSetColor(notchCol);
-	percent = (((float)_value - (float)_min) / ((float)_max - (float)_min) - 0.5)*M_PI_F*1.5;
-	surface()->DrawLine(radius, radius, radius+(int)(sinf(percent) * radius), radius-(int)(cosf(percent) * radius));
+	percent = (((float)_value - (float)_min) / ((float)_max - (float)_min) - 0.5) * M_PI_F * 1.5;
+	surface()->DrawLine(radius, radius, radius + (int)(sinf(percent) * radius), radius - (int)(cosf(percent) * radius));
 	if (_dragging)
 	{
 		surface()->DrawSetTextFont(scheme()->GetIScheme(GetScheme())->GetFont("DefaultSmall"));
 		surface()->DrawSetTextPos(1, 1);
 		surface()->DrawSetTextColor(_darkcolor);
 		wchar_t value[16];
-		//_itow(_value, value, 10);
-		V_snwprintf(value, 10, L"%d", _value);
-		surface()->DrawPrintText(value,V_wcslen(value));
+		_itow(_value, value, 10);
+		surface()->DrawPrintText(value, V_wcslen(value));
 		surface()->DrawSetTextPos(0, 0);
 		surface()->DrawSetTextColor(_lightcolor);
-		surface()->DrawPrintText(value,V_wcslen(value));
+		surface()->DrawPrintText(value, V_wcslen(value));
 	}
 }
 
@@ -152,7 +149,7 @@ void Knob::OnCursorMoved(int x, int y)
 	{
 		return;
 	}
-	SetValue(_origvalue + (int)((x - _origx)*_speed));
+	SetValue(_origvalue + (int)((x - _origx) * _speed));
 	Repaint();
 }
 
@@ -191,7 +188,7 @@ public:
 	CColorChangePanel(Panel* pParent, const char* pName, const Color& color);
 	Color GetColor();
 	void SetColor(Color color);
-	void GetColorString(char *color);
+	void GetColorString(char* color);
 	virtual void PerformLayout();
 	virtual void OnCommand(const char* cmd);
 private:
@@ -207,16 +204,16 @@ private:
 
 //----------------------------------------------------------------------------------------
 
-CColorChangePanel::CColorChangePanel(Panel* pParent, const char* pName, const Color& color): Panel(pParent, pName)
+CColorChangePanel::CColorChangePanel(Panel* pParent, const char* pName, const Color& color) : Panel(pParent, pName)
 {
 	SetMinimumSize(64, 32);
-	m_pRedKnob = new Knob(this, "RedKnob",0,255,color.r());
+	m_pRedKnob = new Knob(this, "RedKnob", 0, 255, color.r());
 	m_pGreenKnob = new Knob(this, "GreenKnob", 0, 255, color.g());
 	m_pBlueKnob = new Knob(this, "BlueKnob", 0, 255, color.b());
 	m_pAlphaKnob = new Knob(this, "AlphaKnob", 0, 255, color.a());
 	m_pCopyButton = new Button(this, "RGBACopyButton", "Copy", this, "Copy");
 	m_pPasteButton = new Button(this, "RGBAPasteButton", "Paste", this, "Paste");
-	
+
 }
 
 
@@ -246,11 +243,11 @@ void CColorChangePanel::PerformLayout()
 {
 	int wide, tall;
 	GetSize(wide, tall);
-	int kx = m_pRedKnob->GetWide()/2;
+	int kx = m_pRedKnob->GetWide() / 2;
 	m_pRedKnob->SetPos(wide / 5 - kx, 0);
-	m_pGreenKnob->SetPos(2*wide / 5 - kx, 0);
-	m_pBlueKnob->SetPos(3*wide / 5 - kx, 0);
-	m_pAlphaKnob->SetPos(4*wide / 5 - kx, 0);
+	m_pGreenKnob->SetPos(2 * wide / 5 - kx, 0);
+	m_pBlueKnob->SetPos(3 * wide / 5 - kx, 0);
+	m_pAlphaKnob->SetPos(4 * wide / 5 - kx, 0);
 	m_pCopyButton->SetPos(0, 16);
 	m_pPasteButton->SetPos(wide / 2, 16);
 	m_pCopyButton->SetSize(wide / 2, 16);
@@ -294,8 +291,8 @@ public:
 CBorderLineChangePanel::CBorderLineChangePanel(Panel* pParent, const char* pName, const Color& color, int offsetx, int offsety) : Panel(pParent, pName)
 {
 	m_pColor = new CColorChangePanel(this, "BorderLineChangePanelColor", color);
-	m_pOffsetX = new Knob(this, "BorderLineChangePanelOffsetX", 0, 5, offsetx,0.05);
-	m_pOffsetY = new Knob(this, "BorderLineChangePanelOffsetY", 0, 5, offsety,0.05);
+	m_pOffsetX = new Knob(this, "BorderLineChangePanelOffsetX", 0, 5, offsetx, 0.05);
+	m_pOffsetY = new Knob(this, "BorderLineChangePanelOffsetY", 0, 5, offsety, 0.05);
 }
 void CBorderLineChangePanel::PerformLayout()
 {
@@ -338,7 +335,7 @@ void CBorderSideChangePanel::PerformLayout()
 		m_vpBorders[i]->SetBounds(0, i * 32, wide, 32);
 	}
 	m_pAddButton->SetBounds(0, count * 32, wide / 2, 24);
-	m_pRemoveButton->SetBounds(wide/2, count * 32, wide / 2, 24);
+	m_pRemoveButton->SetBounds(wide / 2, count * 32, wide / 2, 24);
 }
 
 void CBorderSideChangePanel::AddLine(Color color, int offsetx, int offsety)
@@ -346,7 +343,7 @@ void CBorderSideChangePanel::AddLine(Color color, int offsetx, int offsety)
 	m_vpBorders.AddToTail(new CBorderLineChangePanel(this, "BorderLineChangePanel", color, offsetx, offsety));
 }
 
-void CBorderSideChangePanel::OnCommand(const char *cmd)
+void CBorderSideChangePanel::OnCommand(const char* cmd)
 {
 	if (strcmp(cmd, "add") == 0)
 	{
@@ -355,7 +352,7 @@ void CBorderSideChangePanel::OnCommand(const char *cmd)
 		GetParent()->InvalidateLayout(true);
 		GetParent()->GetParent()->InvalidateLayout(true);
 	}
-	else if(strcmp(cmd,"remove") == 0)
+	else if (strcmp(cmd, "remove") == 0)
 	{
 		if (!m_vpBorders.IsEmpty())
 		{
@@ -428,7 +425,7 @@ const char* LookupSchemeSetting(const char* pchSetting, IScheme* pScheme)
 	}
 
 	// check the color area first
-	const char* colStr = ((KeyValues *)(pScheme->GetColorData()))->GetString(pchSetting, NULL);
+	const char* colStr = ((KeyValues*)(pScheme->GetColorData()))->GetString(pchSetting, NULL);
 	if (colStr)
 		return colStr;
 
@@ -436,7 +433,7 @@ const char* LookupSchemeSetting(const char* pchSetting, IScheme* pScheme)
 	colStr = pScheme->GetBaseSettings()->GetString(pchSetting, NULL);
 	if (colStr)
 	{
-		return LookupSchemeSetting(colStr,pScheme);
+		return LookupSchemeSetting(colStr, pScheme);
 	}
 
 	return pchSetting;
@@ -458,22 +455,20 @@ bool CheckColor(const char* colorName, IScheme* pScheme)
 
 //----------------------------------------------------------------------------------------
 
-CSchemeEditor::CSchemeEditor( vgui::Panel *pParent )
-:	vgui::Frame( pParent, "SchemeEditor" )
+CSchemeEditor::CSchemeEditor(vgui::Panel* pParent)
+	: vgui::Frame(pParent, "SchemeEditor")
 {
 	SetBounds(200, 200, 700, 400);
+	SetTitle("Scheme Editor", true);
 	m_pTabs = new PropertySheet(this, "SchemeEditorTabs", true);
 	m_pTabs->AddPage(new PanelListPanel(this, "SchemeEditorFonts"), "Fonts");
 	m_pTabs->AddPage(new PanelListPanel(this, "SchemeEditorColors"), "Colors");
 	m_pTabs->AddPage(new PanelListPanel(this, "SchemeEditorBorders"), "Borders");
 	reinterpret_cast<PanelListPanel*>(m_pTabs->GetPage(2))->SetFirstColumnWidth(0);
-	m_pPreviewButton = new Button(this, "SchemeEditorPreviewButton", "Button");
-	m_pPreviewCheckButton = new CheckButton(this, "SchemeEditorPreviewCheckButton", "");
-	m_pPreviewRadioButton = new RadioButton(this, "SchemeEditorPreviewRadioButton", "");
-	m_pPreviewLabel = new Label(this, "SchemeEditorPreviewLabel", "Preview");
 	m_pSaveButton = new Button(this, "SchemeEditorSaveButton", "Save", this, "save");
 	m_pSaveAsButton = new Button(this, "SchemeEditorSaveAsButton", "Save As", this, "saveas");
 	m_pApplyButton = new Button(this, "SchemeEditorApplyButton", "Apply", this, "apply");
+	m_pFileLabel = new Label(this, "ThemeLabel", "Themes");
 	m_pFileList = new TreeView(this, "ThemeSelector");
 	m_pDialog = NULL;
 	RepopulateFileList();
@@ -554,7 +549,7 @@ void CSchemeEditor::OnFileSelected(int itemindex)
 		data->AddSubKey(sch->GetBorders()->MakeCopy());
 		scheme()->SaveTheme(m_sCurrentFile);
 	}
-	
+
 	const char* filename = kv->GetString("Path");
 	scheme()->SetTheme(filename);
 	scheme()->SetTheme(filename);
@@ -683,17 +678,14 @@ void CSchemeEditor::PerformLayout()
 	BaseClass::PerformLayout();
 	int wide, tall;
 	GetSize(wide, tall);
-	m_pTabs->SetBounds(wide / 3 + 8, 32 + 24, wide / 3 - 16, tall - 32 - 24 - 16);
-	m_pPreviewButton->SetBounds(32, 64, 64, 24);
-	m_pPreviewCheckButton->SetPos(32, 64+32);
-	m_pPreviewRadioButton->SetPos(32, 64+64);
-	m_pPreviewLabel->SetPos(32, 32);
-	m_pSaveButton->SetBounds(wide / 3 + 8, 32, 64, 24);
-	m_pSaveAsButton->SetBounds(wide / 3 + 8 + 64 + 8, 32, 64, 24);
-	m_pApplyButton->SetBounds(wide / 3 + 8 + 64 + 8 + 64 + 8, 32, 64, 24);
-	m_pFileList->SetBounds(2 * wide / 3 + 8, 32, wide / 3 - 16, tall - 32 - 16);
+	m_pTabs->SetBounds(80, 32, wide - 266, tall - 42);
+	m_pSaveButton->SetBounds(9, 60, 64, 24);
+	m_pSaveAsButton->SetBounds(9, 92, 64, 24);
+	m_pApplyButton->SetBounds(9, 124, 64, 24);
+	m_pFileLabel->SetPos(wide - 179, 34);
+	m_pFileList->SetBounds(wide - 179, 59, 170, tall - 70);
 	PanelListPanel* listpanel = reinterpret_cast<PanelListPanel*>(m_pTabs->GetPage(1));
-	listpanel->SetFirstColumnWidth(max(16,listpanel->GetWide() - 128));
+	listpanel->SetFirstColumnWidth(max(16, listpanel->GetWide() - 128));
 }
 
 void ApplyBorderSide(KeyValues* borderside, CBorderSideChangePanel* sidepanel)
@@ -720,7 +712,7 @@ void CSchemeEditor::OnCommand(const char* cmd)
 {
 	if (strcmp(cmd, "apply") == 0)
 	{
-		PanelListPanel *colorlistpanel = reinterpret_cast<PanelListPanel*>(m_pTabs->GetPage(1));
+		PanelListPanel* colorlistpanel = reinterpret_cast<PanelListPanel*>(m_pTabs->GetPage(1));
 		IScheme* sch = scheme()->GetIScheme(GetScheme());
 		KeyValues* colorData = sch->GetBaseSettings();
 		char name[256];
@@ -732,7 +724,7 @@ void CSchemeEditor::OnCommand(const char* cmd)
 			colorData->SetString(name, color);
 		}
 		//colorData->SaveToFile(g_pFullFileSystem, "savedThemeBaseSettings.txt");
-		PanelListPanel *borderlistpanel = reinterpret_cast<PanelListPanel*>(m_pTabs->GetPage(2));
+		PanelListPanel* borderlistpanel = reinterpret_cast<PanelListPanel*>(m_pTabs->GetPage(2));
 		KeyValues* borderData = sch->GetBorders();
 		KeyValues* border;
 		KeyValues* borderside;
@@ -741,7 +733,7 @@ void CSchemeEditor::OnCommand(const char* cmd)
 			CBorderChangePanel* borderpanel = reinterpret_cast<CBorderChangePanel*>(borderlistpanel->GetItemPanel(i));
 			char name[64];
 			borderpanel->m_pLabel->GetText(name, 64);
-			border = borderData->FindKey(name,false);
+			border = borderData->FindKey(name, false);
 			if (border == NULL)
 				continue;
 			borderside = border->FindKey("Left", true);
@@ -791,7 +783,7 @@ void CSchemeEditor::OnCommand(const char* cmd)
 			scheme()->SaveTheme(m_sCurrentFile);
 		}
 	}
-	else 
+	else
 	{
 		BaseClass::OnCommand(cmd);
 	}
@@ -826,26 +818,3 @@ void CSchemeEditor::OnInputPrompt(KeyValues* kv)
 	m_pDialog = NULL;
 }
 
-
-
-
-//----------------------------------------------------------------------------------------
-
-static CSchemeEditor *g_pSchemeEditor = NULL;
-
-//----------------------------------------------------------------------------------------
-
-CON_COMMAND( toggle_schemeeditor, "Toggle the scheme editor" )
-{
-	if (g_pSchemeEditor)
-	{
-		g_pSchemeEditor->SetVisible(!g_pSchemeEditor->IsVisible());
-	}
-	else 
-	{
-		g_pSchemeEditor = vgui::SETUP_PANEL(new CSchemeEditor(NULL));
-		g_pSchemeEditor->InvalidateLayout(false, true);
-
-		g_pSchemeEditor->Activate();
-	}
-}

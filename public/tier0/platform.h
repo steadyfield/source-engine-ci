@@ -280,7 +280,7 @@ typedef signed char int8;
 #ifndef _WIN32
 #define itoa(value,str,len) Q_snprintf( str, len, "%d", value )
 #define itow(value,str,len) V_snwprintf( str, len, "%d", value )
-#define _itow(value,str,len) V_snwprintf( str, len, "%d", value )
+#define _itow(value,str,len) V_snwprintf( str, len, L"%d", value )
 #endif
 // From steam/steamtypes.h
 // RTime32

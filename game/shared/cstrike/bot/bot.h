@@ -14,7 +14,6 @@
 
 #ifndef BOT_H
 #define BOT_H
-
 #include "cbase.h"
 #include "in_buttons.h"
 #include "movehelper_server.h"
@@ -25,7 +24,7 @@
 #include "bot_constants.h"
 #include "nav_mesh.h"
 #include "gameinterface.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "shared_util.h"
 #include "util.h"
 #include "shareddefs.h"
@@ -84,7 +83,7 @@ template < class T > T * CreateBot( const BotProfile *profile, int team )
 
 	// This is a backdoor we use so when the engine calls ClientPutInServer (from CreateFakeClient), 
 	// expecting the game to make an entity for the fake client, we can make our special bot class
-	// instead of a CCSPlayer.
+	// instead of a CHL2MP_Player.
 	g_nClientPutInServerOverrides = 0;
 	ClientPutInServerOverride( ClientPutInServerOverride_Bot );
 	
@@ -126,7 +125,7 @@ template < class T > T * CreateBot( const BotProfile *profile, int team )
 /**
  * The base bot class from which bots for specific games are derived
  * A template is needed here because the CBot class must be derived from CBasePlayer, 
- * but also may need to be derived from a more specific player class, such as CCSPlayer
+ * but also may need to be derived from a more specific player class, such as CHL2MP_Player
  */
 template < class PlayerType >
 class CBot : public PlayerType
@@ -679,7 +678,7 @@ inline void CBot< PlayerType >::Reload( void )
 template < class PlayerType >
 inline float CBot< PlayerType >::GetActiveWeaponAmmoRatio( void ) const
 {
-	CWeaponCSBase *weapon = this->GetActiveCSWeapon();
+	CWeaponHL2MPBase *weapon = dynamic_cast<CWeaponHL2MPBase*>(this->GetActiveWeapon());
 
 	if (weapon == NULL)
 		return 0.0f;
@@ -698,7 +697,7 @@ inline float CBot< PlayerType >::GetActiveWeaponAmmoRatio( void ) const
 template < class PlayerType >
 inline bool CBot< PlayerType >::IsActiveWeaponClipEmpty( void ) const
 {
-	CWeaponCSBase *gun = this->GetActiveCSWeapon();
+	CWeaponHL2MPBase *gun = dynamic_cast<CWeaponHL2MPBase*>(this->GetActiveWeapon());
 
 	if (gun && gun->Clip1() == 0)
 		return true;
@@ -713,7 +712,8 @@ inline bool CBot< PlayerType >::IsActiveWeaponClipEmpty( void ) const
 template < class PlayerType >
 inline bool CBot< PlayerType >::IsActiveWeaponOutOfAmmo( void ) const
 {
-	CWeaponCSBase *weapon = this->GetActiveCSWeapon();
+	CWeaponHL2MPBase *weapon = dynamic_cast<CWeaponHL2MPBase*>(this->GetActiveWeapon());
+	
 
 	if (weapon == NULL)
 		return true;
@@ -1048,6 +1048,5 @@ extern bool IsSpotOccupied( CBaseEntity *me, const Vector &pos );	// if a player
 extern const Vector *FindNearbyHidingSpot( CBaseEntity *me, const Vector &pos, float maxRange = 1000.0f, bool isSniper = false, bool useNearest = false );
 extern const Vector *FindRandomHidingSpot( CBaseEntity *me, Place place, bool isSniper = false );
 extern const Vector *FindNearbyRetreatSpot( CBaseEntity *me, const Vector &start, float maxRange = 1000.0f, int avoidTeam = 0 );
-
 
 #endif // BOT_H

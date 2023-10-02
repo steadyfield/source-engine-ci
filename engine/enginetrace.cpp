@@ -112,6 +112,10 @@ public:
 
 	//finds brushes in an AABB, prone to some false positives
 	virtual void GetBrushesInAABB( const Vector &vMins, const Vector &vMaxs, CUtlVector<int> *pOutput, int iContentsMask = 0xFFFFFFFF );
+	
+	virtual bool GetDisplacementInfo(int displacementIndex, CDispCollTree*& output);
+
+	virtual void GetDisplacementsInAABB( const Vector &vMins, const Vector &vMaxs, CUtlVector<int> *pOutput );
 
 	//Creates a CPhysCollide out of all displacements wholly or partially contained in the specified AABB
 	virtual CPhysCollide* GetCollidableFromDisplacementsInAABB( const Vector& vMins, const Vector& vMaxs );
@@ -596,6 +600,54 @@ void CEngineTrace::GetBrushesInAABB( const Vector &vMins, const Vector &vMaxs, C
 		GetBrushesInAABB_ParseLeaf( ptBBoxExtents, pBSPData, &pBSPData->map_leafs[pLeafList[i]], pOutput, iContentsMask, counters.Base() );
 }
 
+bool CEngineTrace::GetDisplacementInfo(int displacementIndex, CDispCollTree* &output)
+{
+	if (displacementIndex < 0 || displacementIndex >= g_DispCollTreeCount)
+		return false;
+	output = &g_pDispCollTrees[displacementIndex];
+	return true;
+}
+
+
+void CEngineTrace::GetDisplacementsInAABB(const Vector& vMins, const Vector& vMaxs, CUtlVector<int> *pOutput)
+{
+	CCollisionBSPData* pBSPData = GetCollisionBSPData();
+
+	int* pLeafList = (int*)stackalloc(pBSPData->numleafs * sizeof(int));
+	int iLeafCount = CM_BoxLeafnums(vMins, vMaxs, pLeafList, pBSPData->numleafs, NULL);
+
+
+	TraceInfo_t* pTraceInfo = BeginTrace();
+
+	TraceCounter_t* pCounters = pTraceInfo->GetDispCounters();
+	int count = pTraceInfo->GetCount();
+
+	// For each leaf in which the box lies, Get all displacements in that leaf and use their triangles to create the mesh
+	for (int i = 0; i < iLeafCount; ++i)
+	{
+		// Current leaf
+		cleaf_t curLeaf = pBSPData->map_leafs[pLeafList[i]];
+
+		// Test box against all displacements in the leaf.
+		for (int k = 0; k < curLeaf.dispCount; k++)
+		{
+			int dispIndex = pBSPData->map_dispList[curLeaf.dispListStart + k];
+			CDispCollTree* pDispTree = &g_pDispCollTrees[dispIndex];
+
+			// make sure we only check this brush once per trace/stab
+			if (!pTraceInfo->Visit(pDispTree->m_iCounter, count, pCounters))
+				continue;
+
+			// If this displacement doesn't touch our test box, don't add it to the list.
+			if (!IsBoxIntersectingBox(vMins, vMaxs, pDispTree->m_mins, pDispTree->m_maxs))
+				continue;
+
+			pOutput->AddToTail(dispIndex);
+		}
+	}
+
+	EndTrace(pTraceInfo);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -708,7 +760,7 @@ CPhysCollide* CEngineTrace::GetCollidableFromDisplacementsInAABB( const Vector& 
 	}// for each leaf
 
 	EndTrace( pTraceInfo );
-
+	
 	CPhysCollide* pCollide = physcollision->ConvertPolysoupToCollide ( pDispCollideSoup, false );
 
 	// clean up poly soup
@@ -716,6 +768,8 @@ CPhysCollide* CEngineTrace::GetCollidableFromDisplacementsInAABB( const Vector& 
 
 	return pCollide;
 }
+
+
 
 bool CEngineTrace::GetBrushInfo( int iBrush, CUtlVector<Vector4D> *pPlanesOut, int *pContentsOut )
 {

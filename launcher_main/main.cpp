@@ -27,8 +27,8 @@
 #include <string.h>
 #define MAX_PATH PATH_MAX
 #endif
+#include "tier0/platform.h"
 
-#include "tier0/basetypes.h"
 
 #ifdef WIN32
 typedef int (*LauncherMain_t)( HINSTANCE hInstance, HINSTANCE hPrevInstance, 
@@ -37,6 +37,12 @@ typedef int (*LauncherMain_t)( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 typedef int (*LauncherMain_t)( int argc, char **argv );
 #else
 #error
+#endif
+
+#ifdef _WIN64
+#define WIN_ARCH "win64"
+#else
+#define WIN_ARCH "win32"
 #endif
 
 #ifdef WIN32
@@ -86,10 +92,14 @@ static char *GetBaseDir( const char *pszBuffer )
 	return basedir;
 }
 
+
 #ifdef WIN32
+
 
 int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
+	
+
 	// Must add 'bin' to the path....
 	char* pPath = getenv("PATH");
 
@@ -108,13 +118,13 @@ int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
 #ifdef _DEBUG
 	int len = 
 #endif
-	_snprintf( szBuffer, sizeof( szBuffer ), "PATH=%s\\bin\\;%s", pRootDir, pPath );
+	_snprintf( szBuffer, sizeof( szBuffer ), "PATH=%s\\bin_" WIN_ARCH "\\;%s", pRootDir, pPath );
 	szBuffer[sizeof( szBuffer ) - 1] = '\0';
 	assert( len < sizeof( szBuffer ) );
 	_putenv( szBuffer );
 
 	// Assemble the full path to our "launcher.dll"
-	_snprintf( szBuffer, sizeof( szBuffer ), "%s\\bin\\launcher.dll", pRootDir );
+	_snprintf( szBuffer, sizeof( szBuffer ), "%s\\bin_" WIN_ARCH "\\launcher.dll", pRootDir );
 	szBuffer[sizeof( szBuffer ) - 1] = '\0';
 
 	// STEAM OK ... filesystem not mounted yet
@@ -217,12 +227,12 @@ static void WaitForDebuggerConnect( int argc, char *argv[], int time )
 int main( int argc, char *argv[] )
 {
 	char ld_path[4196];
-	char *path = "bin/";
+	char *path = "bin_" DEST_OS "/";
 	char *ld_env;
 
 	if( (ld_env = getenv("LD_LIBRARY_PATH")) != NULL )
 	{
-		snprintf(ld_path, sizeof(ld_path), "%s:bin/", ld_env);
+		snprintf(ld_path, sizeof(ld_path), "%s:bin_" DEST_OS "/", ld_env);
 		path = ld_path;
 	}
 
@@ -235,12 +245,12 @@ int main( int argc, char *argv[] )
 		execve(argv[0], argv, environ);
 	}
 
-	void *launcher = dlopen( "bin/liblauncher" DLL_EXT_STRING, RTLD_NOW );
+	void *launcher = dlopen( "bin_" DEST_OS "/liblauncher" DLL_EXT_STRING, RTLD_NOW );
 	if ( !launcher )
 		fprintf( stderr, "%s\nFailed to load the launcher\n", dlerror() );
 
 	if( !launcher )
-		launcher = dlopen( "bin/launcher" DLL_EXT_STRING, RTLD_NOW );
+		launcher = dlopen( "bin_" DEST_OS "/launcher" DLL_EXT_STRING, RTLD_NOW );
 
 	if ( !launcher )
 	{

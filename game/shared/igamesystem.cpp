@@ -223,8 +223,11 @@ bool IGameSystem::InitAllSystems()
 		Q_snprintf( sz, sizeof( sz ), "%s->Init():Finish", sys->Name() );
 		XBX_rTimeStampLog( Plat_FloatTime(), sz );
 #endif
-		if ( !valid )
+		if (!valid)
+		{
+			Msg("Failed to load %s\n", sys->Name());
 			return false;
+		}
 	}
 
 	return true;
@@ -344,6 +347,17 @@ void IGameSystem::PreClientUpdateAllSystems()
 
 #endif
 
+
+#ifdef VSCRIPT	
+#ifdef MAPBASE_VSCRIPT
+
+	void IGameSystem::RegisterVScriptAllSystems()
+	{
+		InvokeMethod(&IGameSystem::RegisterVScript);
+	}
+
+#endif
+#endif
 
 //-----------------------------------------------------------------------------
 // Invokes a method on all installed game systems in proper order

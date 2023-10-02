@@ -635,7 +635,7 @@ CBasePlayer *UTIL_GetLocalPlayer( void )
 #endif
 		}
 
-		return NULL;
+		return UTIL_PlayerByIndex(1);
 	}
 
 	return UTIL_PlayerByIndex( 1 );
@@ -1148,6 +1148,29 @@ void UTIL_SayTextFilter( IRecipientFilter& filter, const char *pText, CBasePlaye
 	MessageEnd();
 }
 
+void UTIL_CommandPrint(CBasePlayer* pPlayer, const char* fmt, ...)
+{
+	if (pPlayer)
+	{
+		va_list args;
+		va_start(args, fmt);
+		char formatted[8192];
+		//sprintf(formatted, fmt, args);
+		int val = _vsntprintf(formatted, 8192, fmt, args);
+		if (val == -1)
+			return;
+		va_end(args);
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, formatted);
+	}
+	else
+	{
+		va_list args;
+		va_start(args, fmt);
+		Msg(fmt,args);
+		va_end(args);
+	}
+}
+
 void UTIL_SayText2Filter( IRecipientFilter& filter, CBasePlayer *pEntity, bool bChat, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
 	UserMessageBegin( filter, "SayText2" );
@@ -1295,9 +1318,11 @@ void UTIL_SetModel( CBaseEntity *pEntity, const char *pModelName )
 	int i = modelinfo->GetModelIndex( pModelName );
 	if ( i == -1 )	
 	{
-		Error("%i/%s - %s:  UTIL_SetModel:  not precached: %s\n", pEntity->entindex(),
-			STRING( pEntity->GetEntityName() ),
-			pEntity->GetClassname(), pModelName);
+		//pEntity->Remove();
+		i = 1;
+		//Error("%i/%s - %s:  UTIL_SetModel:  not precached: %s\n", pEntity->entindex(),
+		//	STRING( pEntity->GetEntityName() ),
+		//	pEntity->GetClassname(), pModelName);
 	}
 
 	CBaseAnimating *pAnimating = pEntity->GetBaseAnimating();
@@ -3066,7 +3091,7 @@ void CC_KDTreeTest( const CCommand &args )
 	vtune( false );
 }
 
-static ConCommand kdtree_test( "kdtree_test", CC_KDTreeTest, "Tests spatial partition for entities queries.", FCVAR_CHEAT );
+//static ConCommand kdtree_test( "kdtree_test", CC_KDTreeTest, "Tests spatial partition for entities queries.", FCVAR_CHEAT );
 
 void CC_VoxelTreeView( void )
 {
@@ -3085,7 +3110,7 @@ void CC_VoxelTreePlayerView( void )
 	partition->RenderObjectsInPlayerLeafs( vecStart - VEC_HULL_MIN_SCALED( pPlayer ), vecStart + VEC_HULL_MAX_SCALED( pPlayer ), 3.0f  );
 }
 
-static ConCommand voxeltree_playerview( "voxeltree_playerview", CC_VoxelTreePlayerView, "View entities in the voxel-tree at the player position.", FCVAR_CHEAT );
+//static ConCommand voxeltree_playerview( "voxeltree_playerview", CC_VoxelTreePlayerView, "View entities in the voxel-tree at the player position.", FCVAR_CHEAT );
 
 void CC_VoxelTreeBox( const CCommand &args )
 {

@@ -76,6 +76,7 @@ static ConVar	sv_max_connects_sec( "sv_max_connects_sec", "2.0", 0, "Maximum con
 static ConVar	sv_max_connects_window( "sv_max_connects_window", "4", 0, "Window over which to average connections per second averages." );
 // This defaults to zero so that somebody spamming the server with packets cannot lock out other clients.
 static ConVar	sv_max_connects_sec_global( "sv_max_connects_sec_global", "0", 0, "Maximum connections per second to respond to from anywhere." );
+static ConVar	sv_allow_any_connect( "sv_allow_any_connect", "0", 0, "Allow users outside of LAN to connect" );
 
 static CIPRateLimit s_queryRateChecker( &sv_max_queries_sec, &sv_max_queries_window, &sv_max_queries_sec_global );
 static CIPRateLimit s_connectRateChecker( &sv_max_connects_sec, &sv_max_connects_window, &sv_max_connects_sec_global );
@@ -466,7 +467,7 @@ IClient *CBaseServer::ConnectClient ( netadr_t &adr, int protocol, int challenge
 	{
 #ifndef NO_STEAM
 		// LAN servers restrict to class b IP addresses
-		if ( !CheckIPRestrictions( adr, authProtocol ) )
+		if ( !CheckIPRestrictions( adr, authProtocol ) && !sv_allow_any_connect.GetBool())
 		{
 			RejectConnection( adr, clientChallenge, "#GameUI_ServerRejectLANRestrict");
 			return NULL;
@@ -936,8 +937,6 @@ void CBaseServer::UserInfoChanged( int nClientIndex )
 
 void CBaseServer::FillServerInfo(SVC_ServerInfo &serverinfo)
 {
-	static char gamedir[MAX_OSPATH];
-	Q_FileBase( com_gamedir, gamedir, sizeof( gamedir ) );
 
 	serverinfo.m_nProtocol		= PROTOCOL_VERSION;
 	serverinfo.m_nServerCount	= GetSpawnCount();
@@ -955,7 +954,7 @@ void CBaseServer::FillServerInfo(SVC_ServerInfo &serverinfo)
 	serverinfo.m_cOS = tolower( serverinfo.m_cOS );
 
 	serverinfo.m_fTickInterval	= GetTickInterval();
-	serverinfo.m_szGameDir		= gamedir;
+	serverinfo.m_szGameDir		= GetCurrentMod();
 	serverinfo.m_szMapName		= GetMapName();
 	serverinfo.m_szSkyName		= m_szSkyname;
 	serverinfo.m_szHostName		= GetName();
@@ -1973,8 +1972,13 @@ void CBaseServer::RunFrame( void )
 //-----------------------------------------------------------------------------
 CBaseClient * CBaseServer::GetFreeClient( netadr_t &adr )
 {
+
+	
+
 	CBaseClient *freeclient = NULL;
 	
+	
+
 	for ( int slot = 0 ; slot < m_Clients.Count() ; slot++ )
 	{
 		CBaseClient *client = m_Clients[slot];
@@ -2080,8 +2084,8 @@ CBaseClient *CBaseServer::CreateFakeClient( const char *name )
 
 	// fake some cvar settings
 	//fakeclient->SetUserCVar( "name", name ); // set already by Connect()
-	fakeclient->SetUserCVar( "rate", "30000" );
-	fakeclient->SetUserCVar( "cl_updaterate", "20" );
+	fakeclient->SetUserCVar( "rate", "131072");
+	fakeclient->SetUserCVar( "cl_updaterate", "64" );
 	fakeclient->SetUserCVar( "cl_interp_ratio", "1.0" );
 	fakeclient->SetUserCVar( "cl_interp", "0.1" );
 	fakeclient->SetUserCVar( "cl_interpolate", "0" );

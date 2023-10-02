@@ -125,6 +125,17 @@ defaultConfigInfo_t PortalInfo =
 };
 
 // Portal
+defaultConfigInfo_t SourceBoxInfo =
+{
+	"SourceBox",
+	"sourcebox_" DEST_OS,
+	"sourcebox.fgd",
+	"info_player_start",
+	"sourcebox_" DEST_OS ".exe",
+	GetAppSteamAppId(k_App_SOURCEBOX)
+};
+
+// Portal
 defaultConfigInfo_t SourceTestInfo =
 {
 	"SourceTest",
@@ -889,6 +900,7 @@ bool CGameConfigManager::GetDefaultGameBlock( KeyValues *pIn )
 	CUtlVector<defaultConfigInfo_t> defaultConfigs;
 
 	// Add HL2 games to list
+	defaultConfigs.AddToTail( SourceBoxInfo );
 	defaultConfigs.AddToTail( HL2DMInfo );
 	defaultConfigs.AddToTail( HL2Info );
 	defaultConfigs.AddToTail( Episode1Info );

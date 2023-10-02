@@ -28,7 +28,7 @@
 #define CLIENTNAME_TIMED_OUT "%s timed out"
 
 // This is the default, see shareddefs.h for mod-specific value, which can override this
-#define DEFAULT_TICK_INTERVAL	(0.015)				// 15 msec is the default
+#define DEFAULT_TICK_INTERVAL  	(0.015)/*(0.015)*/				// 15 msec is the default
 #define MINIMUM_TICK_INTERVAL   (0.001)
 #define MAXIMUM_TICK_INTERVAL	(0.1)
 
@@ -62,7 +62,7 @@
 #define SP_MODEL_INDEX_BITS			13
 
 // How many bits to use to encode an edict.
-#define	MAX_EDICT_BITS				11			// # of bits needed to represent max edicts
+#define	MAX_EDICT_BITS				14			// # of bits needed to represent max edicts
 // Max # of edicts in a level
 #define	MAX_EDICTS					(1<<MAX_EDICT_BITS)
 
@@ -433,6 +433,8 @@ enum Collision_Group_t
 // user message max payload size (note, this value is used by the engine, so MODs cannot change it)
 #define MAX_USER_MSG_DATA 255
 #define MAX_ENTITY_MSG_DATA 255
+
+#define BOUNDSTYPE int
 
 #define SOURCE_MT
 #ifdef SOURCE_MT

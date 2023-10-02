@@ -41,6 +41,10 @@ class ConCommandBase;
 struct characterset_t;
 
 
+extern char s_convar_capture[64][8192];
+extern int s_current_capture;
+extern bool s_free_captures[64];
+extern SpewRetval_t CaptureSpewFunc(SpewType_t type, const tchar* pMsg);
 
 //-----------------------------------------------------------------------------
 // Any executable that wants to use ConVars need to implement one of
@@ -69,8 +73,8 @@ void ConVar_PublishToVXConsole();
 typedef void ( *FnCommandCallbackVoid_t )( void );
 typedef void ( *FnCommandCallback_t )( const CCommand &command );
 
-#define COMMAND_COMPLETION_MAXITEMS		64
-#define COMMAND_COMPLETION_ITEM_LENGTH	64
+#define COMMAND_COMPLETION_MAXITEMS		128
+#define COMMAND_COMPLETION_ITEM_LENGTH	128
 
 //-----------------------------------------------------------------------------
 // Returns 0 to COMMAND_COMPLETION_MAXITEMS worth of completion strings
@@ -174,6 +178,11 @@ protected:
 	static IConCommandBaseAccessor	*s_pAccessor;
 };
 
+enum
+{
+	COMMAND_MAX_ARGC = 64,
+	COMMAND_MAX_LENGTH = 512,
+};
 
 //-----------------------------------------------------------------------------
 // Command tokenizer
@@ -182,7 +191,7 @@ class CCommand
 {
 public:
 	CCommand();
-	CCommand( int nArgC, const char **ppArgV );
+	//CCommand( int nArgC, const char **ppArgV );
 	bool Tokenize( const char *pCommand, characterset_t *pBreakSet = NULL );
 	void Reset();
 
@@ -201,17 +210,20 @@ public:
 	static characterset_t* DefaultBreakSet();
 
 private:
-	enum
-	{
-		COMMAND_MAX_ARGC = 64,
-		COMMAND_MAX_LENGTH = 512,
-	};
+	
+	void SquareBracketCheck(int i, const char* pCommand, int& c, int& index, int maxlen);
+	void CurlyBracketCheck(int i, const char* pCommand, int& c, int& index, int maxlen);
+	int GetArguments(const char* pCommand);
+	bool GetArgument(const char* pCommand, int maxlen, int& index, int i);
+	bool GetApostrophed(const char* pCommand, int maxlen, int& index, int i);
+	bool GetQuoted(const char* pCommand, int maxlen, int& index, int i);
+	int ParseBrackets(char* output, int& index, int i, bool inconvar, bool inint);
 
 	int		m_nArgc;
 	int		m_nArgv0Size;
 	char	m_pArgSBuffer[ COMMAND_MAX_LENGTH ];
 	char	m_pArgvBuffer[ COMMAND_MAX_LENGTH ];
-	const char*	m_ppArgv[ COMMAND_MAX_ARGC ];
+	char	m_ppArgv[ COMMAND_MAX_ARGC ][ COMMAND_MAX_LENGTH ];
 };
 
 inline int CCommand::MaxCommandLength()

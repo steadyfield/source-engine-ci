@@ -18,7 +18,7 @@
 	#include "ndebugoverlay.h"
 	#include "env_debughistory.h"
 #else
-	#include "c_portal_player.h"
+	#include "c_hl2mp_player.h"
 #endif
 #include "PortalSimulation.h"
 
@@ -614,6 +614,16 @@ void UTIL_Portal_TraceRay( const CProp_Portal *pPortal, const Ray_t &ray, unsign
 			bCopyBackBrushTraceData = true;
 		}
 
+		if (portalSimulator.m_DataAccess.Simulation.Static.World.Displacements.pCollideable && sv_portal_trace_vs_world.GetBool())
+		{
+			physcollision->TraceBox(ray, portalSimulator.m_DataAccess.Simulation.Static.World.Displacements.pCollideable, vec3_origin, vec3_angle, &TempTrace);
+			if (TempTrace.fraction < pTrace->fraction)
+			{
+				*pTrace = TempTrace;
+				bCopyBackBrushTraceData = true;
+			}
+		}
+
 		if( bTraceHolyWall )
 		{
 			if( portalSimulator.m_DataAccess.Simulation.Static.Wall.Local.Tube.pCollideable )
@@ -637,11 +647,30 @@ void UTIL_Portal_TraceRay( const CProp_Portal *pPortal, const Ray_t &ray, unsign
 				}
 			}
 
+			if (portalSimulator.m_DataAccess.Simulation.Static.Wall.Local.Displacements.pCollideable)
+			{
+				physcollision->TraceBox(ray, portalSimulator.m_DataAccess.Simulation.Static.Wall.Local.Displacements.pCollideable, vec3_origin, vec3_angle, &TempTrace);
+				if ((TempTrace.fraction < pTrace->fraction))
+				{
+					*pTrace = TempTrace;
+					bCopyBackBrushTraceData = true;
+				}
+			}
+
 			//if( portalSimulator.m_DataAccess.Simulation.Static.Wall.RemoteTransformedToLocal.Brushes.pCollideable && sv_portal_trace_vs_world.GetBool() )
 			if( bTraceTransformedGeometry && pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Brushes.pCollideable )
 			{
 				physcollision->TraceBox( ray, pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Brushes.pCollideable, portalSimulator.m_DataAccess.Placement.ptaap_LinkedToThis.ptOriginTransform, portalSimulator.m_DataAccess.Placement.ptaap_LinkedToThis.qAngleTransform, &TempTrace );
 				if( (TempTrace.fraction < pTrace->fraction) )
+				{
+					*pTrace = TempTrace;
+					bCopyBackBrushTraceData = true;
+				}
+			}
+			if (bTraceTransformedGeometry && pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Displacements.pCollideable)
+			{
+				physcollision->TraceBox(ray, pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Displacements.pCollideable, portalSimulator.m_DataAccess.Placement.ptaap_LinkedToThis.ptOriginTransform, portalSimulator.m_DataAccess.Placement.ptaap_LinkedToThis.qAngleTransform, &TempTrace);
+				if ((TempTrace.fraction < pTrace->fraction))
 				{
 					*pTrace = TempTrace;
 					bCopyBackBrushTraceData = true;
@@ -845,7 +874,7 @@ void UTIL_Portal_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, c
 	CPortalSimulator *pPortalSimulator = NULL;
 	if( pEntity->IsPlayer() )
 	{
-		C_Prop_Portal *pPortal = ((C_Portal_Player *)pEntity)->m_hPortalEnvironment.Get();
+		C_Prop_Portal *pPortal = ((C_HL2MP_Player *)pEntity)->m_hPortalEnvironment.Get();
 		if( pPortal )
 			pPortalSimulator = &pPortal->m_PortalSimulator;
 	}
@@ -929,6 +958,20 @@ void UTIL_Portal_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, c
 				}
 			}
 
+			if (pPortalSimulator->m_DataAccess.Simulation.Static.World.Displacements.pCollideable &&
+				sv_portal_trace_vs_world.GetBool())
+			{
+				//physcollision->TraceCollide( vecAbsStart, vecAbsEnd, pCollision, qCollisionAngles, 
+				//							pPortalSimulator->m_DataAccess.Simulation.Static.World.Brushes.pCollideable, vec3_origin, vec3_angle, &tempTrace );
+
+				physcollision->TraceBox(entRay, MASK_ALL, NULL, pPortalSimulator->m_DataAccess.Simulation.Static.World.Displacements.pCollideable, vec3_origin, vec3_angle, &tempTrace);
+
+				if (tempTrace.startsolid || (tempTrace.fraction < pTrace->fraction))
+				{
+					*pTrace = tempTrace;
+				}
+			}
+
 			//if( pPortalSimulator->m_DataAccess.Simulation.Static.Wall.RemoteTransformedToLocal.Brushes.pCollideable &&
 			if( pLinkedPortalSimulator &&
 				pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Brushes.pCollideable &&
@@ -941,6 +984,22 @@ void UTIL_Portal_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, c
 				physcollision->TraceBox( entRay, MASK_ALL, NULL, pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Brushes.pCollideable, pPortalSimulator->m_DataAccess.Placement.ptaap_LinkedToThis.ptOriginTransform, pPortalSimulator->m_DataAccess.Placement.ptaap_LinkedToThis.qAngleTransform, &tempTrace );
 
 				if ( tempTrace.startsolid || (tempTrace.fraction < pTrace->fraction) )
+				{
+					*pTrace = tempTrace;
+				}
+			}
+
+			if (pLinkedPortalSimulator &&
+				pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Displacements.pCollideable &&
+				sv_portal_trace_vs_world.GetBool() &&
+				sv_portal_trace_vs_holywall.GetBool())
+			{
+				//physcollision->TraceCollide( vecAbsStart, vecAbsEnd, pCollision, qCollisionAngles,
+				//							pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Brushes.pCollideable, pPortalSimulator->m_DataAccess.Placement.ptaap_LinkedToThis.ptOriginTransform, pPortalSimulator->m_DataAccess.Placement.ptaap_LinkedToThis.qAngleTransform, &tempTrace );
+
+				physcollision->TraceBox(entRay, MASK_ALL, NULL, pLinkedPortalSimulator->m_DataAccess.Simulation.Static.World.Displacements.pCollideable, pPortalSimulator->m_DataAccess.Placement.ptaap_LinkedToThis.ptOriginTransform, pPortalSimulator->m_DataAccess.Placement.ptaap_LinkedToThis.qAngleTransform, &tempTrace);
+
+				if (tempTrace.startsolid || (tempTrace.fraction < pTrace->fraction))
 				{
 					*pTrace = tempTrace;
 				}
@@ -960,6 +1019,24 @@ void UTIL_Portal_TraceEntity( CBaseEntity *pEntity, const Vector &vecAbsStart, c
 						tempTrace.startsolid = true;
 
 					if( tempTrace.fractionleftsolid == 1.0f )
+						tempTrace.allsolid = true;
+
+					*pTrace = tempTrace;
+				}
+			}
+
+			if (pPortalSimulator->m_DataAccess.Simulation.Static.Wall.Local.Displacements.pCollideable &&
+				sv_portal_trace_vs_holywall.GetBool())
+			{
+
+				physcollision->TraceBox(entRay, MASK_ALL, NULL, pPortalSimulator->m_DataAccess.Simulation.Static.Wall.Local.Displacements.pCollideable, vec3_origin, vec3_angle, &tempTrace);
+
+				if (tempTrace.startsolid || (tempTrace.fraction < pTrace->fraction))
+				{
+					if (tempTrace.fraction == 0.0f)
+						tempTrace.startsolid = true;
+
+					if (tempTrace.fractionleftsolid == 1.0f)
 						tempTrace.allsolid = true;
 
 					*pTrace = tempTrace;

@@ -41,6 +41,7 @@ projects={
 		'filesystem',
 		'game/client',
 		'game/server',
+        'game/gamepadui',
 		'gameui',
 		'inputsystem',
 		'ivp/havana',
@@ -51,12 +52,13 @@ projects={
 		'launcher',
 		'launcher_main',
 		'materialsystem',
-#		'materialsystem/shaderapiempty',
+		'materialsystem/shaderapiempty',
 		'materialsystem/shaderapidx9',
 		'materialsystem/shaderlib',
 		'materialsystem/stdshaders',
 		'mathlib',
 		'particles',
+        'raytrace',
 		'scenefilecache',
 		'serverbrowser',
 		'soundemittersystem',
@@ -79,6 +81,7 @@ projects={
 		'utils/vtex',
 		'unicode',
 		'video',
+		#'vscript'
 	],
 	'tests': [
 		'appframework',
@@ -130,6 +133,24 @@ projects={
 		'vstdlib',
 		'vtf',
 		'stub_steam'
+	],
+	'updater':[
+		'tier0',
+		'tier1',
+		'tier2',
+		'tier3',
+		'vgui2/vgui_controls',
+		'vgui2/src',
+		'vstdlib',
+		'filesystem',
+		'vpklib',
+		'inputsystem',
+		'vgui2/matsys_controls',
+		'vgui2/vgui_surfacelib',
+		'appframework',
+		'stub_steam',
+		'utils/updater',
+		'utils/updater_launcher'
 	]
 }
 
@@ -166,6 +187,9 @@ def define_platform(conf):
 		conf.options.SDL = False
 		conf.define('DEDICATED', 1)
 
+	if conf.options.UPDATER:
+		conf.define("UPDATER", 1)
+		
 	if conf.options.TESTS:
 		conf.define('UNITTESTS', 1)
 
@@ -262,6 +286,9 @@ def options(opt):
 
 	grp.add_option('-D', '--debug-engine', action = 'store_true', dest = 'DEBUG_ENGINE', default = False,
 		help = 'build with -DDEBUG [default: %default]')
+	
+	grp.add_option('-u', '--updater', action = 'store_true', dest = 'UPDATER', default = False,
+		help = 'build the updater [default: %default]')
 
 	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = 'int', default = sys.platform != 'win32',
 		help = 'build engine with SDL [default: %default]')
@@ -269,7 +296,7 @@ def options(opt):
 	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = 'int', default = sys.platform != 'win32',
 		help = 'build engine with ToGL [default: %default]')
 
-	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = 'string', default = 'hl2',
+	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = 'string', default = 'sourcebox',
 		help = 'build games [default: %default]')
 
 	grp.add_option('--use-ccache', action = 'store_true', dest = 'CCACHE', default = False,
@@ -321,7 +348,8 @@ def check_deps(conf):
 			'wininet',
 			'ole32',
 			'shlwapi',
-			'imm32'
+			'imm32',
+			'oleaut32'
 		]
 
 		if conf.env.COMPILER_CC == 'msvc':
@@ -396,6 +424,9 @@ def check_deps(conf):
 		conf.check(lib='dxguid', uselib_store='DXGUID')
 		if conf.options.OPUS:
 			conf.check(lib='opus', uselib_store='OPUS')
+		if conf.options.UPDATER:
+			conf.check(lib='curl', uselib_store='CURL')
+			conf.check(lib='bit7z', uselib_store='BIT7Z')
 
 		# conf.multicheck(*a, run_all_tests = True, mandatory = True)
 
@@ -428,6 +459,8 @@ def configure(conf):
 	if conf.env.DEST_OS == 'win32':
 		projects['game'] += ['utils/bzip2']
 		projects['dedicated'] += ['utils/bzip2']
+		projects['game'] += ['utils/lzma','utils/vbsp','utils/vrad','utils/vrad_launcher','utils/vvis','utils/vvis_launcher']
+		
 	if conf.options.OPUS or conf.env.DEST_OS == 'android':
 		projects['game'] += ['engine/voice_codecs/opus']
 
@@ -570,10 +603,14 @@ def configure(conf):
 	conf.env.append_unique('INCLUDES', [os.path.abspath('common/')])
 
 	check_deps( conf )
+	conf.env.UPDATER = conf.options.UPDATER
 
 	# indicate if we are packaging for Linux/BSD
 	if conf.env.DEST_OS != 'android':
-		conf.env.LIBDIR = conf.env.PREFIX+'/bin/'
+		if conf.options.DEDICATED:
+			conf.env.LIBDIR = conf.env.PREFIX+('/updater' if conf.options.UPDATER else '/bin')+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'_srcds/'
+		else:
+			conf.env.LIBDIR = conf.env.PREFIX+('/updater' if conf.options.UPDATER else '/bin')+'_'+conf.env.DEST_OS.replace("32","64" if conf.options.ALLOW64 else "32")+'/'
 		conf.env.TESTDIR = conf.env.PREFIX+'/tests/'
 		conf.env.BINDIR = conf.env.PREFIX
 	else:
@@ -587,6 +624,8 @@ def configure(conf):
 		conf.add_subproject(projects['tests'])
 	elif conf.options.DEDICATED:
 		conf.add_subproject(projects['dedicated'])
+	elif conf.options.UPDATER:
+		conf.add_subproject(projects['updater'])
 	else:
 		conf.add_subproject(projects['game'])
 
@@ -601,18 +640,27 @@ def build(bld):
 	if bld.env.DEST_OS == 'win32':
 		projects['game'] += ['utils/bzip2']
 		projects['dedicated'] += ['utils/bzip2']
+		projects['game'] += ['utils/lzma','utils/vbsp','utils/vrad','utils/vrad_launcher','utils/vvis','utils/vvis_launcher']
 
 	if bld.env.OPUS or bld.env.DEST_OS == 'android':
 		projects['game'] += ['engine/voice_codecs/opus']
+    
 
 	if bld.env.TESTS:
 		bld.add_subproject(projects['tests'])
 	elif bld.env.DEDICATED:
 		bld.add_subproject(projects['dedicated'])
+	elif bld.env.UPDATER:
+		if bld.env.DEST_OS == 'win32':
+			sdl_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, 'libcurl.dll')
+			sz_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, '7zxa.dll')
+			bld.install_files(bld.env.LIBDIR, [sdl_path,sz_path])
+		bld.add_subproject(projects['updater'])
 	else:
 		if bld.env.TOGLES:
 			projects['game'] += ['togles']
 		elif bld.env.GL:
 			projects['game'] += ['togl']
 
+		print(projects['game'])
 		bld.add_subproject(projects['game'])

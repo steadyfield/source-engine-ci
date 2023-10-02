@@ -113,8 +113,15 @@ ConVar cl_forwardspeed( "cl_forwardspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT
 ConVar cl_backspeed( "cl_backspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 #endif // CSTRIKE_DLL
 
+
+ConVar  sv_disable_explosion_damage("sv_disable_explosion_damage", "0", FCVAR_NOTIFY, "If enabled, will disable damage from explosions.");
+ConVar  sv_disable_explosion_ringing("sv_disable_explosion_ringing", "0", FCVAR_NOTIFY, "If enabled, will disable sound of ringing while near an explosion.");
+ConVar  sv_disable_underwater_damage("sv_disable_underwater_damage", "0", FCVAR_NOTIFY, "If enabled, will disable damage from no oxygen.");
+
 // This is declared in the engine, too
 ConVar	sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
+
+ConVar  sv_revive_after_death("sv_revive_after_death", "0");
 
 extern ConVar sv_maxunlag;
 extern ConVar sv_turbophysics;
@@ -191,6 +198,7 @@ ConVar  sv_player_display_usercommand_errors( "sv_player_display_usercommand_err
 
 ConVar  player_debug_print_damage( "player_debug_print_damage", "0", FCVAR_CHEAT, "When true, print amount and type of all damage received by player to console." );
 
+extern ConVar sv_keep_weapons_after_death;
 
 void CC_GiveCurrentAmmo( void )
 {
@@ -578,7 +586,7 @@ CBasePlayer::CBasePlayer( )
 
 	m_szNetname[0] = '\0';
 
-	m_iHealth = 0;
+	m_iHealth = 100;
 	Weapon_SetLast( NULL );
 	m_bitsDamageType = 0;
 
@@ -1119,6 +1127,13 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	// Already dead
 	if ( !IsAlive() )
 		return 0;
+	if (bitsDamage & DMG_BLAST)
+	{
+		if (sv_disable_explosion_damage.GetBool()) {
+
+			return 0;
+		}
+	}
 	// go take the damage first
 
 	
@@ -1398,6 +1413,10 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	if ( bitsDamage & DMG_BLAST )
 	{
 		OnDamagedByExplosion( info );
+		if (sv_disable_explosion_damage.GetBool()) {
+
+			return 0;
+		}
 	}
 
 	return fTookDamage;
@@ -1417,6 +1436,7 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 //-----------------------------------------------------------------------------
 void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 {
+
 	float lastDamage = info.GetDamage();
 
 	float distanceFromPlayer = 9999.0f;
@@ -1426,12 +1446,13 @@ void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 	{
 		Vector delta = GetAbsOrigin() - inflictor->GetAbsOrigin();
 		distanceFromPlayer = delta.Length();
+		
 	}
 
 	bool ear_ringing = distanceFromPlayer < MIN_EAR_RINGING_DISTANCE ? true : false;
 	bool shock = lastDamage >= MIN_SHOCK_AND_CONFUSION_DAMAGE;
 
-	if ( !shock && !ear_ringing )
+	if ( !shock && !ear_ringing || sv_disable_explosion_ringing.GetBool())
 		return;
 
 	int effect = shock ? 
@@ -1684,7 +1705,7 @@ void CBasePlayer::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	// holster the current weapon
-	if ( GetActiveWeapon() )
+	if ( GetActiveWeapon() && !sv_keep_weapons_after_death.GetBool() )
 	{
 		GetActiveWeapon()->Holster();
 	}
@@ -1930,7 +1951,7 @@ void CBasePlayer::WaterMove()
 		return;
 	}
 
-	if ( m_iHealth < 0 || !IsAlive() )
+	if ( m_iHealth < 0 || !IsAlive())
 	{
 		UpdateUnderwaterState();
 		return;
@@ -1941,7 +1962,7 @@ void CBasePlayer::WaterMove()
 	// waterlevel 2 - waist in water (WL_Waist)
 	// waterlevel 3 - head in water (WL_Eyes)
 
-	if (GetWaterLevel() != WL_Eyes || CanBreatheUnderwater()) 
+	if (GetWaterLevel() != WL_Eyes || CanBreatheUnderwater() || sv_disable_underwater_damage.GetBool())
 	{
 		// not underwater
 		
@@ -2068,6 +2089,7 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 }
 
 
+
 void CBasePlayer::PlayerDeathThink(void)
 {
 	float flForward;
@@ -2090,7 +2112,7 @@ void CBasePlayer::PlayerDeathThink(void)
 		}
 	}
 
-	if ( HasWeapons() )
+	if ( HasWeapons() && !sv_keep_weapons_after_death.GetBool())
 	{
 		// we drop the guns here because weapons that have an area effect and can kill their user
 		// will sometimes crash coming back from CBasePlayer::Killed() if they kill their owner because the
@@ -3079,7 +3101,7 @@ int CBasePlayer::DetermineSimulationTicks( void )
 }
 
 // 2 ticks ahead or behind current clock means we need to fix clock on client
-static ConVar sv_clockcorrection_msecs( "sv_clockcorrection_msecs", "60", 0, "The server tries to keep each player's m_nTickBase withing this many msecs of the server absolute tickcount" );
+static ConVar sv_clockcorrection_msecs( "sv_clockcorrection_msecs", "20", 0, "The server tries to keep each player's m_nTickBase withing this many msecs of the server absolute tickcount" );
 static ConVar sv_playerperfhistorycount( "sv_playerperfhistorycount", "60", 0, "Number of samples to maintain in player perf history", true, 1.0f, true, 128.0 );
 
 //-----------------------------------------------------------------------------
@@ -3690,6 +3712,7 @@ void CBasePlayer::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 	}
 	
 	PlayerMove()->RunCommand(this, ucmd, moveHelper);
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -4892,6 +4915,7 @@ void CBasePlayer::InitialSpawn( void )
 //-----------------------------------------------------------------------------
 void CBasePlayer::Spawn( void )
 {
+	bool died = m_iHealth <= 0;
 	// Needs to be done before weapons are given
 	if ( Hints() )
 	{
@@ -4959,7 +4983,10 @@ void CBasePlayer::Spawn( void )
 	if ( !m_fGameHUDInitialized )
 		g_pGameRules->SetDefaultPlayerTeam( this );
 
-	g_pGameRules->GetPlayerSpawnSpot( this );
+	if ((gpGlobals->eLoadType != MapLoad_Transition || !gpGlobals->startspot) && !(died && sv_revive_after_death.GetBool()))
+	{
+		g_pGameRules->GetPlayerSpawnSpot(this);
+	}
 
 	m_Local.m_bDucked = false;// This will persist over round restart if you hold duck otherwise. 
 	m_Local.m_bDucking = false;
@@ -5019,9 +5046,10 @@ void CBasePlayer::Spawn( void )
 	// Clear any screenfade
 	color32 nothing = {0,0,0,255};
 	UTIL_ScreenFade( this, nothing, 0, 0, FFADE_IN | FFADE_PURGE );
-
-	g_pGameRules->PlayerSpawn( this );
-
+	if (gpGlobals->eLoadType != MapLoad_Transition || !gpGlobals->startspot)
+	{
+		g_pGameRules->PlayerSpawn(this);
+	}
 	m_flLaggedMovementValue = 1.0f;
 	m_vecSmoothedVelocity = vec3_origin;
 	InitVCollision( GetAbsOrigin(), GetAbsVelocity() );
@@ -5800,7 +5828,10 @@ CBaseEntity *FindPickerEntityClass( CBasePlayer *pPlayer, char *classname )
 CBaseEntity *FindPickerEntity( CBasePlayer *pPlayer )
 {
 	MDLCACHE_CRITICAL_SECTION();
-
+	if (!pPlayer)
+	{
+		return NULL;
+	}
 	// First try to trace a hull to an entity
 	CBaseEntity *pEntity = FindEntityForward( pPlayer, true );
 
@@ -6174,6 +6205,30 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "weapon_rpg" );
 		GiveNamedItem( "weapon_357" );
 		GiveNamedItem( "weapon_crossbow" );
+		GiveNamedItem("weapon_hl1mp_stunstick");
+
+#ifdef HL2_EPISODIC
+		GiveNamedItem("weapon_hopwire");
+#endif
+		//css
+		GiveNamedItem("weapon_c4");
+		GiveNamedItem("weapon_flashbang");
+		GiveNamedItem("weapon_hegrenade");
+		GiveNamedItem("weapon_smokegrenade");
+		GiveNamedItem("weapon_m249");
+		GiveNamedItem("weapon_ak47");
+
+		//hl1
+		GiveNamedItem("weapon_egon");
+		GiveNamedItem("weapon_gauss");
+		GiveNamedItem("weapon_glock");
+		GiveNamedItem("weapon_handgrenade");
+		GiveNamedItem("weapon_hornetgun");
+		GiveNamedItem("weapon_mp5");
+		GiveNamedItem("weapon_satchel");
+		GiveNamedItem("weapon_hl1mp_snark");
+		GiveNamedItem("weapon_hl1mp_trpmine");
+
 #ifdef HL2_EPISODIC
 		// GiveNamedItem( "weapon_magnade" );
 #endif
@@ -6773,11 +6828,14 @@ void CBasePlayer::UpdateClientData( void )
 			{
 				variant_t value;
 				g_EventQueue.AddEvent( "game_player_manager", "OnPlayerJoin", value, 0, this, this );
+				FireTargets( "game_playerjoin", this, this, USE_TOGGLE, 0 );
 			}
 		}
 
 		variant_t value;
 		g_EventQueue.AddEvent( "game_player_manager", "OnPlayerSpawn", value, 0, this, this );
+		//fix: oh my god why did they remove this
+		FireTargets( "game_playerspawn", this, this, USE_TOGGLE, 0 );
 	}
 
 	// HACKHACK -- send the message to display the game title
@@ -7455,13 +7513,23 @@ void CBasePlayer::PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPla
 }
 #endif // USES_ECON_ITEMS
 
+void CBasePlayer::SetTransmit(CCheckTransmitInfo* pInfo, bool bAlways)
+{
+	if (!IsConnected())
+	{
+		pInfo->m_pTransmitEdict->Clear(entindex());
+		return;
+	}
+	BaseClass::SetTransmit(pInfo, bAlways);
+
+}
+
 //================================================================================
 // TEAM HANDLING
 //================================================================================
 //-----------------------------------------------------------------------------
 // Purpose: Put the player in the specified team
 //-----------------------------------------------------------------------------
-
 void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 {
 	if ( !GetGlobalTeam( iTeamNum ) )
@@ -7955,7 +8023,7 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 #if PREDICTION_ERROR_CHECK_LEVEL > 1 
 		SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_COORD ),
 #else
-		SendPropVector		( SENDINFO( m_vecBaseVelocity ), 20, 0, -1000, 1000 ),
+		SendPropVector		( SENDINFO( m_vecBaseVelocity ), 25, 0, -1000, 1000 ),
 #endif
 
 		SendPropEHandle		( SENDINFO( m_hConstraintEntity)),
@@ -9374,3 +9442,71 @@ uint64 CBasePlayer::GetSteamIDAsUInt64( void )
 	return 0;
 }
 #endif // NO_STEAM
+
+
+void CC_Give_Health(const CCommand& args)
+{
+	if (args.ArgC() < 1)
+	{
+		Msg("Format: give_health <health> [player_name]\n");
+		return;
+	}
+	if (args.ArgC() >= 2)
+	{
+		// Find the matching netname
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CBasePlayer* pPlayer = ToBasePlayer(UTIL_PlayerByIndex(i));
+			if (pPlayer)
+			{
+				if (Q_strstr(pPlayer->GetPlayerName(), args[2]))
+				{
+					pPlayer->SetHealth(pPlayer->GetHealth() + Q_atoi(args[1]));
+				}
+			}
+		}
+	}
+	else
+	{
+		CBasePlayer* pPlayer = UTIL_GetCommandClient();
+		if (pPlayer)
+		{
+			pPlayer->SetHealth(pPlayer->GetHealth() + Q_atoi(args[1]));
+		}
+	}
+}
+
+void CC_Set_Health(const CCommand& args)
+{
+	if (args.ArgC() < 2)
+	{
+		Msg("Format: set_health <health> [player_name]\n");
+		return;
+	}
+	if (args.ArgC() >= 2)
+	{
+		// Find the matching netname
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CBasePlayer* pPlayer = ToBasePlayer(UTIL_PlayerByIndex(i));
+			if (pPlayer)
+			{
+				if (Q_strstr(pPlayer->GetPlayerName(), args[2]))
+				{
+					pPlayer->SetHealth(Q_atoi(args[1]));
+				}
+			}
+		}
+	}
+	else
+	{
+		CBasePlayer* pPlayer = UTIL_GetCommandClient();
+		if (pPlayer)
+		{
+			pPlayer->SetHealth(Q_atoi(args[1]));
+		}
+	}
+}
+
+static ConCommand give_health("give_health", CC_Give_Health, "Give yourself or another player health\n\tFormat: give_health <health> [player_name]", FCVAR_CHEAT);
+static ConCommand set_health("set_health", CC_Set_Health, "Set the health of yourself or another player\n\tFormat: set_health <health> [player_name]", FCVAR_CHEAT);

@@ -91,6 +91,9 @@
 #include "toolframework/itoolframework.h"
 #include "filesystem/IQueuedLoader.h"
 
+#include "ConfigEditorDialog.h"
+#include "ModelBrowser.h"
+
 #if defined( _X360 )
 #include "xbox/xbox_win32stubs.h"
 #endif
@@ -602,9 +605,12 @@ void CEngineVGui::Init()
 
 	// Need to be able to play sounds through vgui
 	g_pMatSystemSurface->InstallPlaySoundFunc( VGui_PlaySound );
+	COM_TimestampedLog("Load Theme File");
+	vgui::scheme()->SetTheme("themes/defaulttheme.thm");
+
 
 	COM_TimestampedLog( "Load Scheme File" );
-
+	
 	// load scheme
 	const char *pStr = "Resource/SourceScheme.res";
 	if ( !vgui::scheme()->LoadSchemeFromFile( pStr, "Tracker" ))
@@ -742,6 +748,10 @@ void CEngineVGui::Init()
 
 		// Install texture view panel
 		TxViewPanel::Install( staticEngineToolsPanel );
+
+		CConfigEditorDialog::InstallConfigEditor( staticEngineToolsPanel );
+
+		CModelBrowser::InstallModelBrowser(staticEngineToolsPanel);
 
 		COM_TimestampedLog( "Install bug reporter" );
 

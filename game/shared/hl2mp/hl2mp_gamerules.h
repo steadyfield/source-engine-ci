@@ -112,7 +112,8 @@ public:
 	virtual void DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info );
 	virtual const char *GetGameDescription( void );
 	// derive this function if you mod uses encrypted weapon info files
-	virtual const unsigned char *GetEncryptionKey( void ) { return (unsigned char *)"x9Ke0BY7"; }
+	//virtual const unsigned char *GetEncryptionKey( void ) { return (unsigned char *)"x9Ke0BY7"; }
+	virtual const unsigned char* GetEncryptionKey(void) { return (unsigned char*)"d7NSuLq2"; }
 	virtual const CViewVectors* GetViewVectors() const;
 	const HL2MPViewVectors* GetHL2MPViewVectors() const;
 
@@ -120,8 +121,12 @@ public:
 	void CleanUpMap();
 	void CheckRestartGame();
 	void RestartGame();
+
+
 	
 #ifndef CLIENT_DLL
+	virtual void			InitDefaultAIRelationships(void);
+	virtual const char* AIClassText(int classType);
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
 	virtual QAngle VecItemRespawnAngles( CItem *pItem );
 	virtual float	FlItemRespawnTime( CItem *pItem );
@@ -133,6 +138,17 @@ public:
 	void	ManageObjectRelocation( void );
 	void    CheckChatForReadySignal( CHL2MP_Player *pPlayer, const char *chatmsg );
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
+	virtual bool FAllowNPCs(void) { return true; };
+	bool	MegaPhyscannonActive(void) { return m_bMegaPhysgun; }
+
+	virtual bool IsAlyxInDarknessMode();
+
+	bool	NPC_ShouldDropGrenade(CBasePlayer* pRecipient);
+	bool	NPC_ShouldDropHealth(CBasePlayer* pRecipient);
+	void	NPC_DroppedHealth(void);
+	void	NPC_DroppedGrenade(void);
+
+	virtual void PlayerSpawn(CBasePlayer* pPlayer);
 
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
@@ -148,8 +164,10 @@ public:
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
 	
+	
 private:
 	
+	CNetworkVar(bool, m_bMegaPhysgun);
 	CNetworkVar( bool, m_bTeamPlayEnabled );
 	CNetworkVar( float, m_flGameStartTime );
 	CUtlVector<EHANDLE> m_hRespawnableItemsAndWeapons;
@@ -158,6 +176,8 @@ private:
 	bool m_bCompleteReset;
 	bool m_bAwaitingReadyRestart;
 	bool m_bHeardAllPlayersReady;
+	float	m_flLastHealthDropTime;
+	float	m_flLastGrenadeDropTime;
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;

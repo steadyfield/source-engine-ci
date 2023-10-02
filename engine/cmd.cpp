@@ -37,13 +37,14 @@
 #include "tier0/etwprof.h"
 #include "tier0/vprof.h"
 #include "gl_matsysiface.h"		// update materialsystem config
+#include "../materialsystem/shadersystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 
 // This denotes an execution marker in the command stream.
-#define CMDSTR_ADD_EXECUTION_MARKER "[$&*,`]"
+#define CMDSTR_ADD_EXECUTION_MARKER "!$&*,`!"
 
 
 #ifdef _DEBUG
@@ -97,7 +98,7 @@ void Cmd_AddClientCmdCanExecuteVar( const char *pName )
 // These functions manage a list of execution markers that we use to verify
 // special commands in the command buffer.
 //=============================================================================
-
+static ConVar cmd_maxcommandchain("cmd_maxcommandchain", "128", FCVAR_ARCHIVE, "Set the maximum command chain length, will delay infinite recursions to the next tick. (Default: 128)", true, 1, true, 1024);
 static CUtlVector<int> g_ExecutionMarkers;
 static CUniformRandomStream g_ExecutionMarkerStream;
 static bool g_bExecutionMarkerStreamInitialized = false;
@@ -364,7 +365,7 @@ bool Cbuf_HasRoomForExecutionMarkers( int cExecutionMarkers )
 //-----------------------------------------------------------------------------
 // Executes commands in the buffer
 //-----------------------------------------------------------------------------
-static void Cbuf_ExecuteCommand( const CCommand &args, cmd_source_t source )
+static void Cbuf_ExecuteCommand( const CCommand &args, cmd_source_t source, int outputBuffer)
 {
 	// Note: If you remove this, PerfMark needs to do the same logic--so don't do that.
 	tmMessage( TELEMETRY_LEVEL0, TMMF_SEVERITY_LOG | TMMF_ICON_NOTE, "(source/command) %s", tmDynamicString( TELEMETRY_LEVEL0, args.GetCommandString() ) );
@@ -372,7 +373,7 @@ static void Cbuf_ExecuteCommand( const CCommand &args, cmd_source_t source )
 	ETWMark( args.GetCommandString() );
 
 	// execute the command line
-	const ConCommandBase *pCmd = Cmd_ExecuteCommand( args, source );
+	const ConCommandBase *pCmd = Cmd_ExecuteCommand( args, source, -1, outputBuffer);
 
 #if !defined(SWDS) && !defined(_XBOX)
 	if ( pCmd && !pCmd->IsFlagSet( FCVAR_DONTRECORD ) )
@@ -413,12 +414,19 @@ void Cbuf_Execute()
 	// NOTE: The command buffer knows about execution time related to commands,
 	// but since HL2 doesn't, we're going to spoof the command time to simply
 	// be the the number of times Cbuf_Execute is called.
+	LockOutputFunc(true);
 	s_CommandBuffer.BeginProcessingCommands( 1 );
-	while ( s_CommandBuffer.DequeueNextCommand( ) )
+	int i = 0;
+	for (; i < cmd_maxcommandchain.GetInt() && s_CommandBuffer.DequeueNextCommand( ); i++ )
 	{
-		Cbuf_ExecuteCommand( s_CommandBuffer.GetCommand(), src_command );
+		Cbuf_ExecuteCommand( s_CommandBuffer.GetCommand(), src_command, s_CommandBuffer.m_nOutputBuffer );
+	}
+	if (i == cmd_maxcommandchain.GetInt())
+	{
+		s_CommandBuffer.FindClear();
 	}
 	s_CommandBuffer.EndProcessingCommands( );
+	LockOutputFunc(false);
 }
 
 
@@ -462,6 +470,15 @@ static char const *Cmd_TranslateFileAssociation(char const *param )
 
 	// return null if no translation, otherwise return commands
 	return retval;
+}
+
+CON_COMMAND(cmd_printcommandbuffer, "Prints the command buffer")
+{
+	s_CommandBuffer.PrintCommandBuffer();
+}
+CON_COMMAND(cmd_clearcommandbuffer, "Clears the command buffer on the next dequeue")
+{
+	s_CommandBuffer.ClearCommandBuffer();
 }
 
 //-----------------------------------------------------------------------------
@@ -666,7 +683,7 @@ void Cmd_Exec_f( const CCommand &args )
 		{
 			if( s_CommandBuffer.DequeueNextCommand( ) )
 			{
-				Cbuf_ExecuteCommand( s_CommandBuffer.GetCommand(), src_command );
+				Cbuf_ExecuteCommand( s_CommandBuffer.GetCommand(), src_command, s_CommandBuffer.m_nOutputBuffer );
 			}
 			else
 			{
@@ -674,6 +691,7 @@ void Cmd_Exec_f( const CCommand &args )
 				break;
 			}
 		}
+
 	}
 
 	if ( f != buf )
@@ -818,6 +836,50 @@ CON_COMMAND( cmd, "Forward command to server." )
 CON_COMMAND_AUTOCOMPLETEFILE( exec, Cmd_Exec_f, "Execute script file.", "cfg", cfg );
 
 
+CON_COMMAND( split, "Split a string into two convars\nUSAGE: split <STRING> <SPLIT TOKEN> <CONVAR A> <CONVAR B>")
+{
+	if (args.ArgC() < 5)
+	{
+		ConMsg("USAGE: split <STRING> <SPLIT TOKEN> <CONVAR A> <CONVAR B>\n");
+		return;
+	}
+	const char* point = strstr(args[1],args[2]);
+	if (!point)
+	{
+		return;
+	}
+	
+	char first[512] = { 0 };
+	strncpy(first, args[1], point - args[1]);
+	
+	if (g_pCVar->FindVar(args[3]))
+	{
+		g_pCVar->FindVar(args[3])->SetValue(first);
+	}
+	if (g_pCVar->FindVar(args[4]))
+	{
+		g_pCVar->FindVar(args[4])->SetValue(point + strlen(args[2]));
+	}
+}
+
+static void exec_if(const CCommand& args);
+static ConCommand exec_if_command("if", exec_if, "Execute a command if the first argument is 1, otherwise execute another command if given.\nUSAGE: if <VALUE> <COMMAND> <OPTIONAL COMMAND>\nEXAMPLE: if [sv_cheats] \"echo sv_cheats is on!\" \"echo sv_cheats is off.\"");
+static void exec_if(const CCommand& args)
+{
+	if (args.ArgC() < 2)
+	{
+		ConMsg("USAGE: if <VALUE> <COMMAND> <OPTIONAL COMMAND>\n");
+	}
+	if (atoi(args[1]) != 1)
+	{
+		if (args.ArgC() > 2)
+		{
+			Cbuf_InsertText(args[3]);
+		}
+		return;
+	}
+	Cbuf_InsertText(args[2]);
+}
 
 
 void Cmd_Init( void )
@@ -923,12 +985,13 @@ static bool ShouldPreventClientCommand( const ConCommandBase *pCommand )
 	return false;
 }
 
+extern SpewRetval_t Sys_SpewFunc(SpewType_t spewType, const char* pMsg);
 
 //-----------------------------------------------------------------------------
 // A complete command line has been parsed, so try to execute it
 // FIXME: lookupnoadd the token to speed search?
 //-----------------------------------------------------------------------------
-const ConCommandBase *Cmd_ExecuteCommand( const CCommand &command, cmd_source_t src, int nClientSlot )
+const ConCommandBase *Cmd_ExecuteCommand( const CCommand &command, cmd_source_t src, int nClientSlot, int outputBuffer)
 {	
 	// execute the command line
 	if ( !command.ArgC() )
@@ -962,7 +1025,6 @@ const ConCommandBase *Cmd_ExecuteCommand( const CCommand &command, cmd_source_t 
 	
 	cmd_source = src;
 	cmd_clientslot = nClientSlot;
-
 	// check ConCommands
 	const ConCommandBase *pCommand = g_pCVar->FindCommandBase( command[ 0 ] );
 
@@ -1043,7 +1105,21 @@ const ConCommandBase *Cmd_ExecuteCommand( const CCommand &command, cmd_source_t 
 				return NULL;
 			}
 
-			Cmd_Dispatch( pCommand, command );
+			if (outputBuffer != -1)
+			{
+				s_current_capture = outputBuffer;
+				SpewOutputFunc(CaptureSpewFunc);
+				CompletelyLockOutputFunc(true); // fuck you materialsystem.dll
+				Cmd_Dispatch(pCommand, command);
+				CompletelyLockOutputFunc(false);
+				SpewOutputFunc(Sys_SpewFunc);
+			}
+			else 
+			{
+				SpewOutputFunc(Sys_SpewFunc);
+				Cmd_Dispatch(pCommand, command);
+			}
+			
 			return pCommand;
 		}
 	}

@@ -58,7 +58,7 @@
 
 void SV_DetermineMulticastRecipients( bool usepas, const Vector& origin, CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits );
 
-int MapList_ListMaps( const char *pszSubString, bool listobsolete, bool verbose, int maxcount, int maxitemlength, char maplist[][ 64 ] );
+int MapList_ListMaps( const char *pszSubString, bool listobsolete, bool verbose, int maxcount, int maxitemlength, char maplist[][COMMAND_COMPLETION_ITEM_LENGTH] );
 
 extern CNetworkStringTableContainer *networkStringTableContainerServer;
 
@@ -159,8 +159,11 @@ void SeedRandomNumberGenerator( bool random_invariant )
 // ---------------------------------------------------------------------- //
 static void PR_CheckEmptyString (const char *s)
 {
-	if (s[0] <= ' ')
-		Host_Error ("Bad string: %s", s);
+	if (s[0] <= ' ') {
+		//__debugbreak();
+		Host_Error("Bad string: %s", s);
+	}
+		
 }
 
 // Average a list a vertices to find an approximate "center"
@@ -371,7 +374,9 @@ public:
 	
 	virtual int PrecacheModel( const char *s, bool preload /*= false*/ )
 	{
-		PR_CheckEmptyString (s);
+		if (s[0] <= ' ') {
+			return 0;
+		}
 		int i = SV_FindOrAddModel( s, preload );
 		if ( i >= 0 )
 		{
@@ -639,7 +644,7 @@ public:
 		}
 
 		// Fuzzy match in map list and check file
-		char match[1][64] = { {0} };
+		char match[1][COMMAND_COMPLETION_ITEM_LENGTH] = { {0} };
 		if ( MapList_ListMaps( pMapName, false, false, 1, sizeof( match[0] ), match ) && *(match[0]) )
 		{
 			Host_DefaultMapFileName( match[0], szDiskName, sizeof( szDiskName ) );
@@ -1005,13 +1010,21 @@ public:
 	*/
 	virtual void ClientCommand(edict_t* pEdict, const char* szFmt, ...)
 	{
+		
 		va_list		argptr; 
 		static char	szOut[1024];
 		
 		va_start(argptr, szFmt);
 		Q_vsnprintf(szOut, sizeof( szOut ), szFmt, argptr);
 		va_end(argptr);
+		//int entnum = NUM_FOR_EDICT(pEdict);
 
+		//Msg("[%s]: %s", sv.GetClient(entnum - 1)->GetClientName(), szOut);
+		if (!pEdict) 
+		{
+			Msg("A null player just executed: %s", szOut);
+			return;
+		}
 		if ( szOut[0] == 0 )
 		{
 			Warning( "ClientCommand, 0 length string supplied.\n" );

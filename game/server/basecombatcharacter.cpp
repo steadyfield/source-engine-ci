@@ -45,7 +45,7 @@
 
 #ifdef HL2_DLL
 #include "weapon_physcannon.h"
-#include "hl2_gamerules.h"
+#include "hl2mp_gamerules.h"
 #endif
 
 #ifdef PORTAL
@@ -67,6 +67,8 @@ ConVar ai_show_hull_attacks( "ai_show_hull_attacks", "0" );
 ConVar ai_force_serverside_ragdoll( "ai_force_serverside_ragdoll", "0" );
 
 ConVar nb_last_area_update_tolerance( "nb_last_area_update_tolerance", "4.0", FCVAR_CHEAT, "Distance a character needs to travel in order to invalidate cached area" ); // 4.0 tested as sweet spot (for wanderers, at least). More resulted in little benefit, less quickly diminished benefit [7/31/2008 tom]
+
+ConVar sv_keep_weapons_after_death("sv_keep_weapons_after_death", "0");
 
 #ifndef _RETAIL
 ConVar ai_use_visibility_cache( "ai_use_visibility_cache", "1" );
@@ -1534,7 +1536,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 
 #ifdef HL2_EPISODIC
 	// Burning corpses are server-side in episodic, if we're in darkness mode
-	if ( IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode() )
+	if ( IsOnFire() && HL2MPRules()->IsAlyxInDarknessMode() )
 	{
 		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS );
 		FixupBurningServerRagdoll( pRagdoll );
@@ -1547,7 +1549,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 
 	bool bMegaPhyscannonActive = false;
 #if !defined( HL2MP )
-	bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
+	bMegaPhyscannonActive = HL2MPRules()->MegaPhyscannonActive();
 #endif // !HL2MP
 
 	// Mega physgun requires everything to be a server-side ragdoll
@@ -1601,15 +1603,18 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 
 	CBaseCombatWeapon *pDroppedWeapon = m_hActiveWeapon.Get();
 
-	// Drop any weapon that I own
-	if ( VPhysicsGetObject() )
+	if (!(dynamic_cast<CBasePlayer*>(this) && sv_keep_weapons_after_death.GetBool()))
 	{
-		Vector weaponForce = forceVector * VPhysicsGetObject()->GetInvMass();
-		Weapon_Drop( m_hActiveWeapon, NULL, &weaponForce );
-	}
-	else
-	{
-		Weapon_Drop( m_hActiveWeapon );
+		// Drop any weapon that I own
+		if (VPhysicsGetObject())
+		{
+			Vector weaponForce = forceVector * VPhysicsGetObject()->GetInvMass();
+			Weapon_Drop(m_hActiveWeapon, NULL, &weaponForce);
+		}
+		else
+		{
+			Weapon_Drop(m_hActiveWeapon);
+		}
 	}
 	
 	// if flagged to drop a health kit
@@ -1643,13 +1648,13 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 			bRagdollCreated = Dissolve( NULL, gpGlobals->curtime, false, nDissolveType );
 
 			// Also dissolve any weapons we dropped
-			if ( pDroppedWeapon )
+			if ( pDroppedWeapon && !(dynamic_cast<CBasePlayer*>(this) && sv_keep_weapons_after_death.GetBool()))
 			{
 				pDroppedWeapon->Dissolve( NULL, gpGlobals->curtime, false, nDissolveType );
 			}
 		}
 #ifdef HL2_DLL
-		else if ( PlayerHasMegaPhysCannon() )
+		else if ( PlayerHasMegaPhysCannon() && !(dynamic_cast<CBasePlayer*>(this) && sv_keep_weapons_after_death.GetBool()))
 		{
 			if ( pDroppedWeapon )
 			{
@@ -2073,6 +2078,10 @@ void CBaseCombatCharacter::SetLightingOriginRelative( CBaseEntity *pLightingOrig
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 {
+
+	int pos = Weapon_GetLastPositionInSlot(pWeapon->GetSlot());
+	pWeapon->m_iActualPosition.Set(pos);
+
 	// Add the weapon to my weapon inventory
 	for (int i=0;i<MAX_WEAPONS;i++) 
 	{
@@ -2082,6 +2091,8 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 			break;
 		}
 	}
+	
+	
 
 	// Weapon is now on my team
 	pWeapon->ChangeTeam( GetTeamNumber() );
@@ -2253,6 +2264,22 @@ CBaseCombatWeapon *CBaseCombatCharacter::Weapon_GetSlot( int slot ) const
 	}
 	
 	return NULL;
+}
+
+int CBaseCombatCharacter::Weapon_GetLastPositionInSlot(int slot)
+{
+	int maxpos = 0;
+	for (int i = 0; i < MAX_WEAPONS; i++)
+	{
+		if (m_hMyWeapons[i].Get() != NULL)
+		{
+			if (m_hMyWeapons[i]->GetSlot() == slot && m_hMyWeapons[i]->GetActualPosition() >= maxpos)
+			{
+				maxpos = m_hMyWeapons[i]->GetActualPosition()+1;
+			}
+		}
+	}
+	return maxpos;
 }
 
 //-----------------------------------------------------------------------------
@@ -2621,7 +2648,7 @@ void CBaseCombatCharacter::AddEntityRelationship ( CBaseEntity* pEntity, Disposi
 {
 	// First check to see if a relationship has already been declared for this entity
 	// If so, update it with the new relationship
-	for (int i=m_Relationship.Count()-1;i >= 0;i--) 
+	for (int i = m_Relationship.Count() - 1; i >= 0; i--)
 	{
 		if (m_Relationship[i].entity == pEntity) 
 		{
@@ -3106,7 +3133,7 @@ void CBaseCombatCharacter::VPhysicsShadowCollision( int index, gamevcollisioneve
 	float flOtherAttackerTime = 0.0f;
 
 #if defined( HL2_DLL ) && !defined( HL2MP )
-	if ( HL2GameRules()->MegaPhyscannonActive() == true )
+	if ( HL2MPRules()->MegaPhyscannonActive() == true )
 	{
 		flOtherAttackerTime = 1.0f;
 	}

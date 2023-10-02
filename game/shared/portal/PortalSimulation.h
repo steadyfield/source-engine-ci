@@ -25,6 +25,12 @@ struct StaticPropPolyhedronGroups_t //each static prop is made up of a group of 
 	int iNumPolyhedrons;
 };
 
+struct DisplacementPolyhedronGroups_t //each static prop is made up of a group of polyhedrons, these help us pull those groups from an array
+{
+	int iStartIndex;
+	int iNumPolyhedrons;
+};
+
 enum PortalSimulationEntityFlags_t
 {
 	PSEF_OWNS_ENTITY = (1 << 0), //this environment is responsible for the entity's physics objects
@@ -124,6 +130,18 @@ struct PS_SD_Static_World_Brushes_t
 	
 };
 
+struct PS_SD_Static_World_Displacements_t
+{
+	CUtlVector<CPolyhedron*> Polyhedrons; //the building blocks of more complex collision
+	CPhysCollide* pCollideable;
+#ifndef CLIENT_DLL
+	IPhysicsObject* pPhysicsObject;
+	PS_SD_Static_World_Displacements_t() : pCollideable(NULL), pPhysicsObject(NULL) {};
+#else
+	PS_SD_Static_World_Displacements_t() : pCollideable(NULL) {};
+#endif
+
+};
 
 struct PS_SD_Static_World_StaticProps_ClippedProp_t
 {
@@ -154,6 +172,7 @@ struct PS_SD_Static_World_t //stuff in front of the portal
 {
 	PS_SD_Static_World_Brushes_t Brushes;
 	PS_SD_Static_World_StaticProps_t StaticProps;
+	PS_SD_Static_World_Displacements_t Displacements;
 };
 
 struct PS_SD_Static_Wall_Local_Tube_t //a minimal tube, an object must fit inside this to be eligible for portaling
@@ -182,16 +201,36 @@ struct PS_SD_Static_Wall_Local_Brushes_t
 #endif
 };
 
+struct PS_SD_Static_Wall_Local_Displacements_t
+{
+	CUtlVector<CPolyhedron*> Polyhedrons; //the building blocks of more complex collision
+	CPhysCollide* pCollideable;
+
+#ifndef CLIENT_DLL
+	IPhysicsObject* pPhysicsObject;
+	PS_SD_Static_Wall_Local_Displacements_t() : pCollideable(NULL), pPhysicsObject(NULL) {};
+#else
+	PS_SD_Static_Wall_Local_Displacements_t() : pCollideable(NULL) {};
+#endif
+};
+
 struct PS_SD_Static_Wall_Local_t //things in the wall that are completely independant of having a linked portal
 {
 	PS_SD_Static_Wall_Local_Tube_t Tube;
 	PS_SD_Static_Wall_Local_Brushes_t Brushes;
+	PS_SD_Static_Wall_Local_Displacements_t Displacements;
 };
 
 struct PS_SD_Static_Wall_RemoteTransformedToLocal_Brushes_t
 {
 	IPhysicsObject *pPhysicsObject;
 	PS_SD_Static_Wall_RemoteTransformedToLocal_Brushes_t() : pPhysicsObject(NULL) {};
+};
+
+struct PS_SD_Static_Wall_RemoteTransformedToLocal_Displacements_t
+{
+	IPhysicsObject* pPhysicsObject;
+	PS_SD_Static_Wall_RemoteTransformedToLocal_Displacements_t() : pPhysicsObject(NULL) {};
 };
 
 struct PS_SD_Static_Wall_RemoteTransformedToLocal_StaticProps_t
@@ -202,6 +241,7 @@ struct PS_SD_Static_Wall_RemoteTransformedToLocal_StaticProps_t
 struct PS_SD_Static_Wall_RemoteTransformedToLocal_t //things taken from the linked portal's "World" collision and transformed into local space
 {
 	PS_SD_Static_Wall_RemoteTransformedToLocal_Brushes_t Brushes;
+	PS_SD_Static_Wall_RemoteTransformedToLocal_Displacements_t Displacements;
 	PS_SD_Static_Wall_RemoteTransformedToLocal_StaticProps_t StaticProps;
 };
 

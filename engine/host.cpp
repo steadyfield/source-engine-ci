@@ -310,9 +310,8 @@ void Snd_Restart_f()
 	ConCommand *pCommand = (ConCommand*)dynamic_cast< const ConCommand* >( g_pCVar->FindCommand( "cl_soundscape_flush" ) );
 	if ( pCommand )
 	{
-		char const *argv[ 1 ] = { "cl_soundscape_flush" };
-
-		CCommand cmd( 1, argv );
+		CCommand cmd;
+		cmd.Tokenize("cl_soundscape_flush");
 		pCommand->Dispatch( cmd );
 	}
 #endif
@@ -4439,7 +4438,7 @@ bool Host_Changelevel( bool loadfromsavedgame, const char *mapname, const char *
 #endif
 
 	// Prepare new level
-	sv.InactivateClients();
+	//sv.InactivateClients();
 
 	// The qualified name of the map, excluding path/extension
 	char szMapName[MAX_PATH] = { 0 };
@@ -4554,6 +4553,8 @@ bool Host_Changelevel( bool loadfromsavedgame, const char *mapname, const char *
 		// ensure resources in the transition volume stay
 		AddTransitionResources( pSaveData, szMapName, startspot );
 	}
+	// Prepare new level
+	sv.InactivateClients();
 #endif
 	g_pServerPluginHandler->LevelShutdown();
 

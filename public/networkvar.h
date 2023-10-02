@@ -60,6 +60,8 @@ inline int CheckDeclareClass_Access( T *, const char *pShouldBe )
 #endif
 #endif
 
+
+
 #ifdef  VALIDATE_DECLARE_CLASS
 
 	#define DECLARE_CLASS( className, baseClassName ) \
@@ -608,6 +610,8 @@ private:
 	NETWORK_VAR_END( type, name, CNetworkVarBase, NetworkStateChanged )
 
 
+
+
 // Use this macro when you have a base class with a variable, and it doesn't have that variable in a SendTable,
 // but a derived class does. Then, the entity is only flagged as changed when the variable is changed in
 // an entity that wants to transmit the variable.
@@ -775,6 +779,9 @@ private:
 		} \
 	}; \
 	base< type, NetworkVar_##name > name;
+
+
+
 
 
 

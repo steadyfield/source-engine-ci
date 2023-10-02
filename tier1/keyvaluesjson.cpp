@@ -549,10 +549,11 @@ void KeyValuesJSONParser::ParseStringToken()
 			m_eToken = kToken_Err;
 			return;
 		}
-		if ( c == cDelim )
+		
+		if (c == cDelim)
 		{
 			m_eToken = kToken_String;
-			m_vecTokenChars.AddToTail( '\0' );
+			m_vecTokenChars.AddToTail('\0');
 			return;
 		}
 
@@ -629,6 +630,8 @@ void KeyValuesJSONParser::ParseStringToken()
 				m_eToken = kToken_Err;
 				return;
 		}
+		m_cur++;
+		
 	}
 
 	V_sprintf_safe( m_szErrMsg, "Hit end of input before closing quote (%c)", cDelim );

@@ -7,7 +7,7 @@
 #include "cbase.h"
 #include "cs_gamerules.h"
 #include "cs_blackmarket.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "filesystem.h"
 #include <KeyValues.h>
 #include "cs_gamestats.h"
@@ -37,7 +37,7 @@ blackmarket_items_t blackmarket_items[] =
 
 CUtlVector<CBlackMarketElement> g_BlackMarket_WeaponsBought;
 
-void TrackAutoBuyPurchases( const char *pWeaponName, CCSPlayer *pBuyer )
+void TrackAutoBuyPurchases( const char *pWeaponName, CHL2MP_Player *pBuyer )
 {
 	if ( pBuyer->IsInAutoBuy() == false )
 		return;
@@ -71,7 +71,7 @@ void TrackAutoBuyPurchases( const char *pWeaponName, CCSPlayer *pBuyer )
 	}
 }
 
-void BlackMarketAddWeapon( const char *pWeaponName, CCSPlayer *pBuyer )
+void BlackMarketAddWeapon( const char *pWeaponName, CHL2MP_Player *pBuyer )
 {
 	//Ignore bot purchases.
 	if ( pBuyer && pBuyer->IsBot() )

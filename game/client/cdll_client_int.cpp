@@ -147,6 +147,11 @@
 #include "fbxsystem/fbxsystem.h"
 #endif
 
+#ifdef VSCRIPT
+#include "vscript_client.h"
+#endif // VSCRIPT
+
+
 #include "touch.h"
 
 extern vgui::IInputInternal *g_InputInternal;
@@ -170,6 +175,10 @@ extern vgui::IInputInternal *g_InputInternal;
 #ifdef SIXENSE
 #include "sixense/in_sixense.h"
 #endif
+
+#if defined( GAMEPADUI )
+#include "../gamepadui/igamepadui.h"
+#endif // GAMEPADUI
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -216,6 +225,10 @@ IEngineReplay *g_pEngineReplay = NULL;
 IEngineClientReplay *g_pEngineClientReplay = NULL;
 IReplaySystem *g_pReplay = NULL;
 #endif
+
+#if defined(GAMEPADUI)
+IGamepadUI* g_pGamepadUI = nullptr;
+#endif // GAMEPADUI
 
 IHaptics* haptics = NULL;// NVNT haptics system interface singleton
 
@@ -344,6 +357,24 @@ bool g_bTextMode = false;
 class IClientPurchaseInterfaceV2 *g_pClientPurchaseInterface = (class IClientPurchaseInterfaceV2 *)(&g_bTextMode + 156);
 
 static ConVar *g_pcv_ThreadMode = NULL;
+
+/*// GAMEPADUI TODO - put this somewhere better. (Madi)
+#if defined( GAMEPADUI )
+bool IsSteamDeck()
+{
+	if (CommandLine()->FindParm("-nogamepadui"))
+		return false;
+
+	if (CommandLine()->FindParm("-gamepadui"))
+		return true;
+
+	const char* pszSteamDeckEnv = getenv("SteamDeck");
+	if (pszSteamDeckEnv && *pszSteamDeckEnv)
+		return atoi(pszSteamDeckEnv) != 0;
+
+	return false;
+}
+#endif*/
 
 //-----------------------------------------------------------------------------
 // Purpose: interface for gameui to modify voice bans
@@ -1156,6 +1187,48 @@ void CHLClient::PostInit()
 		}
 	}
 #endif
+
+#if defined(GAMEPADUI)
+	if (IsSteamDeck())
+	{
+		CSysModule* pGamepadUIModule = g_pFullFileSystem->LoadModule("gamepadui", "GAMEBIN", false);
+		if (pGamepadUIModule != nullptr)
+		{
+			GamepadUI_Log("Loaded gamepadui module.\n");
+
+			CreateInterfaceFn gamepaduiFactory = Sys_GetFactory(pGamepadUIModule);
+			if (gamepaduiFactory != nullptr)
+			{
+				g_pGamepadUI = (IGamepadUI*)gamepaduiFactory(GAMEPADUI_INTERFACE_VERSION, NULL);
+				if (g_pGamepadUI != nullptr)
+				{
+					GamepadUI_Log("Initializing IGamepadUI interface...\n");
+
+					factorylist_t factories;
+					FactoryList_Retrieve(factories);
+					g_pGamepadUI->Initialize(factories.appSystemFactory);
+
+#ifdef STEAM_INPUT
+					g_pSteamInput->SetGamepadUI(true);
+					g_pGamepadUI->SetSteamInput(g_pSteamInput);
+#endif
+				}
+				else
+				{
+					GamepadUI_Log("Unable to pull IGamepadUI interface.\n");
+				}
+			}
+			else
+			{
+				GamepadUI_Log("Unable to get gamepadui factory.\n");
+			}
+		}
+		else
+		{
+			GamepadUI_Log("Unable to load gamepadui module\n");
+		}
+	}
+#endif // GAMEPADUI
 }
 
 //-----------------------------------------------------------------------------
@@ -1196,6 +1269,11 @@ void CHLClient::Shutdown( void )
 	UncacheAllMaterials();
 
 	IGameSystem::ShutdownAllSystems();
+
+#if defined(GAMEPADUI)
+	if (g_pGamepadUI != nullptr)
+		g_pGamepadUI->Shutdown();
+#endif // GAMEPADUI
 	
 	gHUD.Shutdown();
 	VGui_Shutdown();
@@ -1243,6 +1321,11 @@ int CHLClient::HudVidInit( void )
 
 	GetClientVoiceMgr()->VidInit();
 
+#if defined(GAMEPADUI)
+	if (g_pGamepadUI != nullptr)
+		g_pGamepadUI->VidInit();
+#endif // GAMEPADUI
+
 	return 1;
 }
 
@@ -1262,6 +1345,17 @@ void CHLClient::HudProcessInput( bool bActive )
 void CHLClient::HudUpdate( bool bActive )
 {
 	float frametime = gpGlobals->frametime;
+
+#ifdef GAMEPADUI
+if(IsSteamDeck())
+{
+	if (!enginevgui->IsGameUIVisible())
+	{
+		engine->ExecuteClientCmd("gamepadui_resetfade");
+	}
+}
+#endif // GAMEPADUI
+
 
 #if defined( TF_CLIENT_DLL )
 	CRTime::UpdateRealTime();
@@ -1293,6 +1387,11 @@ void CHLClient::HudUpdate( bool bActive )
 		g_pSixenseInput->SixenseFrame( 0, NULL ); 
 	}
 #endif
+
+#if defined(GAMEPADUI)
+	if (g_pGamepadUI != nullptr)
+		g_pGamepadUI->OnUpdate(frametime);
+#endif // GAMEPADUI
 }
 
 //-----------------------------------------------------------------------------
@@ -1639,6 +1738,11 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 		CReplayRagdollRecorder::Instance().Init();
 	}
 #endif
+
+#if defined(GAMEPADUI)
+	if (g_pGamepadUI != nullptr)
+		g_pGamepadUI->OnLevelInitializePreEntity();
+#endif // GAMEPADUI
 }
 
 
@@ -1650,6 +1754,11 @@ void CHLClient::LevelInitPostEntity( )
 	IGameSystem::LevelInitPostEntityAllSystems();
 	C_PhysPropClientside::RecreateAll();
 	internalCenterPrint->Clear();
+
+#if defined(GAMEPADUI)
+	if (g_pGamepadUI != nullptr)
+		g_pGamepadUI->OnLevelInitializePostEntity();
+#endif // GAMEPADUI
 }
 
 //-----------------------------------------------------------------------------
@@ -1715,6 +1824,11 @@ void CHLClient::LevelShutdown( void )
 	ParticleMgr()->RemoveAllEffects();
 	
 	StopAllRumbleEffects();
+
+#if defined(GAMEPADUI)
+	if (g_pGamepadUI != nullptr)
+		g_pGamepadUI->OnLevelShutdown();
+#endif // GAMEPADUI
 
 	gHUD.LevelShutdown();
 
@@ -2230,7 +2344,106 @@ void OnRenderEnd()
 	DisplayBoneSetupEnts();
 }
 
+//#ifdef SOURCEBOX
+#ifdef HL2MP
 
+///
+///I hate multiplayer branch, and i hate my life
+///			-celisej
+///
+
+#include "hl2/hl2_player_shared.h"
+#include "gamemovement.h"
+
+//cam viewbob
+ConVar cl_viewbob_enabled("cl_viewbob_enabled", "0", 0, "Oscillation Toggle");
+ConVar cl_viewbob_enabled_z("cl_viewbob_enabled_z", "1");
+
+ConVar cl_viewbob_drop_xscale("cl_viewbob_drop_xscale", "1");
+ConVar cl_viewbob_drop_yscale("cl_viewbob_drop_yscale", "1");
+
+ConVar cl_viewbob_xtimer("cl_viewbob_xtimer", "10", 0, "Speed of Oscillation");
+ConVar cl_viewbob_ytimer("cl_viewbob_ytimer", "2.5", 0, "Speed of Oscillation");
+ConVar cl_viewbob_ztimer("cl_viewbob_ztimer", "5", 0, "Speed of Oscillation");
+
+ConVar cl_viewbob_onland_force("cl_viewbob_onland_force", "0.01");
+
+ConVar cl_viewbob_xscale("cl_viewbob_xscale", "0.01", 0, "Magnitude of Oscillation");
+ConVar cl_viewbob_yscale("cl_viewbob_yscale", "0.01", 0, "Magnitude of Oscillation");
+ConVar cl_viewbob_zscale("cl_viewbob_zscale", "0.02", 0, "Magnitude of Oscillation");
+
+ConVar cl_viewbob_xoffset("cl_viewbob_xoffset", "100", 0, "Division xoffset");
+ConVar cl_viewbob_yoffset("cl_viewbob_yoffset", "100", 0, "Division xoffset");
+ConVar cl_viewbob_zoffset("cl_viewbob_zoffset", "100", 0, "Division xoffset");
+
+ConVar cl_viewbob_jump_scale("cl_viewbob_jump_scale", "2", 0, "Magnitude of jump Oscillation (float)");
+
+//extern static C_BasePlayer* s_pLocalPlayer;
+//C_BasePlayer* player;
+
+extern IGameMovement* g_pGameMovement;
+float lastFallVelocity;
+
+void UpdateViewbob()
+{
+	C_BasePlayer* player = C_BasePlayer::GetLocalPlayer();
+	if (!player)
+		return;
+	//Msg("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \n");
+
+	CGameMovement* gm = dynamic_cast<CGameMovement*>(g_pGameMovement);
+
+	CMoveData* mv = gm->GetMoveData();
+
+	if (mv == nullptr)
+		return;
+
+	// Copy movement amounts
+	float fmove = mv->m_flForwardMove;
+	float smove = mv->m_flSideMove;
+	
+	
+	float FallVelocity = player->GetAbsVelocity().z;
+
+	Vector Velocity = Vector(player->GetAbsVelocity().x, player->GetAbsVelocity().y, 0);
+	
+	if (cl_viewbob_enabled.GetBool() && !engine->IsPaused())
+	{
+		CHL2_Player* HLplayer = dynamic_cast<CHL2_Player*>(player);
+		if (!HLplayer->IsSprinting())
+		{
+			float xoffset = sin(gpGlobals->curtime * cl_viewbob_xtimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_xscale.GetFloat() / cl_viewbob_xoffset.GetFloat();
+			float yoffset = sin(2 * gpGlobals->curtime * cl_viewbob_ytimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_yscale.GetFloat() / cl_viewbob_yoffset.GetFloat();
+			float zoffset = sin(gpGlobals->curtime * cl_viewbob_ztimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(xoffset, yoffset, zoffset));
+
+		}
+		else
+		{
+			float xoffset = sin(gpGlobals->curtime * (cl_viewbob_xtimer.GetFloat() * 2)) * player->GetAbsVelocity().Length() * cl_viewbob_xscale.GetFloat() / cl_viewbob_xoffset.GetFloat();
+			float yoffset = sin(2 * gpGlobals->curtime * (cl_viewbob_ytimer.GetFloat() * 2)) * player->GetAbsVelocity().Length() * cl_viewbob_yscale.GetFloat() / cl_viewbob_yoffset.GetFloat();
+
+			float zoffset = sin(2 * gpGlobals->curtime * cl_viewbob_ztimer.GetFloat()) * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(xoffset, yoffset, zoffset));
+
+		}
+
+		if (smove > 0)
+		{
+			float zoffset = 2.5 * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(0, 0, zoffset));
+		}
+		else if (smove < 0)
+		{
+			float zoffset = 2.5 * player->GetAbsVelocity().Length() * cl_viewbob_zscale.GetFloat() / cl_viewbob_zoffset.GetFloat();
+			player->ViewPunch(QAngle(0, 0, -zoffset));
+		}
+	}
+
+	lastFallVelocity = FallVelocity;
+}
+
+#endif
 
 void CHLClient::FrameStageNotify( ClientFrameStage_t curStage )
 {
@@ -2247,6 +2460,9 @@ void CHLClient::FrameStageNotify( ClientFrameStage_t curStage )
 
 			// Last thing before rendering, run simulation.
 			OnRenderStart();
+#ifdef HL2MP
+			UpdateViewbob();
+#endif
 		}
 		break;
 		

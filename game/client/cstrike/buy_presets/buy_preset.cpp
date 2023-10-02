@@ -8,7 +8,7 @@
 
 #include "buy_preset_debug.h"
 #include "buy_presets.h"
-#include "weapon_csbase.h"
+#include "weapon_hl2mpbase.h"
 #include "cs_ammodef.h"
 #include "cs_gamerules.h"
 #include "cstrike/bot/shared_util.h"
@@ -26,7 +26,7 @@ extern ConVar cl_rebuy;
  */
 static bool CanBuyDefuser()
 {
-	C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *pPlayer = C_HL2MP_Player::GetLocalCSPlayer();
 	return ( pPlayer && pPlayer->GetTeamNumber() == TEAM_CT && CSGameRules()->IsBombDefuseMap() );
 }
 
@@ -36,11 +36,11 @@ void BuyPresetManager::GetCurrentLoadout( WeaponSet *weaponSet )
 	if ( !weaponSet )
 		return;
 
-	C_CSPlayer *player = C_CSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *player = C_HL2MP_Player::GetLocalCSPlayer();
 	if ( !player )
 		return;
 
-	CWeaponCSBase *pWeapon;
+	CWeaponHL2MPBase *pWeapon;
 	const CCSWeaponInfo *pInfo;
 
 	int ammo[MAX_AMMO_TYPES];
@@ -54,19 +54,19 @@ void BuyPresetManager::GetCurrentLoadout( WeaponSet *weaponSet )
 	weaponSet->m_helmet = player->HasHelmet();
 
 	// Grab current smoke grenade
-	pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetCSWeapon( WEAPON_SMOKEGRENADE ));
+	pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetCSWeapon( WEAPON_SMOKEGRENADE ));
 	pInfo = GetWeaponInfo( WEAPON_SMOKEGRENADE );
 	int ammoType = (pInfo)?pInfo->iAmmoType:0;
 	weaponSet->m_smokeGrenade = (pWeapon && player->GetAmmoCount( ammoType ));
 
 	// Grab current HE grenade
-	pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetCSWeapon( WEAPON_HEGRENADE ));
+	pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetCSWeapon( WEAPON_HEGRENADE ));
 	pInfo = GetWeaponInfo( WEAPON_HEGRENADE );
 	ammoType = (pInfo)?pInfo->iAmmoType:0;
 	weaponSet->m_HEGrenade = (pWeapon && player->GetAmmoCount( ammoType ));
 
 	// Grab current flashbangs
-	pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetCSWeapon( WEAPON_FLASHBANG ));
+	pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetCSWeapon( WEAPON_FLASHBANG ));
 	pInfo = GetWeaponInfo( WEAPON_FLASHBANG );
 	ammoType = (pInfo)?pInfo->iAmmoType:0;
 	weaponSet->m_flashbangs = (!pWeapon) ? 0 : player->GetAmmoCount( ammoType );
@@ -149,7 +149,7 @@ void WeaponSet::GetCurrent( int& cost, WeaponSet& ws ) const
 	if ( !engine->IsConnected() )
 		return;
 
-	C_CSPlayer *player = CCSPlayer::GetLocalCSPlayer();
+	C_HL2MP_Player *player = CHL2MP_Player::GetLocalCSPlayer();
 	if ( !player )
 		return;
 
@@ -192,12 +192,12 @@ void WeaponSet::GetCurrent( int& cost, WeaponSet& ws ) const
 		ws.m_helmet = true;
 	}
 
-	CWeaponCSBase *pWeapon;
+	CWeaponHL2MPBase *pWeapon;
 	CCSWeaponInfo *pInfo;
 
 	//-------------------------------------------------------------------------
 	// Smoke grenade
-	pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetCSWeapon( WEAPON_SMOKEGRENADE ));
+	pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetCSWeapon( WEAPON_SMOKEGRENADE ));
 	pInfo = GetWeaponInfo( WEAPON_SMOKEGRENADE );
 	int ammoType = (pInfo)?pInfo->iAmmoType:0;
 
@@ -211,7 +211,7 @@ void WeaponSet::GetCurrent( int& cost, WeaponSet& ws ) const
 
 	//-------------------------------------------------------------------------
 	// HE grenade
-	pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetCSWeapon( WEAPON_HEGRENADE ));
+	pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetCSWeapon( WEAPON_HEGRENADE ));
 	pInfo = GetWeaponInfo( WEAPON_HEGRENADE );
 	ammoType = (pInfo)?pInfo->iAmmoType:0;
 
@@ -225,7 +225,7 @@ void WeaponSet::GetCurrent( int& cost, WeaponSet& ws ) const
 
 	//-------------------------------------------------------------------------
 	// Flashbang grenades
-	pWeapon = dynamic_cast< CWeaponCSBase * >(player->GetCSWeapon( WEAPON_FLASHBANG ));
+	pWeapon = dynamic_cast< CWeaponHL2MPBase * >(player->GetCSWeapon( WEAPON_FLASHBANG ));
 	pInfo = GetWeaponInfo( WEAPON_FLASHBANG );
 	ammoType = (pInfo)?pInfo->iAmmoType:0;
 

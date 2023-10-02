@@ -23,12 +23,30 @@
 #include "xbox/xbox_console.h"
 #endif
 #include "tier0/memdbgon.h"
+#include "CommandBuffer.h"
 
 #ifndef NDEBUG
 // Comment this out when we release.
 #define ALLOW_DEVELOPMENT_CVARS
 #endif
 
+
+char s_convar_capture[64][8192];
+int s_current_capture;
+bool s_free_captures[64];
+
+#define stricat(_Destination, _Source, maxlen) strncat(_Destination, _Source, min(maxlen - strlen(_Destination), strlen(_Source)))
+
+SpewRetval_t CaptureSpewFunc(SpewType_t type, const tchar* pMsg)
+{
+	stricat(s_convar_capture[s_current_capture], pMsg, 8192);
+	int l = strlen(s_convar_capture[s_current_capture]) - 1;
+	if (l != -1 && s_convar_capture[s_current_capture][l] == '\n')
+	{
+		s_convar_capture[s_current_capture][l] = 0;
+	}
+	return SPEW_CONTINUE;
+}
 
 
 //-----------------------------------------------------------------------------
@@ -327,7 +345,7 @@ CCommand::CCommand()
 
 	Reset();
 }
-
+/*
 CCommand::CCommand( int nArgC, const char **ppArgV )
 {
 	Assert( nArgC > 0 );
@@ -371,7 +389,7 @@ CCommand::CCommand( int nArgC, const char **ppArgV )
 			*pSBuf++ = ' ';
 		}
 	}
-}
+}*/
 
 void CCommand::Reset()
 {
@@ -385,6 +403,320 @@ characterset_t* CCommand::DefaultBreakSet()
 	return &s_BreakSet;
 }
 
+bool CCommand::GetQuoted(const char* pCommand, int maxlen, int& index, int i) {
+	int c = 0;
+	for (; index < maxlen; index++) {
+		if (pCommand[index] == '"') {
+			m_ppArgv[i][c] = '\x00';
+			index++;
+			return true;
+		}
+		m_ppArgv[i][c] = pCommand[index];
+		c++;
+	}
+	m_ppArgv[i][c] = '\x00';
+	return false;
+}
+
+bool CCommand::GetApostrophed(const char* pCommand, int maxlen, int& index, int i){
+	int c = 0;
+	for (; index < maxlen; index++) {
+		if (pCommand[index] == '\'') {
+			m_ppArgv[i][c] = '\x00';
+			index++;
+			return true;
+		}
+		m_ppArgv[i][c] = pCommand[index];
+		c++;
+	}
+	m_ppArgv[i][c] = '\x00';
+	return false;
+}
+
+void CCommand::CurlyBracketCheck(int i, const char* pCommand, int& c, int& index, int maxlen)
+{
+	if (pCommand[index] != '{')
+	{
+		return;
+	}
+	m_ppArgv[i][c] = pCommand[index];
+	c++;
+	index++;
+	while (index < maxlen && pCommand[index])
+	{
+		m_ppArgv[i][c] = pCommand[index];
+		if (pCommand[index] == '{')
+		{
+			CurlyBracketCheck(i, pCommand, c, index, maxlen);
+			continue;
+		}
+		if (pCommand[index] == '}')
+		{
+			index++;
+			c++;
+			return;
+		}
+		if (pCommand[index] == '[')
+		{
+			SquareBracketCheck(i, pCommand, c, index, maxlen);
+			continue;
+		}
+		c++;
+		index++;
+	}
+}
+
+void CCommand::SquareBracketCheck(int i, const char* pCommand, int& c, int& index, int maxlen)
+{
+	if (pCommand[index] != '[')
+	{
+		return;
+	}
+	m_ppArgv[i][c] = pCommand[index];
+	c++;
+	index++;
+	while (index < maxlen && pCommand[index])
+	{
+		m_ppArgv[i][c] = pCommand[index];
+		if (pCommand[index] == '[')
+		{
+			SquareBracketCheck(i, pCommand, c, index, maxlen);
+			continue;
+		}
+		if (pCommand[index] == ']')
+		{
+			index++;
+			c++;
+			return;
+		}
+		if (pCommand[index] == '{')
+		{
+			CurlyBracketCheck(i, pCommand, c, index, maxlen);
+			continue;
+		}
+		c++;
+		index++;
+	}
+}
+
+bool CCommand::GetArgument(const char* pCommand, int maxlen, int& index, int i) {
+	while (index < maxlen && (pCommand[index] == ' ' || pCommand[index] == '\t'))
+	{
+		index++;
+	}
+	if (index == maxlen)
+	{
+		return false;
+	}
+	if (pCommand[index] == '"')
+	{
+		index++;
+		return GetQuoted(pCommand, maxlen, index, i);
+	}
+	if (pCommand[index] == '\'')
+	{
+		index++;
+		return GetApostrophed(pCommand, maxlen, index, i);
+	}
+	bool inGroup = false;
+	if (pCommand[index] == '<')
+	{
+		index++;
+		inGroup = true;
+	}
+	int c = 0;
+	for (; index < maxlen; index++) {
+		SquareBracketCheck(i, pCommand, c, index, maxlen);
+		CurlyBracketCheck(i, pCommand, c, index, maxlen);
+		if (inGroup)
+		{
+			if (pCommand[index] == '>')
+			{
+				m_ppArgv[i][c] = '\x00';
+				index++;
+				break;
+			}
+		}
+		else
+		{
+			if (pCommand[index] == ' ' || pCommand[index] == '\t' || pCommand[index] == '\n') {
+				m_ppArgv[i][c] = '\x00';
+				index++;
+				break;
+			}
+		}
+		m_ppArgv[i][c] = pCommand[index];
+		c++;
+	}
+	m_ppArgv[i][c] = '\x00';
+	char processed[512] = { 0 };
+	int bracketindex = 0;
+	ParseBrackets(processed, bracketindex, i, false, false);
+	strcpy(m_ppArgv[i], processed);
+	return true;
+}
+
+int CCommand::GetArguments(const char* pCommand) {
+	int maxlen = Q_strlen(pCommand);
+	if (maxlen >= COMMAND_MAX_LENGTH - 1)
+	{
+		Warning("CCommand::GetArguments: Encountered command which overflows the tokenizer buffer.. Skipping!\n");
+		return false;
+	}
+	int index = 0;
+	//Msg("CMD: |%s|\n", pCommand);
+	for (int i = 0; i < COMMAND_MAX_ARGC; i++) {
+		if (!(GetArgument(pCommand, maxlen, index, i))) {
+			if (i == 0) {
+				m_nArgv0Size = index;
+			}
+			return i;
+		}
+		//Msg("%i: |%s|\n", i, m_ppArgv[i]);
+		if (i == 0) {
+			m_nArgv0Size = index;
+		}
+		if (index >= maxlen) {
+			if (i == 0) {
+				m_nArgv0Size = index;
+			}
+			return i;
+		}
+	}
+	return COMMAND_MAX_ARGC - 1;
+}
+
+
+
+int CCommand::ParseBrackets(char* output, int& index, int i, bool inconvar, bool inint)
+{
+	char convarname[COMMAND_MAX_LENGTH+2] = { 0 };
+	int j = 0;
+	int addedchars = 0;
+	while (index < COMMAND_MAX_LENGTH && j < COMMAND_MAX_LENGTH && m_ppArgv[i][index])
+	{
+		if (index == 0 || m_ppArgv[i][index - 1] != '\\')
+		{
+			if (m_ppArgv[i][index] == '(')
+			{
+				index++;
+				int outlen = strlen(output);
+				while (index < COMMAND_MAX_LENGTH && outlen < COMMAND_MAX_LENGTH && m_ppArgv[i][index])
+				{
+					if (m_ppArgv[i][index] == ')')
+					{
+						if (index == 0 || m_ppArgv[i][index - 1] != '\\')
+						{
+							index++;
+							break;
+						}
+					}
+					output[outlen] = m_ppArgv[i][index];
+					index++;
+					outlen++;
+					addedchars++;
+				}
+				continue;
+			}
+			if (m_ppArgv[i][index] == '[')
+			{
+				index++;
+				if (inconvar)
+				{
+					j += ParseBrackets(convarname, index, i, true, false);
+				}
+				else
+				{
+					j += ParseBrackets(output, index, i, true, false);
+				}
+				continue;
+			}
+			else if (m_ppArgv[i][index] == '{')
+			{
+				index++;
+				if (inconvar)
+				{
+					j += ParseBrackets(convarname, index, i, true, true);
+				}
+				else
+				{
+					j += ParseBrackets(output, index, i, true, true);
+				}
+				continue;
+			}
+			else if (m_ppArgv[i][index] == ']' && inconvar && !inint)
+			{
+				convarname[j] = 0;
+				ConVar* cvar = g_pCVar->FindVar(convarname);
+				if (cvar)
+				{
+					strcat(output, cvar->GetString());
+					addedchars += strlen(cvar->GetString());
+				}
+				//else 
+				//{
+				//	strcat(output, convarname);
+				//	len = strlen(convarname);
+				//}
+				index++;
+				return addedchars;
+			}
+			else if (m_ppArgv[i][index] == '}' && inconvar && inint)
+			{
+				convarname[j] = 0;
+				ConVar* cvar = g_pCVar->FindVar(convarname);
+				if (cvar)
+				{
+					char str[32] = { 0 };
+					itoa(cvar->GetInt(), str, 10);
+					strcat(output, str);
+					addedchars += strlen(str);
+				}
+				//else
+				//{
+				//	strcat(output, convarname);
+				//	len = strlen(convarname);
+				//}
+				index++;
+				return addedchars;
+			}
+		}
+		if (inconvar)
+		{
+			convarname[j] = m_ppArgv[i][index];
+		}
+		else
+		{
+			output[j] = m_ppArgv[i][index];
+		}
+		j++;
+		index++;
+	}
+	if (j < COMMAND_MAX_LENGTH)
+	{
+		output[j] = 0;
+	}
+	return 0;
+}
+
+bool CCommand::Tokenize(const char* pCommand, characterset_t* pBreakSet)
+{
+	Reset();
+	//Msg("CMD: |%s|\n", pCommand);
+	if (!pCommand)
+		return false;
+	int nLen = Q_strlen(pCommand);
+	if (nLen >= COMMAND_MAX_LENGTH - 1)
+	{
+		Warning("CCommand::Tokenize: Encountered command which overflows the tokenizer buffer.. Skipping!\n");
+		return false;
+	}
+
+	memcpy(m_pArgSBuffer, pCommand, nLen + 1);
+	m_nArgc = GetArguments(pCommand)+1;
+	return true;
+}
+/*
 bool CCommand::Tokenize( const char *pCommand, characterset_t *pBreakSet )
 {
 	Reset();
@@ -463,7 +795,7 @@ bool CCommand::Tokenize( const char *pCommand, characterset_t *pBreakSet )
 	return true;
 }
 
-
+*/
 //-----------------------------------------------------------------------------
 // Helper function to parse arguments to commands.
 //-----------------------------------------------------------------------------
@@ -989,7 +1321,7 @@ void ConVar::Create( const char *pName, const char *pDefaultValue, int flags /*=
 	m_StringLength = V_strlen( m_pszDefaultValue ) + 1;
 	m_pszString = new char[m_StringLength];
 	memcpy( m_pszString, m_pszDefaultValue, m_StringLength );
-	
+
 	m_bHasMin = bMin;
 	m_fMinVal = fMin;
 	m_bHasMax = bMax;

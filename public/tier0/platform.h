@@ -276,6 +276,12 @@ typedef signed char int8;
 #else
 	#define IsAndroid()	false
 #endif
+
+#ifndef _WIN32
+#define itoa(value,str,len) Q_snprintf( str, len, "%d", value )
+#define itow(value,str,len) V_snwprintf( str, len, "%d", value )
+#define _itow(value,str,len) V_snwprintf( str, len, L"%d", value )
+#endif
 // From steam/steamtypes.h
 // RTime32
 // We use this 32 bit time representing real world time.
@@ -1417,6 +1423,32 @@ inline bool Plat_IsInDebugSession( bool bForceRecheck = false ) { return false; 
 #define Plat_DebugString(s) ((void)0)
 #endif
 
+#if defined(_WIN32) 
+	#if defined(PLATFORM_64BITS)
+		#define DEST_OS_BASE "win64"
+	#else
+		#define DEST_OS_BASE "win32"
+	#endif
+#elif defined(PLATFORM_BSD)
+	#define DEST_OS_BASE "freebsd"
+#elif defined(LINUX)
+	#define DEST_OS_BASE "linux"
+#else
+	#define DEST_OS_BASE ""
+#endif
+
+#if defined(DEDICATED)
+	#define DEST_OS DEST_OS_BASE "_srcds"
+#else
+	#define DEST_OS DEST_OS_BASE
+#endif
+
+#if defined(UPDATER)
+	#define BIN_FOLDER "updater"
+#else
+	#define BIN_FOLDER "bin"
+#endif
+
 //-----------------------------------------------------------------------------
 // Returns true if running on a 64 bit (windows) OS
 //-----------------------------------------------------------------------------
@@ -1709,6 +1741,10 @@ RETURN_TYPE FASTCALL __Function_##NAME<nArgument>::Run ARGS
 	{\
 		CODE;\
 	}
+
+#define DECLARE_GET_SET( type, varName, HumanName ) \
+	type Get##HumanName() { return varName; } \
+	void Set##HumanName( type val ) { varName = val; }
 
 //-----------------------------------------------------------------------------
 // Dynamic libs support

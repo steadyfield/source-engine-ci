@@ -659,6 +659,14 @@ bool CMaterialSystem::Connect( CreateInterfaceFn factory )
 		return false;
 	}
 
+#ifdef WIN32
+	if ( m_ShaderAPIFactory == 0 )
+	{
+		::MessageBoxA(0, "Could not create shaders. Make sure you have DirectX 9.0c installed.", "Engine Error", MB_OK);
+		return false;
+	}
+#endif
+
 	// Get at the interfaces exported by the shader DLL
 	g_pShaderDeviceMgr = (IShaderDeviceMgr*)m_ShaderAPIFactory( SHADER_DEVICE_MGR_INTERFACE_VERSION, 0 );
 	if ( !g_pShaderDeviceMgr )
@@ -1846,6 +1854,7 @@ void CMaterialSystem::ReadConfigFromConVars( MaterialSystem_Config_t *pConfig )
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_DISABLE_PHONG, !mat_phong.GetBool() );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_ENABLE_PARALLAX_MAPPING, mat_parallaxmap.GetBool() );
 	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_REDUCE_FILLRATE, mat_reducefillrate.GetBool() );
+	pConfig->SetFlag( MATSYS_VIDCFG_FLAGS_NUHUH, mat_reducefillrate.GetInt() > 1 );
 	pConfig->m_nForceAnisotropicLevel = max( mat_forceaniso.GetInt(), 1 );
 	pConfig->dxSupportLevel = MAX( ABSOLUTE_MINIMUM_DXLEVEL, mat_dxlevel.GetInt() );
 	pConfig->skipMipLevels = mat_picmip.GetInt();
@@ -2318,6 +2327,7 @@ bool CMaterialSystem::OverrideConfig( const MaterialSystem_Config_t &_config, bo
 				( int )config.ReduceFillrate(), ( int )g_config.ReduceFillrate() );
 		}
 		bReloadMaterials = true;
+		recomputeSnapshots = true;
 	}
 
 	// toggle reverse depth

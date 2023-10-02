@@ -77,14 +77,14 @@ BEGIN_DATADESC( CFuncTank )
 	DEFINE_KEYFIELD( m_iBulletDamageVsPlayer, FIELD_INTEGER, "bullet_damage_vs_player" ),
 	DEFINE_KEYFIELD( m_iszMaster, FIELD_STRING, "master" ),
 	
-#ifdef HL2_EPISODIC	
+
 	DEFINE_KEYFIELD( m_iszAmmoType, FIELD_STRING, "ammotype" ),
 	DEFINE_FIELD( m_iAmmoType, FIELD_INTEGER ),
-#else
+
 	DEFINE_FIELD( m_iSmallAmmoType, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iMediumAmmoType, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iLargeAmmoType, FIELD_INTEGER ),
-#endif // HL2_EPISODIC
+
 
 	DEFINE_KEYFIELD( m_soundStartRotate, FIELD_SOUNDNAME, "rotatestartsound" ),
 	DEFINE_KEYFIELD( m_soundStopRotate, FIELD_SOUNDNAME, "rotatestopsound" ),
@@ -735,13 +735,13 @@ void CFuncTank::Spawn( void )
 {
 	Precache();
 
-#ifdef HL2_EPISODIC
+
 	m_iAmmoType = GetAmmoDef()->Index( STRING( m_iszAmmoType ) );
-#else
+
 	m_iSmallAmmoType	= GetAmmoDef()->Index("Pistol");
 	m_iMediumAmmoType	= GetAmmoDef()->Index("SMG1");
 	m_iLargeAmmoType	= GetAmmoDef()->Index("AR2");
-#endif // HL2_EPISODIC
+
 
 	SetMoveType( MOVETYPE_PUSH );  // so it doesn't get pushed by anything
 	SetSolid( SOLID_VPHYSICS );
@@ -802,6 +802,9 @@ void CFuncTank::Spawn( void )
 			if ( pProp )
 			{
 				pProp->m_bUseHitboxesForRenderBox = true;
+#ifdef HL2MP
+				pProp->m_bClientSideAnimation = false;
+#endif
 			}
 		}
 	}
@@ -923,6 +926,9 @@ void CFuncTank::Activate( void )
 			if ( pProp )
 			{
 				pProp->m_bUseHitboxesForRenderBox = true;
+#ifdef HL2MP
+				pProp->m_bClientSideAnimation = false;
+#endif
 			}
 		}
 	}
@@ -2217,6 +2223,9 @@ void CFuncTank::DoMuzzleFlash( void )
 			CEffectData data;
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_nEntIndex = pAnim->entindex();
+#ifdef HL2MP
+			pAnim->GetAttachment( m_nBarrelAttachment, data.m_vOrigin );
+#endif
 			
 			// FIXME: Create a custom entry here!
 			DispatchEffect( "ChopperMuzzleFlash", data );
@@ -2228,7 +2237,10 @@ void CFuncTank::DoMuzzleFlash( void )
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_flScale = 1.0f;
 			data.m_fFlags = MUZZLEFLASH_COMBINE;
-
+#ifdef HL2MP
+			pAnim->GetAttachment( m_nBarrelAttachment, data.m_vOrigin );
+#endif
+			
 			DispatchEffect( "MuzzleFlash", data );
 		}
 	}
@@ -2495,6 +2507,10 @@ LINK_ENTITY_TO_CLASS( func_tank, CFuncTankGun );
 //-----------------------------------------------------------------------------
 void CFuncTankGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+#ifdef HL2MP
+	IPredictionSystem::SuppressHostEvents( NULL );
+#endif
+	
 	int i;
 
 	FireBulletsInfo_t info;
@@ -2517,7 +2533,7 @@ void CFuncTankGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector 
 	info.m_pAttacker = pAttacker;
 	info.m_pAdditionalIgnoreEnt = GetParent();
 
-#ifdef HL2_EPISODIC
+
 	if ( m_iAmmoType != -1 )
 	{
 		for ( i = 0; i < bulletCount; i++ )
@@ -2526,32 +2542,35 @@ void CFuncTankGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector 
 			FireBullets( info );
 		}
 	}
-#else
-	for ( i = 0; i < bulletCount; i++ )
+	else
 	{
-		switch( m_bulletType )
+
+		for (i = 0; i < bulletCount; i++)
 		{
-		case TANK_BULLET_SMALL:
-			info.m_iAmmoType = m_iSmallAmmoType;
-			FireBullets( info );
-			break;
+			switch (m_bulletType)
+			{
+			case TANK_BULLET_SMALL:
+				info.m_iAmmoType = m_iSmallAmmoType;
+				FireBullets(info);
+				break;
 
-		case TANK_BULLET_MEDIUM:
-			info.m_iAmmoType = m_iMediumAmmoType;
-			FireBullets( info );
-			break;
+			case TANK_BULLET_MEDIUM:
+				info.m_iAmmoType = m_iMediumAmmoType;
+				FireBullets(info);
+				break;
 
-		case TANK_BULLET_LARGE:
-			info.m_iAmmoType = m_iLargeAmmoType;
-			FireBullets( info );
-			break;
+			case TANK_BULLET_LARGE:
+				info.m_iAmmoType = m_iLargeAmmoType;
+				FireBullets(info);
+				break;
 
-		default:
-		case TANK_BULLET_NONE:
-			break;
+			default:
+			case TANK_BULLET_NONE:
+				break;
+			}
 		}
 	}
-#endif // HL2_EPISODIC
+
 
 	CFuncTank::Fire( bulletCount, barrelEnd, forward, pAttacker, bIgnoreSpread );
 }
@@ -3021,6 +3040,9 @@ void CFuncTankAirboatGun::DoMuzzleFlash( void )
 		data.m_nEntIndex = m_hAirboatGunModel->entindex();
 		data.m_nAttachmentIndex = m_nGunBarrelAttachment;
 		data.m_flScale = 1.0f;
+#ifdef HL2MP
+		m_hAirboatGunModel->GetAttachment( m_nGunBarrelAttachment, data.m_vOrigin );
+#endif
 		DispatchEffect( "AirboatMuzzleFlash", data );
 	}
 }

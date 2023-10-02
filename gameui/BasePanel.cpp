@@ -300,22 +300,23 @@ void AddUrlButton(vgui::Panel *parent, const char *imgName, const char *url )
 class CGameMenu : public vgui::Menu
 {
 public:
-	DECLARE_CLASS_SIMPLE( CGameMenu, vgui::Menu );
+	DECLARE_CLASS_SIMPLE(CGameMenu, vgui::Menu);
+	float m_flAnimStart = 0.0;
 
-	CGameMenu(vgui::Panel *parent, const char *name) : BaseClass(parent, name) 
+	CGameMenu(vgui::Panel* parent, const char* name) : BaseClass(parent, name)
 	{
-		if ( GameUI().IsConsoleUI() )
+		if (GameUI().IsConsoleUI())
 		{
 			// shows graphic button hints
-			m_pConsoleFooter = new CFooterPanel( parent, "MainMenuFooter" );
+			m_pConsoleFooter = new CFooterPanel(parent, "MainMenuFooter");
 
 			int iFixedWidth = 245;
 
 #ifdef _X360
 			// In low def we need a smaller highlight
 			XVIDEO_MODE videoMode;
-			XGetVideoMode( &videoMode );
-			if ( !videoMode.fIsHiDef )
+			XGetVideoMode(&videoMode);
+			if (!videoMode.fIsHiDef)
 			{
 				iFixedWidth = 240;
 			}
@@ -325,7 +326,7 @@ public:
 			}
 #endif
 
-			SetFixedWidth( iFixedWidth );
+			SetFixedWidth(iFixedWidth);
 		}
 		else
 		{
@@ -335,13 +336,13 @@ public:
 		m_hMainMenuOverridePanel = NULL;
 	}
 
-	virtual void ApplySchemeSettings(IScheme *pScheme)
+	virtual void ApplySchemeSettings(IScheme* pScheme)
 	{
 		BaseClass::ApplySchemeSettings(pScheme);
 
 		int height = atoi(pScheme->GetResourceString("MainMenu.MenuItemHeight"));
-		if( IsProportional() )
-			height = scheme()->GetProportionalScaledValue( height );
+		if (IsProportional())
+			height = scheme()->GetProportionalScaledValue(height);
 
 		// make fully transparent
 		SetMenuItemHeight(height);
@@ -353,11 +354,11 @@ public:
 	{
 	}
 
-	void SetMainMenuOverride( vgui::VPANEL panel )
+	void SetMainMenuOverride(vgui::VPANEL panel)
 	{
 		m_hMainMenuOverridePanel = panel;
 
-		if ( m_hMainMenuOverridePanel )
+		if (m_hMainMenuOverridePanel)
 		{
 			// We've got an override panel. Nuke all our menu items.
 			DeleteAllItems();
@@ -366,13 +367,13 @@ public:
 
 	virtual void SetVisible(bool state)
 	{
-		if ( m_hMainMenuOverridePanel )
+		if (m_hMainMenuOverridePanel)
 		{
 			// force to be always visible
-			ipanel()->SetVisible( m_hMainMenuOverridePanel, true );
+			ipanel()->SetVisible(m_hMainMenuOverridePanel, true);
 
 			// move us to the back instead of going invisible
-			if ( !state )
+			if (!state)
 			{
 				ipanel()->MoveToBack(m_hMainMenuOverridePanel);
 			}
@@ -384,13 +385,16 @@ public:
 		// move us to the back instead of going invisible
 		if (!state)
 		{
+			m_flAnimStart = engine->Time();
 			ipanel()->MoveToBack(GetVPanel());
 		}
+		
+
 	}
 
-	virtual int AddMenuItem(const char *itemName, const char *itemText, const char *command, Panel *target, KeyValues *userData = NULL)
+	virtual int AddMenuItem(const char* itemName, const char* itemText, const char* command, Panel* target, KeyValues* userData = NULL)
 	{
-		MenuItem *item = new CGameMenuItem(this, itemName);
+		MenuItem* item = new CGameMenuItem(this, itemName);
 		item->AddActionSignalTarget(target);
 		item->SetCommand(command);
 		item->SetText(itemText);
@@ -398,9 +402,9 @@ public:
 		return BaseClass::AddMenuItem(item);
 	}
 
-	virtual int AddMenuItem(const char *itemName, wchar_t *itemText, const char *command, Panel *target, KeyValues *userData = NULL)
+	virtual int AddMenuItem(const char* itemName, wchar_t* itemText, const char* command, Panel* target, KeyValues* userData = NULL)
 	{
-		MenuItem *item = new CGameMenuItem(this, itemName);
+		MenuItem* item = new CGameMenuItem(this, itemName);
 		item->AddActionSignalTarget(target);
 		item->SetCommand(command);
 		item->SetText(itemText);
@@ -408,9 +412,9 @@ public:
 		return BaseClass::AddMenuItem(item);
 	}
 
-	virtual int AddMenuItem(const char *itemName, const char *itemText, KeyValues *command, Panel *target, KeyValues *userData = NULL)
+	virtual int AddMenuItem(const char* itemName, const char* itemText, KeyValues* command, Panel* target, KeyValues* userData = NULL)
 	{
-		CGameMenuItem *item = new CGameMenuItem(this, itemName);
+		CGameMenuItem* item = new CGameMenuItem(this, itemName);
 		item->AddActionSignalTarget(target);
 		item->SetCommand(command);
 		item->SetText(itemText);
@@ -419,17 +423,17 @@ public:
 		return BaseClass::AddMenuItem(item);
 	}
 
-	virtual void SetMenuItemBlinkingState( const char *itemName, bool state )
+	virtual void SetMenuItemBlinkingState(const char* itemName, bool state)
 	{
 		for (int i = 0; i < GetChildCount(); i++)
 		{
-			Panel *child = GetChild(i);
-			MenuItem *menuItem = dynamic_cast<MenuItem *>(child);
+			Panel* child = GetChild(i);
+			MenuItem* menuItem = dynamic_cast<MenuItem*>(child);
 			if (menuItem)
 			{
-				if ( Q_strcmp( menuItem->GetCommand()->GetString("command", ""), itemName ) == 0 )
+				if (Q_strcmp(menuItem->GetCommand()->GetString("command", ""), itemName) == 0)
 				{
-					menuItem->SetBlink( state );
+					menuItem->SetBlink(state);
 				}
 			}
 		}
@@ -438,10 +442,10 @@ public:
 
 	virtual void OnSetFocus()
 	{
-		if ( m_hMainMenuOverridePanel )
+		if (m_hMainMenuOverridePanel)
 		{
-			Panel *pMainMenu = ipanel()->GetPanel( m_hMainMenuOverridePanel, "ClientDLL" );
-			if ( pMainMenu )
+			Panel* pMainMenu = ipanel()->GetPanel(m_hMainMenuOverridePanel, "ClientDLL");
+			if (pMainMenu)
 			{
 				pMainMenu->PerformLayout();
 			}
@@ -450,18 +454,18 @@ public:
 		BaseClass::OnSetFocus();
 	}
 
-	virtual void OnCommand(const char *command)
+	virtual void OnCommand(const char* command)
 	{
 		m_KeyRepeat.Reset();
 
 
 		if (!stricmp(command, "Open"))
 		{
-			if ( m_hMainMenuOverridePanel )
+			if (m_hMainMenuOverridePanel)
 			{
 				// force to be always visible
-				ipanel()->MoveToFront( m_hMainMenuOverridePanel );
-				ipanel()->RequestFocus( m_hMainMenuOverridePanel );
+				ipanel()->MoveToFront(m_hMainMenuOverridePanel);
+				ipanel()->RequestFocus(m_hMainMenuOverridePanel);
 			}
 			else
 			{
@@ -475,34 +479,34 @@ public:
 		}
 	}
 
-	virtual void OnKeyCodePressed( KeyCode code )
+	virtual void OnKeyCodePressed(KeyCode code)
 	{
-		if ( IsX360() )
+		if (IsX360())
 		{
-			if ( GetAlpha() != 255 )
+			if (GetAlpha() != 255)
 			{
-				SetEnabled( false );
+				SetEnabled(false);
 				// inhibit key activity during transitions
 				return;
 			}
 
-			SetEnabled( true );
+			SetEnabled(true);
 
-			if ( code == KEY_XBUTTON_B || code == KEY_XBUTTON_START )
+			if (code == KEY_XBUTTON_B || code == KEY_XBUTTON_START)
 			{
-				if ( GameUI().IsInLevel() )
+				if (GameUI().IsInLevel())
 				{
-					GetParent()->OnCommand( "ResumeGame" );
+					GetParent()->OnCommand("ResumeGame");
 				}
 				return;
 			}
 		}
 
-		m_KeyRepeat.KeyDown( code );
+		m_KeyRepeat.KeyDown(code);
 
 		int nDir = 0;
 
-		switch ( code )
+		switch (code)
 		{
 		case KEY_XBUTTON_UP:
 		case KEY_XSTICK1_UP:
@@ -521,62 +525,62 @@ public:
 			break;
 		}
 
-		if ( nDir != 0 )
+		if (nDir != 0)
 		{
 			CUtlSortVector< SortedPanel_t, CSortedPanelYLess > vecSortedButtons;
-			VguiPanelGetSortedChildButtonList( this, (void*)&vecSortedButtons );
+			VguiPanelGetSortedChildButtonList(this, (void*)&vecSortedButtons);
 
-			if ( VguiPanelNavigateSortedChildButtonList( (void*)&vecSortedButtons, nDir ) != -1 )
+			if (VguiPanelNavigateSortedChildButtonList((void*)&vecSortedButtons, nDir) != -1)
 			{
 				// Handled!
 				return;
 			}
 		}
-		else if ( code == KEY_XBUTTON_A || code == STEAMCONTROLLER_A )
+		else if (code == KEY_XBUTTON_A || code == STEAMCONTROLLER_A)
 		{
 			CUtlSortVector< SortedPanel_t, CSortedPanelYLess > vecSortedButtons;
-			VguiPanelGetSortedChildButtonList( this, (void*)&vecSortedButtons );
+			VguiPanelGetSortedChildButtonList(this, (void*)&vecSortedButtons);
 
-			for ( int i = 0; i < vecSortedButtons.Count(); i++ )
+			for (int i = 0; i < vecSortedButtons.Count(); i++)
 			{
-				if ( vecSortedButtons[ i ].pButton->IsArmed() )
+				if (vecSortedButtons[i].pButton->IsArmed())
 				{
-					vecSortedButtons[ i ].pButton->DoClick();
+					vecSortedButtons[i].pButton->DoClick();
 					return;
 				}
 			}
 		}
 
-		BaseClass::OnKeyCodePressed( code );
+		BaseClass::OnKeyCodePressed(code);
 
 		// HACK: Allow F key bindings to operate even here
-		if ( IsPC() && code >= KEY_F1 && code <= KEY_F12 )
+		if (IsPC() && code >= KEY_F1 && code <= KEY_F12)
 		{
 			// See if there is a binding for the FKey
-			const char *binding = gameuifuncs->GetBindingForButtonCode( code );
-			if ( binding && binding[0] )
+			const char* binding = gameuifuncs->GetBindingForButtonCode(code);
+			if (binding && binding[0])
 			{
 				// submit the entry as a console commmand
 				char szCommand[256];
-				Q_strncpy( szCommand, binding, sizeof( szCommand ) );
-				engine->ClientCmd_Unrestricted( szCommand );
+				Q_strncpy(szCommand, binding, sizeof(szCommand));
+				engine->ClientCmd_Unrestricted(szCommand);
 			}
 		}
 	}
 
-	void OnKeyCodeReleased( vgui::KeyCode code )
+	void OnKeyCodeReleased(vgui::KeyCode code)
 	{
-		m_KeyRepeat.KeyUp( code );
+		m_KeyRepeat.KeyUp(code);
 
-		BaseClass::OnKeyCodeReleased( code );
+		BaseClass::OnKeyCodeReleased(code);
 	}
 
 	void OnThink()
 	{
 		vgui::KeyCode code = m_KeyRepeat.KeyRepeated();
-		if ( code )
+		if (code)
 		{
-			OnKeyCodeTyped( code );
+			OnKeyCodeTyped(code);
 		}
 
 		BaseClass::OnThink();
@@ -586,10 +590,10 @@ public:
 	{
 		BaseClass::OnKillFocus();
 
-		if ( m_hMainMenuOverridePanel )
+		if (m_hMainMenuOverridePanel)
 		{
 			// force us to the rear when we lose focus (so it looks like the menu is always on the background)
-			surface()->MovePopupToBack( m_hMainMenuOverridePanel );
+			surface()->MovePopupToBack(m_hMainMenuOverridePanel);
 		}
 		else
 		{
@@ -600,49 +604,49 @@ public:
 		m_KeyRepeat.Reset();
 	}
 
-	void ShowFooter( bool bShow )
+	void ShowFooter(bool bShow)
 	{
-		if ( m_pConsoleFooter )
+		if (m_pConsoleFooter)
 		{
-			m_pConsoleFooter->SetVisible( bShow );
+			m_pConsoleFooter->SetVisible(bShow);
 		}
 	}
 
-	void UpdateMenuItemState( bool isInGame, bool isMultiplayer, bool isInReplay, bool isVREnabled, bool isVRActive )
+	void UpdateMenuItemState(bool isInGame, bool isMultiplayer, bool isInReplay, bool isVREnabled, bool isVRActive)
 	{
-		bool isSteam = IsPC() && ( CommandLine()->FindParm("-steam") != 0 );
+		bool isSteam = IsPC() && (CommandLine()->FindParm("-steam") != 0);
 		bool bIsConsoleUI = GameUI().IsConsoleUI();
 
 		// disabled save button if we're not in a game
 		for (int i = 0; i < GetChildCount(); i++)
 		{
-			Panel *child = GetChild(i);
-			MenuItem *menuItem = dynamic_cast<MenuItem *>(child);
+			Panel* child = GetChild(i);
+			MenuItem* menuItem = dynamic_cast<MenuItem*>(child);
 			if (menuItem)
 			{
 				bool shouldBeVisible = true;
 				// filter the visibility
-				KeyValues *kv = menuItem->GetUserData();
+				KeyValues* kv = menuItem->GetUserData();
 				if (!kv)
 					continue;
 
-				if (!isInGame && kv->GetInt("OnlyInGame") )
+				if (!isInGame && kv->GetInt("OnlyInGame"))
 				{
 					shouldBeVisible = false;
 				}
-				if (!isInReplay && kv->GetInt("OnlyInReplay") )
+				if (!isInReplay && kv->GetInt("OnlyInReplay"))
 				{
 					shouldBeVisible = false;
 				}
-				else if (!isVREnabled && kv->GetInt("OnlyWhenVREnabled") )
+				else if (!isVREnabled && kv->GetInt("OnlyWhenVREnabled"))
 				{
 					shouldBeVisible = false;
 				}
-				else if ( ( !isVRActive || ShouldForceVRActive() ) && kv->GetInt( "OnlyWhenVRActive" ) )
+				else if ((!isVRActive || ShouldForceVRActive()) && kv->GetInt("OnlyWhenVRActive"))
 				{
 					shouldBeVisible = false;
 				}
-				else if (isVRActive && kv->GetInt("OnlyWhenVRInactive") )
+				else if (isVRActive && kv->GetInt("OnlyWhenVRInactive"))
 				{
 					shouldBeVisible = false;
 				}
@@ -658,77 +662,96 @@ public:
 				{
 					shouldBeVisible = false;
 				}
-				else if ( !bIsConsoleUI && kv->GetInt( "ConsoleOnly" ) )
+				else if (!bIsConsoleUI && kv->GetInt("ConsoleOnly"))
 				{
 					shouldBeVisible = false;
 				}
 
 				// If we're playing back a replay, hide everything else
-				if ( isInReplay && !kv->GetInt("OnlyInReplay") )
+				if (isInReplay && !kv->GetInt("OnlyInReplay"))
 				{
 					shouldBeVisible = false;
 				}
 
-				menuItem->SetVisible( shouldBeVisible );
+				menuItem->SetVisible(shouldBeVisible);
 			}
 		}
 
-		if ( !isInGame )
+		if (!isInGame)
 		{
 			// Sort them into their original order
-			for ( int j = 0; j < GetChildCount() - 2; j++ )
+			for (int j = 0; j < GetChildCount() - 2; j++)
 			{
-				MoveMenuItem( j, j + 1 );
+				MoveMenuItem(j, j + 1);
 			}
 		}
 		else
 		{
 			// Sort them into their in game order
-			for ( int i = 0; i < GetChildCount(); i++ )
+			for (int i = 0; i < GetChildCount(); i++)
 			{
-				for ( int j = i; j < GetChildCount() - 2; j++ )
+				for (int j = i; j < GetChildCount() - 2; j++)
 				{
-					int iID1 = GetMenuID( j );
-					int iID2 = GetMenuID( j + 1 );
+					int iID1 = GetMenuID(j);
+					int iID2 = GetMenuID(j + 1);
 
-					MenuItem *menuItem1 = GetMenuItem( iID1 );
-					MenuItem *menuItem2 = GetMenuItem( iID2 );
+					MenuItem* menuItem1 = GetMenuItem(iID1);
+					MenuItem* menuItem2 = GetMenuItem(iID2);
 
-					KeyValues *kv1 = menuItem1->GetUserData();
-					KeyValues *kv2 = menuItem2->GetUserData();
+					KeyValues* kv1 = menuItem1->GetUserData();
+					KeyValues* kv2 = menuItem2->GetUserData();
 
-					if( !kv1 || !kv2 )
+					if (!kv1 || !kv2)
 						continue;
 
-					if ( kv1->GetInt("InGameOrder") > kv2->GetInt("InGameOrder") )
-						MoveMenuItem( iID2, iID1 );
+					if (kv1->GetInt("InGameOrder") > kv2->GetInt("InGameOrder"))
+						MoveMenuItem(iID2, iID1);
 				}
 			}
 		}
 
 		InvalidateLayout();
 
-		if ( m_pConsoleFooter )
+		if (m_pConsoleFooter)
 		{
 			// update the console footer
-			const char *pHelpName;
-			if ( !isInGame )
+			const char* pHelpName;
+			if (!isInGame)
 				pHelpName = "MainMenu";
 			else
 				pHelpName = "GameMenu";
 
-			if ( !m_pConsoleFooter->GetHelpName() || V_stricmp( pHelpName, m_pConsoleFooter->GetHelpName() ) )
+			if (!m_pConsoleFooter->GetHelpName() || V_stricmp(pHelpName, m_pConsoleFooter->GetHelpName()))
 			{
 				// game menu must re-establish its own help once it becomes re-active
-				m_pConsoleFooter->SetHelpNameAndReset( pHelpName );
-				m_pConsoleFooter->AddNewButtonLabel( "#GameUI_Action", "#GameUI_Icons_A_BUTTON" );
-				if ( isInGame )
+				m_pConsoleFooter->SetHelpNameAndReset(pHelpName);
+				m_pConsoleFooter->AddNewButtonLabel("#GameUI_Action", "#GameUI_Icons_A_BUTTON");
+				if (isInGame)
 				{
-					m_pConsoleFooter->AddNewButtonLabel( "#GameUI_Close", "#GameUI_Icons_B_BUTTON" );
+					m_pConsoleFooter->AddNewButtonLabel("#GameUI_Close", "#GameUI_Icons_B_BUTTON");
 				}
 			}
 		}
 	}
+
+	virtual void PerformLayout()
+	{
+		BaseClass::PerformLayout();
+		if (GetItemCount() == 0)
+			return;
+		float time = engine->Time() - m_flAnimStart;
+		float firstItemY = GetMenuItem(0)->GetYPos();
+		for (int i = 0; i < GetItemCount(); i++) {
+			MenuItem* item = GetMenuItem(i);
+			if (item->IsVisible()) {
+				float ltime = time - (item->GetYPos() - firstItemY)/900.0;
+				ltime = MAX(ltime, 0.0);
+				float ta = 300.0 - 1.0 / (ltime / 3.0 + 1.0 / 300.0);
+				item->SetPos((int)(ta) - 290.0, item->GetYPos());
+			}
+		}
+	}
+
 
     MESSAGE_FUNC_HANDLE( OnCursorEnteredMenuItem, "CursorEnteredMenuItem", menuItem);
 
@@ -1294,10 +1317,11 @@ void CBasePanel::SetBackgroundRenderState(EBackgroundState state)
 		// make the menus visible
 		m_bFadingInMenus = true;
 		m_flFadeMenuStartTime = frametime;
-		m_flFadeMenuEndTime = frametime + 3.0f;
+		m_flFadeMenuEndTime = frametime + 3.0f;	
 
 		if ( state == BACKGROUND_MAINMENU )
 		{
+			OnGameUIShown();
 			// fade background into main menu
 			m_bRenderingBackgroundTransition = true;
 			m_flTransitionStartTime = frametime;
@@ -1750,7 +1774,7 @@ void CBasePanel::UpdateRichPresenceInfo()
 void CBasePanel::PerformLayout()
 {
 	BaseClass::PerformLayout();
-
+	
 	// Get the screen size
 	int wide, tall;
 	vgui::surface()->GetScreenSize(wide, tall);
@@ -1937,6 +1961,13 @@ void CBasePanel::OnActivateModule(int moduleIndex)
 {
 	g_VModuleLoader.ActivateModule(moduleIndex);
 }
+
+
+void CBasePanel::OnGameUIShown()
+{
+	m_pGameMenu->m_flAnimStart = engine->Time();
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Animates menus on gameUI being shown
@@ -3286,6 +3317,13 @@ void CBasePanel::OnOpenServerBrowser()
 {
 	g_VModuleLoader.ActivateModule("Servers");
 }
+void OpenServerBrowser()
+{
+	BasePanel()->OnOpenServerBrowser();
+	Msg("Subject to change.");
+}
+
+static ConCommand open_serverbrowser("open_serverbrowser", OpenServerBrowser);
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -3294,6 +3332,14 @@ void CBasePanel::OnOpenFriendsDialog()
 {
 	g_VModuleLoader.ActivateModule("Friends");
 }
+
+void OnOpenFriendsDialog()
+{
+	g_VModuleLoader.ActivateModule("Friends");
+}
+
+static ConCommand open_friends("open_friends", OpenServerBrowser);
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -3320,6 +3366,15 @@ void CBasePanel::OnOpenCreateMultiplayerGameDialog()
 	}
 	m_hCreateMultiplayerGameDialog->Activate();
 }
+
+void OpenCreateMultiplayerGame()
+{
+	BasePanel()->OnOpenCreateMultiplayerGameDialog();
+	Msg("Subject to change.");
+}
+
+ConCommand open_createserver("open_createserver", OpenCreateMultiplayerGame);
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -3351,6 +3406,14 @@ void CBasePanel::OnOpenPlayerListDialog()
 	}
 	m_hPlayerListDialog->Activate();
 }
+
+void OpenPlayerListDialog()
+{
+	BasePanel()->OnOpenPlayerListDialog();
+	Msg("Subject to change.");
+}
+
+ConCommand open_playerlist("open_playerlist", OpenPlayerListDialog);
 
 //-----------------------------------------------------------------------------
 // Purpose: 

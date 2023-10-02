@@ -1072,11 +1072,11 @@ void Host_Changelevel2_f( const CCommand &args )
 		return;
 	}
 
-	if ( !sv.IsActive() || sv.IsMultiplayer() )
-	{
-		ConMsg( "Can't changelevel2, not in a single-player map\n" );
-		return;
-	}
+	//if ( !sv.IsActive() || sv.IsMultiplayer() )
+	//{
+	//	ConMsg( "Can't changelevel2, not in a single-player map\n" );
+	//	return;
+	//}
 
 	char szName[MAX_PATH] = { 0 };
 	V_strncpy( szName, args[1], sizeof( szName ) );
@@ -1970,6 +1970,7 @@ void Host_VoiceRecordStop_f(void)
 		{
 			CL_SendVoicePacket( g_bUsingSteamVoice ? false : true );
 			Voice_UserDesiresStop();
+			Voice_RecordStop();
 		}
 #endif
 	}

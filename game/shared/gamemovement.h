@@ -64,9 +64,13 @@ public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false );	///< returns the solid mask for the given player, so bots can have a more-restrictive set
 	CBasePlayer		*player;
 	CMoveData *GetMoveData() { return mv; }
-protected:
+
 	// Input/Output for this movement
-	CMoveData		*mv;
+	CMoveData* mv;
+
+protected:
+	//// Input/Output for this movement
+	//CMoveData		*mv;
 	
 	int				m_nOldWaterLevel;
 	float			m_flWaterEntryTime;
@@ -117,7 +121,7 @@ protected:
 
 	// allow overridden versions to respond to jumping
 	virtual void	OnJump( float fImpulse ) {}
-	virtual void	OnLand( float fVelocity ) {}
+	virtual void	OnLand(float fVelocity);
 
 	// Implement this if you want to know when the player collides during OnPlayerMove
 	virtual void	OnTryPlayerMoveCollision( trace_t &tr ) {}

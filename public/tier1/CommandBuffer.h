@@ -34,6 +34,11 @@ enum
 	COMMAND_BUFFER_INVALID_COMMAND_HANDLE = 0
 };
 
+struct CommandOutput_t
+{
+	char* text;
+	bool done;
+};
 
 //-----------------------------------------------------------------------------
 // A command buffer class- a queue of argc/argv based commands associated
@@ -86,28 +91,43 @@ public:
 	int GetArgumentBufferSize() { return m_nArgSBufferSize; }
 	int GetMaxArgumentBufferSize() { return m_nMaxArgSBufferLength; }
 
+	int m_nOutputBuffer;
+
+	void PrintCommandBuffer();
+	void ClearCommandBuffer();
+	void FindClear();
+
 private:
 	enum
 	{
 		ARGS_BUFFER_LENGTH = 8192,
 	};
 
+
+
 	struct Command_t
 	{
 		int m_nTick;
 		int m_nFirstArgS;
 		int m_nBufferSize;
+		int m_nBufferId;
+		int m_nCommandBit;
+		int m_nCommandBitLength;
 	};
 
+	int IsCommand(char* pCurrentCommand, char* commandBit, int &i, char closechar, int& length);
+
+	int EvaluateFirstExecutable(char* pCurrentCommand, char* commandBit, int& i, int& length);
+
 	// Insert a command into the command queue at the appropriate time
-	void InsertCommandAtAppropriateTime( CommandHandle_t hCommand );
+	CommandHandle_t InsertCommandAtAppropriateTime( CommandHandle_t hCommand );
 						   
 	// Insert a command into the command queue
 	// Only happens if it's inserted while processing other commands
-	void InsertImmediateCommand( CommandHandle_t hCommand );
+	CommandHandle_t InsertImmediateCommand( CommandHandle_t hCommand );
 
 	// Insert a command into the command queue
-	bool InsertCommand( const char *pArgS, int nCommandSize, int nTick );
+	CommandHandle_t InsertCommand( const char *pArgS, int nCommandSize, int nTick );
 
 	// Returns the length of the next command, as well as the offset to the next command
 	void GetNextCommandLength( const char *pText, int nMaxLen, int *pCommandLength, int *pNextCommandOffset );
@@ -118,9 +138,12 @@ private:
 	// Parses argv0 out of the buffer
 	bool ParseArgV0( CUtlBuffer &buf, char *pArgv0, int nMaxLen, const char **pArgs );
 
+	bool m_bClearBuffer;
+
 	char	m_pArgSBuffer[ ARGS_BUFFER_LENGTH ];
 	int		m_nArgSBufferSize;
 	CUtlFixedLinkedList< Command_t >	m_Commands;
+
 	int		m_nCurrentTick;
 	int		m_nLastTickToProcess;
 	int		m_nWaitDelayTicks;
@@ -162,5 +185,11 @@ inline const CCommand& CCommandBuffer::GetCommand() const
 {
 	return m_CurrentCommand;
 }
+
+//extern CUtlMap<int, Command_output> s_convar_capture;
+extern char s_convar_capture[64][8192];
+extern int s_current_capture;
+extern bool s_free_captures[64];
+extern SpewRetval_t CaptureSpewFunc(SpewType_t type, const tchar* pMsg);
 
 #endif // COMMANDBUFFER_H

@@ -1,9 +1,12 @@
 [submodule "thirdparty"]
 	path = thirdparty
-	url = https://github.com/nillerusr/source-thirdparty
+	url = https://github.com/SourceBoxGame/SourceBox-thirdparty
 [submodule "ivp"]
 	path = ivp
 	url = https://github.com/nillerusr/source-physics
 [submodule "lib"]
 	path = lib
-	url = https://github.com/nillerusr/source-engine-libs.git
+	url = https://github.com/SourceBoxGame/SourceBox-libs
+[submodule "SourceBoxCPython"]
+	path = SourceBoxCPython
+	url = https://github.com/SourceBoxGame/SourceBoxCPython.git

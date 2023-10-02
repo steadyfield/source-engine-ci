@@ -57,6 +57,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+#pragma comment(lib, "Msimg32.lib")
 
 #ifdef PlaySound
 #undef PlaySound
@@ -206,7 +207,7 @@ public:
 	virtual bool IsWithin(int x, int y);
 	virtual bool HasFocus();
 	virtual void GetWorkspaceBounds(int &x, int &y, int &wide, int &tall);
-	virtual void SolveTraverse(VPANEL panel, bool forceApplySchemeSettings);
+	virtual void SolveTraverse(VPANEL panel, bool forceApplySchemeSettings, bool forcePerformApplyScheme = false);
 	virtual void PaintTraverse(VPANEL panel);
 
 
@@ -1769,7 +1770,9 @@ void CWin32Surface::DrawTexturedRect(int x0,int y0,int x1,int y1)
 	else
 	{
 		oldObject = ::SelectObject(PLAT(_currentContextPanel)->textureDC, bitmap);
-		::StretchBlt(PLAT(_currentContextPanel)->hdc,x0,y0,x1-x0,y1-y0,PLAT(_currentContextPanel)->textureDC,0,0,wide,tall,SRCCOPY);
+		//::StretchBlt(PLAT(_currentContextPanel)->hdc,x0,y0,x1-x0,y1-y0,PLAT(_currentContextPanel)->textureDC,0,0,wide,tall,SRCCOPY);
+		BLENDFUNCTION blendFunction = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+		::AlphaBlend(PLAT(_currentContextPanel)->hdc, x0, y0, x1 - x0, y1 - y0, PLAT(_currentContextPanel)->textureDC, 0, 0, wide, tall, blendFunction);
 	}
 	::SelectObject(PLAT(_currentContextPanel)->textureDC, oldObject);
 
@@ -1852,7 +1855,7 @@ bool CWin32Surface::LoadBMP(Texture *texture, const char *filename)
 		dwBitsSize = dwFileSize - sizeof(bmfHeader);
 
 		HGLOBAL hDIB = ::GlobalAlloc( GMEM_MOVEABLE | GMEM_ZEROINIT, dwBitsSize );
-		char *pDIB = (LPSTR)::GlobalLock((HGLOBAL)hDIB);
+		unsigned char *pDIB = (unsigned char*)((LPSTR)::GlobalLock((HGLOBAL)hDIB));
 		{
 			int i, j;
 
@@ -1872,7 +1875,7 @@ bool CWin32Surface::LoadBMP(Texture *texture, const char *filename)
 				PLAT(_currentContextPanel)->hdc, 
 				32, &texture->_dib );
 
-			unsigned char *rgba = (unsigned char *)( pDIB + sizeof( BITMAPINFOHEADER ) + 256 * sizeof( RGBQUAD ) );
+			unsigned int rgba = sizeof( BITMAPINFOHEADER );
 
 			// Copy raw data
 			for (j = 0; j < texture->_tall; j++)
@@ -1881,15 +1884,14 @@ bool CWin32Surface::LoadBMP(Texture *texture, const char *filename)
 				{
 					int y = (texture->_tall - j - 1);
 
-					int offs = ( y * texture->_wide + i);
+					int offs = ( y * texture->_wide + i) * 4;
 					int offsdest = (j * texture->_wide + i) * 4;
-					unsigned char *src = ((unsigned char *)rgba) + offs;
-					char *dst = ((char*)texture->_dib) + offsdest;
-					
-					dst[0] = lpbmi->bmiColors[ *src ].rgbRed;
-					dst[1] = lpbmi->bmiColors[ *src ].rgbGreen;
-					dst[2] = lpbmi->bmiColors[ *src ].rgbBlue;
-					dst[3] = (unsigned char)255;
+					unsigned int src = rgba + offs;
+					unsigned char *dst = ((unsigned char *)texture->_dib) + offsdest;
+					dst[0] = (unsigned char)(((unsigned int)(pDIB[ src ])     * ((unsigned int)(pDIB[src + 3]) + 1)) >> 8);
+					dst[1] = (unsigned char)(((unsigned int)(pDIB[ src + 1 ]) * ((unsigned int)(pDIB[src + 3]) + 1)) >> 8);
+					dst[2] = (unsigned char)(((unsigned int)(pDIB[ src + 2 ]) * ((unsigned int)(pDIB[src + 3]) + 1)) >> 8);
+					dst[3] = pDIB[src + 3];
 				}
 			}
 
@@ -2493,6 +2495,7 @@ void CWin32Surface::CreatePopup(VPANEL panel, bool minimised, bool showTaskbarIc
 	plat->textureDC = NULL;
 
 	::SetBkMode(plat->hdc, TRANSPARENT);
+	::SetBkColor(plat->hdc, 0xffffffff);
 	::SetWindowLongPtr(plat->hwnd, GWLP_USERDATA, (LONG_PTR)g_pIVgui->PanelToHandle(panel));
 	::SetTextAlign(plat->hdc, TA_LEFT | TA_TOP | TA_UPDATECP);
 	
@@ -2844,7 +2847,7 @@ void CWin32Surface::InternalSchemeSettingsTraverse(VPANEL panel, bool forceApply
 //-----------------------------------------------------------------------------
 // Purpose: Walks through the panel tree calling Solve() on them all, in order
 //-----------------------------------------------------------------------------
-void CWin32Surface::SolveTraverse(VPANEL panel, bool forceApplySchemeSettings)
+void CWin32Surface::SolveTraverse(VPANEL panel, bool forceApplySchemeSettings, bool forcePerformApplyScheme)
 {
 	// ignore visibility for this
 	InternalSchemeSettingsTraverse(panel,forceApplySchemeSettings); // do apply scheme settings, child to parent

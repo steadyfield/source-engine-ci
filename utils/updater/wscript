@@ -1,0 +1,56 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+from waflib import Utils
+import os
+#import vpc_parser
+
+top = '.'
+PROJECT_NAME = 'libupdater'
+
+def options(opt):
+	# stub
+	return
+
+def configure(conf):
+	return
+
+def build(bld):
+	if bld.env.DEST_OS == 'android':
+		return
+
+	#print(vpc_parser.parse_vpcs( bld.env, ["../QCGenerator/qcgenerator_launcher.vpc"], '../..' ))
+	
+	source = [
+        'main.cpp',
+        'CQCGenMain.cpp',
+        '../../public/vgui_controls/vgui_controls.cpp',
+		'../../public/tier0/memoverride.cpp'
+        ]
+	includes = [
+        '../../public/',
+        '../../public/tier0',
+        '../../public/tier1',
+        '../../common/',
+		'../common',
+		'../../vgui2/include',
+		'../../vgui2/controls',
+		'../../thirdparty/curl/include',
+		'../../thirdparty/bit7z'
+        ]
+	defines = ["CURL_STATICLIB"]
+	libs = ['appframework','matsys_controls','tier0','tier1','tier2','tier3','vgui2','vgui_controls','USER32','SHELL32', 'CURL', 'BIT7Z','OLEAUT32']
+	install_path = bld.env.LIBDIR
+	bld.shlib(
+		source   = source,
+		target   = PROJECT_NAME,
+		name     = PROJECT_NAME,
+		features = 'c cxx',
+		includes = includes,
+		defines  = defines,
+		use      = libs,
+		install_path = install_path,
+		subsystem = bld.env.MSVC_SUBSYSTEM,
+		idx      = bld.get_taskgen_count()
+	)
+

@@ -1,0 +1,36 @@
+Windows:
+
+Configure a solution:
+	config_32.bat
+	or
+	config_64.bat
+
+Create VS solution:
+	vs_solution.bat
+
+Compile:
+	build.bat
+
+Clean and compile:
+	clean_build.bat
+
+
+For everyone else:
+
+Configure a solution
+waf.bat configure -T release --prefix=..\build --build-games=sourcebox
+
+Configure a 64 bit solution
+waf.bat configure -8 -T release --prefix=..\build --build-games=sourcebox
+
+Create VS solution
+waf.bat msvs
+
+Compile the solution
+waf.bat install
+
+
+
+
+https://waf.io/book/ 
+

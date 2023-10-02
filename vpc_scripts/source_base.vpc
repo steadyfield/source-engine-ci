@@ -15,6 +15,9 @@
 // rel/tf_beta branch:
 //$Conditional TF_BETA	"1"
 
+$Conditional GAMEPADUI "1"
+//$Conditional VSCRIPT "0"
+
 $Configuration "Debug"
 {
 	$Compiler
@@ -27,6 +30,9 @@ $Configuration "Debug"
 // Need to revisit the code to make things run with the _RETAIL preprocessor definition
 // This line was added in the previous check-in, but had previously not been defined in this branch
 //		$PreprocessorDefinitions		"$BASE;_RETAIL"		[$RETAIL]
+
+		$PreprocessorDefinitions		"GAMEPADUI"
+		$PreprocessorDefinitions		"SOURCEBOX"
 	}
 }
 
@@ -42,5 +48,7 @@ $Configuration "Release"
 // Need to revisit the code to make things run with the _RETAIL preprocessor definition
 // This line was added in the previous check-in, but had previously not been defined in this branch
 //		$PreprocessorDefinitions		"$BASE;_RETAIL"		[$RETAIL]
-	}
+
+		$PreprocessorDefinitions		"GAMEPADUI"
+		$PreprocessorDefinitions		"SOURCEBOX"
 }

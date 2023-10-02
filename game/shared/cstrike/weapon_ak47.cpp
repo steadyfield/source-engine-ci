@@ -10,11 +10,11 @@
 #if defined( CLIENT_DLL )
 
 	#define CAK47 C_AK47
-	#include "c_cs_player.h"
+	#include "c_hl2mp_player.h"
 
 #else
 
-	#include "cs_player.h"
+	#include "hl2mp_player.h"
 
 #endif
 
@@ -62,7 +62,7 @@ float CAK47::GetInaccuracy() const
 {
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
-		CCSPlayer *pPlayer = GetPlayerOwner();
+		CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 		if ( !pPlayer )
 			return 0.0f;
 
@@ -80,7 +80,7 @@ float CAK47::GetInaccuracy() const
 
 void CAK47::PrimaryAttack()
 {
-	CCSPlayer *pPlayer = GetPlayerOwner();
+	CHL2MP_Player *pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
 
@@ -88,14 +88,14 @@ void CAK47::PrimaryAttack()
 		return;
 
 	// CSBaseGunFire can kill us, forcing us to drop our weapon, if we shoot something that explodes
-	pPlayer = GetPlayerOwner();
+	pPlayer = GetHL2MPPlayerOwner();
 	if ( !pPlayer )
 		return;
-
+	// KickBack isn't going to be exact. But will be perfected soon.
 	if (pPlayer->GetAbsVelocity().Length2D() > 5 )
-		pPlayer->KickBack ( 1.5, 0.45, 0.225, 0.05, 6.5, 2.5, 7 );
+		pPlayer->KickBack ( 1.5, 0.55, 0.235, 0.05, 6.5, 2.5, 7 );
 	else if ( !FBitSet( pPlayer->GetFlags(), FL_ONGROUND ) )
-		pPlayer->KickBack ( 2, 1.0, 0.5, 0.35, 9, 6, 5 );
+		pPlayer->KickBack ( 2, 1.1, 0.4, 0.45, 9, 6, 5 );
 	else if ( FBitSet( pPlayer->GetFlags(), FL_DUCKING ) )
 		pPlayer->KickBack ( 0.9, 0.35, 0.15, 0.025, 5.5, 1.5, 9 );
 	else

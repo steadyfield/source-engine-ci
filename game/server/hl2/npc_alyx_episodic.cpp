@@ -324,7 +324,6 @@ void CNPC_Alyx::Spawn()
 		CapabilitiesClear();
 
 		CapabilitiesAdd( bits_CAP_ANIMATEDFACE | bits_CAP_TURN_HEAD );
-		CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
 	}
 	else
 	{
@@ -335,7 +334,7 @@ void CNPC_Alyx::Spawn()
 	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL | EFL_NO_PHYSCANNON_INTERACTION );
 
 	m_iHealth			= 80;
-	m_bloodColor		= DONT_BLEED;
+	m_bloodColor		= BLOOD_COLOR_RED;
 
 	NPCInit();
 
@@ -465,7 +464,6 @@ void CNPC_Alyx::SetupAlyxWithoutParent( void )
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_DOORS_GROUP | bits_CAP_TURN_HEAD | bits_CAP_DUCK | bits_CAP_SQUAD );
 	CapabilitiesAdd( bits_CAP_USE_WEAPONS );
 	CapabilitiesAdd( bits_CAP_ANIMATEDFACE );
-	CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
 	CapabilitiesAdd( bits_CAP_AIM_GUN );
 	CapabilitiesAdd( bits_CAP_MOVE_SHOOT );
 	CapabilitiesAdd( bits_CAP_USE_SHOT_REGULATOR );
@@ -2226,10 +2224,15 @@ void CNPC_Alyx::OnStateChange( NPC_STATE OldState, NPC_STATE NewState )
 //-----------------------------------------------------------------------------
 void CNPC_Alyx::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 
 	// FIXME: hack until some way of removing decals after healing
-	m_fNoDamageDecal = true;
+	// m_fNoDamageDecal = true;
 }
 
 

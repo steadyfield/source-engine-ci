@@ -19,6 +19,7 @@
 #include "debugoverlay_shared.h"
 #include "coordsize.h"
 #include "vphysics/performance.h"
+#include "coolmod/smod_cvars.h"
 
 #ifdef CLIENT_DLL
 	#include "c_te_effect_dispatch.h"
@@ -408,7 +409,7 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		}
 
 		// Do this so inherited classes looking for 'angles' don't have to bother with 'angle'
-		return KeyValue( "angles", szBuf );
+		return KeyValue( szKeyName, szBuf );
 	}
 
 	// NOTE: Have to do these separate because they set two values instead of one
@@ -1957,6 +1958,33 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 					bHitGlass = true;
 				}
 			}
+
+			if (sparkshower.GetInt())
+			{
+				if (psurf->game.material == CHAR_TEX_METAL)
+				{
+					int sparkCount = random->RandomInt(0, 1);
+
+					for (int i = 0; i < sparkCount; i++)
+					{
+						QAngle angles;
+						VectorAngles(tr.plane.normal, angles);
+						Create("spark_shower", tr.endpos, angles, NULL);
+					}
+				}
+
+				if (psurf->game.material == CHAR_TEX_VENT)
+				{
+					int sparkCount = random->RandomInt(0, 1);
+
+					for (int i = 0; i < sparkCount; i++)
+					{
+						QAngle angles;
+						VectorAngles(tr.plane.normal, angles);
+						Create("spark_shower", tr.endpos, angles, NULL);
+					}
+				}
+			}
 #endif
 		}
 
@@ -2038,6 +2066,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		CTakeDamageInfo dmgInfo( this, pAttacker, flCumulativeDamage, nDamageType );
 		gamestats->Event_WeaponHit( pPlayer, info.m_bPrimaryAttack, pPlayer->GetActiveWeapon()->GetClassname(), dmgInfo );
 	}
+	HandleBulletPenetration(info, tr, vecDir, &traceFilter);
 #endif
 }
 

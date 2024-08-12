@@ -1,0 +1,297 @@
+--- game/client/clientmode_shared.cpp	2024-08-11 15:07:29.946930626 +0500
++++ game/client/clientmode_shared.cpp	2024-03-31 12:45:25.603120700 +0500
+@@ -37,6 +37,7 @@
+ #include "hud_vote.h"
+ #include "ienginevgui.h"
+ #include "sourcevr/isourcevirtualreality.h"
++#include "usermessages.h"
+ #if defined( _X360 )
+ #include "xbox/xbox_console.h"
+ #endif
+@@ -52,7 +53,6 @@
+ #include "replay/vgui/replaymessagepanel.h"
+ #include "econ/econ_controls.h"
+ #include "econ/confirm_dialog.h"
+-
+ extern IClientReplayContext *g_pClientReplayContext;
+ extern ConVar replay_rendersetting_renderglow;
+ #endif
+@@ -66,6 +66,8 @@
+ #include "econ_item_description.h"
+ #endif
+ 
++#include "coolmod/smod_cvars.h"
++
+ // memdbgon must be the last include file in a .cpp file!!!
+ #include "tier0/memdbgon.h"
+ 
+@@ -80,7 +82,7 @@
+ ConVar cl_drawhud( "cl_drawhud", "1", FCVAR_CHEAT, "Enable the rendering of the hud" );
+ ConVar hud_takesshots( "hud_takesshots", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Auto-save a scoreboard screenshot at the end of a map." );
+ ConVar hud_freezecamhide( "hud_freezecamhide", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE, "Hide the HUD during freeze-cam" );
+-ConVar cl_show_num_particle_systems( "cl_show_num_particle_systems", "0", FCVAR_CLIENTDLL, "Display the number of active particle systems." );
++ConVar cl_show_num_particle_systems("cl_show_num_particle_systems", "0", FCVAR_CLIENTDLL, "Display the number of active particle systems.");
+ 
+ extern ConVar v_viewmodel_fov;
+ extern ConVar voice_modenable;
+@@ -421,57 +411,111 @@
+ // Purpose: 
+ // Input  : *pSetup - 
+ //-----------------------------------------------------------------------------
+-void ClientModeShared::OverrideView( CViewSetup *pSetup )
++void ClientModeShared::OverrideView(CViewSetup *pSetup)
+ {
+-	QAngle camAngles;
+-
+-	// Let the player override the view.
+-	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+-	if(!pPlayer)
+-		return;
+-
+-	pPlayer->OverrideView( pSetup );
+-
+-	if( ::input->CAM_IsThirdPerson() )
+-	{
+-		Vector cam_ofs = g_ThirdPersonManager.GetCameraOffsetAngles();
+-		Vector cam_ofs_distance = g_ThirdPersonManager.GetFinalCameraOffset();
+-
+-		cam_ofs_distance *= g_ThirdPersonManager.GetDistanceFraction();
+-
+-		camAngles[ PITCH ] = cam_ofs[ PITCH ];
+-		camAngles[ YAW ] = cam_ofs[ YAW ];
+-		camAngles[ ROLL ] = 0;
+-
+-		Vector camForward, camRight, camUp;
+-		
+-
+-		if ( g_ThirdPersonManager.IsOverridingThirdPerson() == false )
+-		{
+-			engine->GetViewAngles( camAngles );
+-		}
+-			
+-		// get the forward vector
+-		AngleVectors( camAngles, &camForward, &camRight, &camUp );
+-	
+-		VectorMA( pSetup->origin, -cam_ofs_distance[0], camForward, pSetup->origin );
+-		VectorMA( pSetup->origin, cam_ofs_distance[1], camRight, pSetup->origin );
+-		VectorMA( pSetup->origin, cam_ofs_distance[2], camUp, pSetup->origin );
+-
+-		// Override angles from third person camera
+-		VectorCopy( camAngles, pSetup->angles );
+-	}
+-	else if (::input->CAM_IsOrthographic())
+-	{
+-		pSetup->m_bOrtho = true;
+-		float w, h;
+-		::input->CAM_OrthographicSize( w, h );
+-		w *= 0.5f;
+-		h *= 0.5f;
+-		pSetup->m_OrthoLeft   = -w;
+-		pSetup->m_OrthoTop    = -h;
+-		pSetup->m_OrthoRight  = w;
+-		pSetup->m_OrthoBottom = h;
++	C_BasePlayer * pPlayer = C_BasePlayer::GetLocalPlayer();
++	if (!pPlayer)
++		return;
++
++	pPlayer->OverrideView(pSetup);
++
++	if (::input->CAM_IsThirdPerson())
++	{
++		Vector camForward, camRight, camUp;
++
++		AngleVectors(pPlayer->EyeAngles(), &camForward, &camRight, &camUp);
++
++		trace_t tr, tr2;
++		Vector vecStart, vecStop, vecDirection, vecSetDirection;
++		static float camCurrentY;
++		static float camCurrentX = 16.0f;
++		float camDelta = 0.5f;
++		vecStart = pSetup->origin;
++
++		AngleVectors(pPlayer->EyeAngles(), &vecDirection);
++
++		vecSetDirection.Init(0, 0, 1.0f);
++		vecDirection = vecDirection.Cross(vecSetDirection);
++		vecStop = vecStart + vecDirection*52.0f;
++
++		UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
++
++		if (tr.fraction == 1) //мы достаточно далеко, чтобы не ударить стену камерой
++		{
++			if (camCurrentX < 16.0f)
++				camCurrentX += camDelta;
++			if (camCurrentX > 16.0f)
++				camCurrentX = 16.0f;
++			VectorMA(pSetup->origin, camCurrentX, camRight, pSetup->origin); //setting the correct offset
++			VectorMA(pSetup->origin, 16.0f, camUp, pSetup->origin);
++			vecStart = tr.endpos;
++		}
++		else
++		{
++
++			vecStop = vecStart + vecDirection * -52.0f;
++
++			UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
++
++			if (tr.fraction == 1)
++			{
++				if (camCurrentX > -16.0f)
++					camCurrentX -= camDelta;
++				if (camCurrentX < -16.0f)
++					camCurrentX = -16.0f;
++				VectorMA(pSetup->origin, camCurrentX, camRight, pSetup->origin);
++				VectorMA(pSetup->origin, 16.0f, camUp, pSetup->origin);
++				vecStart = tr.endpos;
++			}
++			else
++			{
++				VectorMA(pSetup->origin, 0.0f, camRight, pSetup->origin);
++				AngleVectors(pPlayer->EyeAngles(), &vecDirection);
++				vecSetDirection.Init(1.0f, 0, 0);
++				vecDirection = vecDirection.Cross(vecSetDirection);
++				vecStop = vecStart + vecDirection*32.0f;
++
++				UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
++
++				if (tr.fraction == 1)
++				{
++					VectorMA(pSetup->origin, 32.0f, camUp, pSetup->origin);
++					vecStart = tr.endpos;
++				}
++				else
++					//Add code to make the player transparent so the player can see better. (?)
++				{
++					VectorMA(pSetup->origin, 0.0f, camUp, pSetup->origin);
++				}
++			}
++
++		}
++
++		CBaseCombatWeapon *pWeapon = GetActiveWeapon();
++
++		if (pWeapon && pWeapon->IsIronsighted())
++		{
++			::input->CAM_ToFirstPerson();
++		}
++
++		AngleVectors(pPlayer->EyeAngles(), &vecDirection);
++		vecStop = vecStart + vecDirection * -96;
++		UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
++
++		vecStart = pSetup->origin;
++
++		vecStop = vecStart + vecDirection*-96;
++		UTIL_TraceLine(vecStart, vecStop, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
++
++		if (tr.fraction != 1)
++		{
++			camCurrentY = -96 * tr.fraction + 10.0f;
++		}
++		else
++		{
++			camCurrentY = -96.0f;
++			VectorMA(pSetup->origin, camCurrentY, camForward, pSetup->origin);
++		}
+ 	}
+ }
+ 
+@@ -498,8 +542,52 @@
+ 	{
+ 		pWeapon->OverrideMouseInput( x, y );
+ 	}
++
++	if (cl_freeaim.GetInt())
++	{
++		if (::input->flMouseX > cl_freeaim_limit.GetFloat())
++			::input->flMouseX = cl_freeaim_limit.GetFloat();
++		if (::input->flMouseX < -cl_freeaim_limit.GetFloat())
++			::input->flMouseX = -cl_freeaim_limit.GetFloat();
++		if (::input->flMouseY > cl_freeaim_limit.GetFloat())
++			::input->flMouseY = cl_freeaim_limit.GetFloat();
++		if (::input->flMouseY < -cl_freeaim_limit.GetFloat())
++			::input->flMouseY = -cl_freeaim_limit.GetFloat();
++
++		::input->flMouseX += *x * cl_freeaim_mult.GetFloat();
++		::input->flMouseY += *y * cl_freeaim_mult.GetFloat();
++	}
++	else
++	{
++		::input->flMouseX = 0;
++		::input->flMouseY = 0;
++	}
+ }
+ 
++
++//-----------------------------------------------------------------------------
++// Purpose: Get MouseX and MouseY (FREEAIM BITCH)
++//-----------------------------------------------------------------------------
++void ClientModeShared::GetMouseXAndY(float &x, float &y)
++{
++	CBasePlayer *pPlayer = CBasePlayer::GetLocalPlayer();
++	CBaseCombatWeapon *pWeapon;
++	x = ::input->flMouseX;
++	y = ::input->flMouseY;
++
++	if (pPlayer)
++	{
++		pWeapon = pPlayer->GetActiveWeapon();
++		if (pWeapon)
++		{
++			if (pWeapon->IsIronsighted() && !cl_freeaim_ironsight.GetBool())
++			{
++				x = 0;
++				y = 0;
++			}
++		}
++	}
++}
+ //-----------------------------------------------------------------------------
+ // Purpose: 
+ //-----------------------------------------------------------------------------
+@@ -645,6 +733,28 @@
+ 	if ( engine->Con_IsVisible() )
+ 		return 1;
+ 	
++	// Should we start typing a message?
++	if ( pszCurrentBinding &&
++		( Q_strcmp( pszCurrentBinding, "messagemode" ) == 0 ||
++		  Q_strcmp( pszCurrentBinding, "say" ) == 0 ) )
++	{
++		if ( down )
++		{
++			StartMessageMode( MM_SAY );
++		}
++		return 0;
++	}
++	else if ( pszCurrentBinding &&
++				( Q_strcmp( pszCurrentBinding, "messagemode2" ) == 0 ||
++				  Q_strcmp( pszCurrentBinding, "say_team" ) == 0 ) )
++	{
++		if ( down )
++		{
++			StartMessageMode( MM_SAY_TEAM );
++		}
++		return 0;
++	}
++	
+ 	// If we're voting...
+ #ifdef VOTING_ENABLED
+ 	CHudVote *pHudVote = GET_HUDELEMENT( CHudVote );
+@@ -1106,11 +1216,15 @@
+ 			}
+ 		}
+ 
+-		if ( team == 0 && GetLocalTeam() )
++		if ( team == 0 && GetLocalTeam() > 0 )
++		{
+ 			bValidTeam = false;
++		}
+ 
+ 		if ( team == 255 )
++		{
+ 			bValidTeam = true;
++		}
+ 
+ 		if ( bValidTeam == true )
+ 		{

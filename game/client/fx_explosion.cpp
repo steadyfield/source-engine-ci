@@ -19,6 +19,9 @@
 #include "fx_line.h"
 #include "fx_water.h"
 
+#include "hl2_player_shared.h"
+#include "coolmod/smod_cvars.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -176,22 +179,37 @@ void C_BaseExplosionEffect::Create( const Vector &position, float force, float s
 	//Find the force of the explosion
 	GetForceDirection( m_vecOrigin, force, &m_vecDirection, &m_flForce );
 
-#if __EXPLOSION_DEBUG
-	debugoverlay->AddBoxOverlay( m_vecOrigin, -Vector(32,32,32), Vector(32,32,32), vec3_angle, 255, 0, 0, 64, 5.0f );
-	debugoverlay->AddLineOverlay( m_vecOrigin, m_vecOrigin+(m_vecDirection*force*m_flForce), 0, 0, 255, false, 3 );
-#endif
-
 	PlaySound();
 
-	if ( scale != 0 )
+	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+	if (pPlayer)
 	{
-		// UNDONE: Make core size parametric to scale or remove scale?
-		CreateCore();
+		CHL2_Player *pHLPlayer = dynamic_cast<CHL2_Player*>(pPlayer);
+		if (pHLPlayer)
+		{
+			Vector vDiff;
+			VectorSubtract(position, pHLPlayer->GetAbsOrigin(), vDiff);
+			float flDiff = vDiff.Length();
+			if (flDiff <= 1000 && r_shockeffect.GetBool())
+			{
+				pHLPlayer->SetBlurTime();
+				pHLPlayer->SetBlastEffectTime();
+			}
+		}
 	}
 
-	CreateDebris();
-	//FIXME: CreateDynamicLight();
-	CreateMisc();
+
+	QAngle angles;
+
+	trace_t tr;
+	tr = CBaseEntity::GetTouchTrace();
+
+	DispatchParticleEffect( "hl2mmod_explosion_remix_misc", position, tr.plane.normal, angles );
+	DispatchParticleEffect( "hl2mmod_explosion_barrel_air", position, tr.plane.normal, angles );
+	DispatchParticleEffect( "hl2mmod_explosion_remix_misc_embers", position, tr.plane.normal, angles );
+	DispatchParticleEffect( "hl2mmod_explosion_grenade", position, tr.plane.normal, angles );
+	DispatchParticleEffect( "hl2mmod_explosion_rpg", position, tr.plane.normal, angles );
+	DispatchParticleEffect( "hl2mmod_explosion_canister", position, tr.plane.normal, angles );
 }
 
 //-----------------------------------------------------------------------------

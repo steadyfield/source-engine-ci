@@ -54,6 +54,8 @@
 	#include "portal_shareddefs.h"
 #endif
 
+#include "smod_ragdoll.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -64,9 +66,13 @@ extern int	g_interactionBarnacleVictimReleased;
 extern ConVar weapon_showproficiency;
 
 ConVar ai_show_hull_attacks( "ai_show_hull_attacks", "0" );
-ConVar ai_force_serverside_ragdoll( "ai_force_serverside_ragdoll", "0" );
+ConVar ai_force_serverside_ragdoll( "ragdoll_serverside", "1" );
 
 ConVar nb_last_area_update_tolerance( "nb_last_area_update_tolerance", "4.0", FCVAR_CHEAT, "Distance a character needs to travel in order to invalidate cached area" ); // 4.0 tested as sweet spot (for wanderers, at least). More resulted in little benefit, less quickly diminished benefit [7/31/2008 tom]
+
+ConVar ragdoll_forceserverragdoll( "ragdoll_forceserverragdoll", "1", FCVAR_ARCHIVE );
+
+extern ConVar gore_togib;
 
 #ifndef _RETAIL
 ConVar ai_use_visibility_cache( "ai_use_visibility_cache", "1" );
@@ -269,6 +275,8 @@ bool CBaseCombatCharacter::HasAlienGibs( void )
 		 myClass == CLASS_STALKER		 ||
 		 myClass == CLASS_ZOMBIE		 ||
 		 myClass == CLASS_VORTIGAUNT	 ||
+		 myClass == CLASS_BULLSQUID		 ||
+		 myClass == CLASS_HOUNDEYE	     ||
 		 myClass == CLASS_HEADCRAB )
 	{
 		 return true;
@@ -731,10 +739,7 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 	}
 
 	// not standing on a nav area yet
-#ifdef MEXT_BOT
 	m_lastNavArea = NULL;
-#endif
-
 	m_registeredNavTeam = TEAM_INVALID;
 
 	for (int i = 0; i < MAX_WEAPONS; i++)
@@ -862,6 +867,19 @@ void CBaseCombatCharacter::UpdateOnRemove( void )
 	BaseClass::UpdateOnRemove();
 }
 
+bool CBaseCombatCharacter::ShouldGib(const CTakeDamageInfo &info)
+{
+	if (gore_togib.GetBool())
+	{
+		if (info.GetDamageType() & DMG_NEVERGIB)
+			return false;
+
+		if ((g_pGameRules->Damage_ShouldGibCorpse(info.GetDamageType()) && m_iHealth < GIB_HEALTH_VALUE) || (info.GetDamageType() & DMG_ALWAYSGIB))
+			return true;
+	}
+
+	return false;
+}
 
 //=========================================================
 // CorpseGib - create some gore and get rid of a character's
@@ -872,19 +890,24 @@ bool CBaseCombatCharacter::CorpseGib( const CTakeDamageInfo &info )
 	trace_t		tr;
 	bool		gibbed = false;
 
-	EmitSound( "BaseCombatCharacter.CorpseGib" );
+	if ( gore_togib.GetBool() )
+	{
+		EmitSound("Player.Splat");
 
-	// only humans throw skulls !!!UNDONE - eventually NPCs will have their own sets of gibs
-	if ( HasHumanGibs() )
-	{
-		CGib::SpawnHeadGib( this );
-		CGib::SpawnRandomGibs( this, 4, GIB_HUMAN );	// throw some human gibs.
-		gibbed = true;
-	}
-	else if ( HasAlienGibs() )
-	{
-		CGib::SpawnRandomGibs( this, 4, GIB_ALIEN );	// Throw alien gibs
-		gibbed = true;
+		// only humans throw skulls !!!UNDONE - eventually NPCs will have their own sets of gibs
+		if (HasHumanGibs())
+		{
+			CGib::SpawnHeadGib(this);
+			CGib::SpawnRandomGibs(this, 7, GIB_HUMAN);	// throw some human gibs.
+			UTIL_BloodSpray(WorldSpaceCenter(), info.GetDamageForce(), BLOOD_COLOR_RED, 13, FX_BLOODSPRAY_ALL);
+			gibbed = true;
+		}
+		else if (HasAlienGibs())
+		{
+			CGib::SpawnRandomGibs(this, 4, GIB_ALIEN);	// Throw alien gibs
+			UTIL_BloodSpray(WorldSpaceCenter(), info.GetDamageForce(), BLOOD_COLOR_GREEN, 13, FX_BLOODSPRAY_ALL);
+			gibbed = true;
+		}
 	}
 
 	return gibbed;
@@ -1474,8 +1497,8 @@ bool CBaseCombatCharacter::BecomeRagdollBoogie( CBaseEntity *pKiller, const Vect
 
 	info.SetDamageForce( forceVector );
 
-	CBaseEntity *pRagdoll = CreateServerRagdoll( this, 0, info, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
-
+	CSMODRagdoll *pRagdoll = (CSMODRagdoll *)CreateSMODServerRagdoll( this, 0, info, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+	pRagdoll->SetBloodColor(BloodColor());
 	pRagdoll->SetCollisionBounds( CollisionProp()->OBBMins(), CollisionProp()->OBBMaxs() );
 
 	CRagdollBoogie::Create( pRagdoll, 200, gpGlobals->curtime, duration, flags );
@@ -1493,85 +1516,101 @@ bool CBaseCombatCharacter::BecomeRagdollBoogie( CBaseEntity *pKiller, const Vect
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vector &forceVector )
 {
-	if ( (info.GetDamageType() & DMG_VEHICLE) && !g_pGameRules->IsMultiplayer() )
+	if (ragdoll_forceserverragdoll.GetBool())
 	{
-		CTakeDamageInfo info2 = info;
-		info2.SetDamageForce( forceVector );
-		Vector pos = info2.GetDamagePosition();
-		float flAbsMinsZ = GetAbsOrigin().z + WorldAlignMins().z;
-		if ( (pos.z - flAbsMinsZ) < 24 )
+		if ((info.GetDamageType() & DMG_VEHICLE) && !g_pGameRules->IsMultiplayer())
 		{
-			// HACKHACK: Make sure the vehicle impact is at least 2ft off the ground
-			pos.z = flAbsMinsZ + 24;
-			info2.SetDamagePosition( pos );
+			CTakeDamageInfo info2 = info;
+			info2.SetDamageForce(forceVector);
+			Vector pos = info2.GetDamagePosition();
+			float flAbsMinsZ = GetAbsOrigin().z + WorldAlignMins().z;
+			if ((pos.z - flAbsMinsZ) < 24)
+			{
+				// HACKHACK: Make sure the vehicle impact is at least 2ft off the ground
+				pos.z = flAbsMinsZ + 24;
+				info2.SetDamagePosition(pos);
+			}
+
+			// UNDONE: Put in a real sound cue here, don't do this bogus hack anymore
+#if 0
+			Vector soundOrigin = info.GetDamagePosition();
+			CPASAttenuationFilter filter( soundOrigin );
+
+			EmitSound_t ep;
+			ep.m_nChannel = CHAN_STATIC;
+			ep.m_pSoundName = "NPC_MetroPolice.HitByVehicle";
+			ep.m_flVolume = 1.0f;
+			ep.m_SoundLevel = SNDLVL_NORM;
+			ep.m_pOrigin = &soundOrigin;
+
+			EmitSound( filter, SOUND_FROM_WORLD, ep );
+#endif
+			// in single player create ragdolls on the server when the player hits someone
+			// with their vehicle - for more dramatic death/collisions
+			CSMODRagdoll *pRagdoll = (CSMODRagdoll *)CreateSMODServerRagdoll(this, m_nForceBone, info2, COLLISION_GROUP_PLAYER, true);
+			pRagdoll->SetBloodColor(BloodColor());
+			FixupBurningServerRagdoll(pRagdoll);
+			RemoveDeferred();
+			return true;
 		}
 
-// UNDONE: Put in a real sound cue here, don't do this bogus hack anymore
-#if 0
-		Vector soundOrigin = info.GetDamagePosition();
-		CPASAttenuationFilter filter( soundOrigin );
+		//Fix up the force applied to server side ragdolls. This fixes magnets not affecting them.
+		CTakeDamageInfo newinfo = info;
+		newinfo.SetDamageForce(forceVector);
 
-		EmitSound_t ep;
-		ep.m_nChannel = CHAN_STATIC;
-		ep.m_pSoundName = "NPC_MetroPolice.HitByVehicle";
-		ep.m_flVolume = 1.0f;
-		ep.m_SoundLevel = SNDLVL_NORM;
-		ep.m_pOrigin = &soundOrigin;
-
-		EmitSound( filter, SOUND_FROM_WORLD, ep );
-#endif
-		// in single player create ragdolls on the server when the player hits someone
-		// with their vehicle - for more dramatic death/collisions
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, info2, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
-		FixupBurningServerRagdoll( pRagdoll );
-		RemoveDeferred();
-		return true;
-	}
-
-	//Fix up the force applied to server side ragdolls. This fixes magnets not affecting them.
-	CTakeDamageInfo newinfo = info;
-	newinfo.SetDamageForce( forceVector );
+		if ( newinfo.GetDamageType() & DMG_SHOCK )
+		{
+			BecomeRagdollBoogie( this, forceVector, 7.0, SF_RAGDOLL_BOOGIE_ELECTRICAL );
+			RemoveDeferred();
+		}
 
 #ifdef HL2_EPISODIC
-	// Burning corpses are server-side in episodic, if we're in darkness mode
-	if ( IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode() )
-	{
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS );
-		FixupBurningServerRagdoll( pRagdoll );
-		RemoveDeferred();
-		return true;
-	}
+		// Burning corpses are server-side in episodic, if we're in darkness mode
+		if (IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode())
+		{
+			CSMODRagdoll *pRagdoll = (CSMODRagdoll *)CreateSMODServerRagdoll(this, m_nForceBone, newinfo, COLLISION_GROUP_PLAYER);
+			pRagdoll->SetBloodColor(BloodColor());
+			FixupBurningServerRagdoll(pRagdoll);
+			RemoveDeferred();
+			return true;
+		}
 #endif
 
 #ifdef HL2_DLL	
 
-	bool bMegaPhyscannonActive = false;
+		bool bMegaPhyscannonActive = false;
 #if !defined( HL2MP )
-	bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
+		bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
 #endif // !HL2MP
 
-	// Mega physgun requires everything to be a server-side ragdoll
-	if ( m_bForceServerRagdoll == true || ( ( bMegaPhyscannonActive == true ) && !IsPlayer() && Classify() != CLASS_PLAYER_ALLY_VITAL && Classify() != CLASS_PLAYER_ALLY ) )
-	{
-		if ( CanBecomeServerRagdoll() == false )
-			return false;
+		// Mega physgun requires everything to be a server-side ragdoll
+		if (m_bForceServerRagdoll == true || ((bMegaPhyscannonActive == true) && !IsPlayer() && Classify() != CLASS_PLAYER_ALLY_VITAL && Classify() != CLASS_PLAYER_ALLY))
+		{
+			if (CanBecomeServerRagdoll() == false)
+				return false;
 
-		//FIXME: This is fairly leafy to be here, but time is short!
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
-		FixupBurningServerRagdoll( pRagdoll );
-		PhysSetEntityGameFlags( pRagdoll, FVPHYSICS_NO_SELF_COLLISIONS );
-		RemoveDeferred();
+			//FIXME: This is fairly leafy to be here, but time is short!
+			CSMODRagdoll *pRagdoll = (CSMODRagdoll *)CreateSMODServerRagdoll(this, m_nForceBone, newinfo, COLLISION_GROUP_PLAYER, true);
+			pRagdoll->SetBloodColor(BloodColor());
+			FixupBurningServerRagdoll(pRagdoll);
+			PhysSetEntityGameFlags(pRagdoll, FVPHYSICS_NO_SELF_COLLISIONS);
+			RemoveDeferred();
 
-		return true;
-	}
+			return true;
+		}
 
-	if( hl2_episodic.GetBool() && Classify() == CLASS_PLAYER_ALLY_VITAL )
-	{
-		CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
-		RemoveDeferred();
-		return true;
-	}
+		if (hl2_episodic.GetBool() && Classify() == CLASS_PLAYER_ALLY_VITAL)
+		{
+			CreateSMODServerRagdoll(this, m_nForceBone, newinfo, COLLISION_GROUP_PLAYER, true);
+			RemoveDeferred();
+			return true;
+		}
 #endif //HL2_DLL
+	}
+	else
+	{
+		return BecomeRagdollOnClient(forceVector);
+	}
 
 	return BecomeRagdollOnClient( forceVector );
 }
@@ -3484,20 +3523,17 @@ void CBaseCombatCharacter::UpdateLastKnownArea( void )
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::IsAreaTraversable( const CNavArea *area ) const
 {
-#ifdef NEXT_BOT
 	return area ? !area->IsBlocked( GetTeamNumber() ) : false;
-#endif
-	return false;
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Leaving the nav mesh
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::ClearLastKnownArea( void )
 {
-#ifdef NEXT_BOT
 	OnNavAreaChanged( NULL, m_lastNavArea );
-
+	
 	if ( m_lastNavArea )
 	{
 		m_lastNavArea->DecrementPlayerCount( m_registeredNavTeam, entindex() );
@@ -3505,21 +3541,20 @@ void CBaseCombatCharacter::ClearLastKnownArea( void )
 		m_lastNavArea = NULL;
 		m_registeredNavTeam = TEAM_INVALID;
 	}
-#endif
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Handling editor removing the area we're standing upon
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::OnNavAreaRemoved( CNavArea *removedArea )
 {
-#ifdef NEXT_BOT
 	if ( m_lastNavArea == removedArea )
 	{
 		ClearLastKnownArea();
 	}
-#endif
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Changing team, maintain associated data

@@ -15,6 +15,9 @@
 #include "vstdlib/random.h"
 #include "ai_utils.h"
 #include "EntityFlame.h"
+#include "smod_ragdoll.h"
+#include "hl2_gamerules.h"
+#include "ai_debug_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -453,8 +456,16 @@ void CGib::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType,
 
 	if ( pPlayer )
 	{
-		pPlayer->PickupObject( this );
+		pPlayer->m_iHealth += 1;
+		EmitSound( "Meat.Stamp" );
+		RemoveDeferred();
 	}
+}
+
+void CGib::TraceAttack( const CTakeDamageInfo &info, const Vector &dir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	RemoveDeferred();
+	EmitSound( "Player.Splat" );
 }
 
 //-----------------------------------------------------------------------------

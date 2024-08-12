@@ -1,0 +1,53 @@
+--- game/shared/util_shared.cpp	2024-08-11 15:07:31.966961394 +0500
++++ game/shared/util_shared.cpp	2018-12-02 21:05:12.262124200 +0500
+@@ -34,6 +34,9 @@
+ bool NPC_CheckBrushExclude( CBaseEntity *pEntity, CBaseEntity *pBrush );
+ #endif
+ 
++#include "coolmod/smod_cvars.h"
++#include "decals.h"
++
+ 
+ // memdbgon must be the last include file in a .cpp file!!!
+ #include "tier0/memdbgon.h"
+@@ -867,7 +870,7 @@
+ }
+ 
+ 
+-void UTIL_BloodDecalTrace( trace_t *pTrace, int bloodColor )
++void UTIL_BloodDecalTrace( trace_t *pTrace, int bloodColor, bool bSpawnDrops)
+ {
+ 	if ( UTIL_ShouldShowBlood( bloodColor ) )
+ 	{
+@@ -898,6 +901,31 @@
+ 	data.m_flScale = (float)amount;
+ 	data.m_nColor = (unsigned char)color;
+ 
++	if (gore_moregore.GetBool())
++	{
++		for (int i = 0; i < 1; i++) {
++
++			CBaseEntity *pTrail1;
++
++			if (color == 0)
++				pTrail1 = CreateEntityByName("blooddrip");
++			else
++				pTrail1 = CreateEntityByName("blooddrip_alien");
++
++			Vector offDir = dir;
++
++			if (pTrail1)
++			{
++				pTrail1->SetAbsOrigin(data.m_vOrigin);
++				if (amount < 1)
++					pTrail1->SetAbsVelocity(offDir * random->RandomFloat(4.0f * amount, 40.0f * amount) * Vector(1, 1, 5) * 5);
++				else
++					pTrail1->SetAbsVelocity(offDir * random->RandomFloat(5.0f * amount, 15.0f * amount));
++				pTrail1->Spawn();
++			}
++		}
++	}
++
+ 	DispatchEffect( "bloodimpact", data );
+ }
+ 

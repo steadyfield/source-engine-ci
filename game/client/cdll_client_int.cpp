@@ -171,6 +171,8 @@ extern vgui::IInputInternal *g_InputInternal;
 #include "sixense/in_sixense.h"
 #endif
 
+#include "COOLMOD/smod_addcontents.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1040,6 +1042,8 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 
 	if ( !IGameSystem::InitAllSystems() )
 		return false;
+
+	AddContent(filesystem);
 
 	g_pClientMode->Enable();
 

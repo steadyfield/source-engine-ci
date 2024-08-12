@@ -90,6 +90,9 @@
 #include "serverbenchmark_base.h"
 #include "querycache.h"
 
+#include "map_parser.h"
+#include "coolmod/luamanager.h"
+#include "coolmod/smod_addcontents.h"
 
 #ifdef TF_DLL
 #include "gc_clientsystem.h"
@@ -97,8 +100,8 @@
 #include "steamworks_gamestats.h"
 #include "tf/tf_gc_server.h"
 #include "tf_gamerules.h"
+#include "tf_lobby.h"
 #include "player_vs_environment/tf_population_manager.h"
-#include "workshop/maps_workshop.h"
 
 extern ConVar tf_mm_trusted;
 extern ConVar tf_mm_servermode;
@@ -710,6 +713,9 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	if ( !IGameSystem::InitAllSystems() )
 		return false;
 
+	// Add content
+	AddContent(filesystem);
+
 #if defined( REPLAY_ENABLED )
 	if ( gameeventmanager->LoadEventsFromFile( "resource/replayevents.res" ) <= 0 )
 	{
@@ -741,6 +747,9 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	// init the gamestatsupload connection
 	gamestatsuploader->InitConnection();
 #endif
+
+	// Start LUA
+	GELua()->InitDll();
 
 	return true;
 }
@@ -802,6 +811,9 @@ void CServerGameDLL::DLLShutdown( void )
 	DisconnectTier2Libraries();
 	ConVar_Unregister();
 	DisconnectTier1Libraries();
+
+	// Shutdown LUA, close all open gameplays
+	GELua()->ShutdownDll();
 }
 
 bool CServerGameDLL::ReplayInit( CreateInterfaceFn fnReplayFactory )
@@ -827,6 +839,15 @@ float CServerGameDLL::GetTickInterval( void ) const
 {
 	float tickinterval = DEFAULT_TICK_INTERVAL;
 
+//=============================================================================
+// HPE_BEGIN:
+// [Forrest] For Counter-Strike, set default tick rate of 66 and removed -tickrate command line parameter.
+//=============================================================================
+// Ignoring this for now, server ops are abusing it
+#if !defined( TF_DLL ) && !defined( CSTRIKE_DLL ) && !defined( DOD_DLL )
+//=============================================================================
+// HPE_END
+//=============================================================================
 	// override if tick rate specified in command line
 	if ( CommandLine()->CheckParm( "-tickrate" ) )
 	{
@@ -834,6 +855,7 @@ float CServerGameDLL::GetTickInterval( void ) const
 		if ( tickrate > 10 )
 			tickinterval = 1.0f / tickrate;
 	}
+#endif
 
 	return tickinterval;
 }
@@ -976,6 +998,8 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 			gpGlobals->eLoadType = MapLoad_LoadGame;
 		}
 
+		GetMapScriptParser()->SetRestored(gpGlobals->eLoadType == MapLoad_LoadGame);
+
 		BeginRestoreEntities();
 		if ( !engine->LoadGameState( pMapName, 1 ) )
 		{
@@ -1071,7 +1095,9 @@ bool g_bCheckForChainedActivate;
 	{ \
 		if ( bCheck ) \
 		{ \
-			AssertMsg( g_bReceivedChainedActivate, "Entity (%i/%s/%s) failed to call base class Activate()\n", pClass->entindex(), pClass->GetClassname(), STRING( pClass->GetEntityName() ) );	\
+			char msg[ 1024 ];	\
+			Q_snprintf( msg, sizeof( msg ),  "Entity (%i/%s/%s) failed to call base class Activate()\n", pClass->entindex(), pClass->GetClassname(), STRING( pClass->GetEntityName() ) );	\
+			AssertMsg( g_bReceivedChainedActivate == true, msg ); \
 		} \
 		g_bCheckForChainedActivate = false; \
 	}
@@ -1088,7 +1114,7 @@ void CServerGameDLL::ServerActivate( edict_t *pEdictList, int edictCount, int cl
 
 	if ( gEntList.ResetDeleteList() != 0 )
 	{
-		Msg( "%s", "ERROR: Entity delete queue not empty on level start!\n" );
+		Msg( "ERROR: Entity delete queue not empty on level start!\n" );
 	}
 
 	for ( CBaseEntity *pClass = gEntList.FirstEnt(); pClass != NULL; pClass = gEntList.NextEnt(pClass) )
@@ -1138,7 +1164,6 @@ void CServerGameDLL::ServerActivate( edict_t *pEdictList, int edictCount, int cl
 void CServerGameDLL::GameServerSteamAPIActivated( void )
 {
 #ifndef NO_STEAM
-	steamgameserverapicontext->Clear();
 	steamgameserverapicontext->Init();
 	if ( steamgameserverapicontext->SteamGameServer() && engine->IsDedicatedServer() )
 	{
@@ -1149,7 +1174,6 @@ void CServerGameDLL::GameServerSteamAPIActivated( void )
 #ifdef TF_DLL
 	GCClientSystem()->GameServerActivate();
 	InventoryManager()->GameServerSteamAPIActivated();
-	TFMapsWorkshop()->GameServerSteamAPIActivated();
 #endif
 }
 
@@ -1897,19 +1921,18 @@ const char *CServerGameDLL::GetServerBrowserGameData()
 #ifdef TF_DLL
 	sResult.Format( "tf_mm_trusted:%d,tf_mm_servermode:%d", tf_mm_trusted.GetInt(), tf_mm_servermode.GetInt() );
 
-	CMatchInfo *pMatch = GTFGCClientSystem()->GetMatch();
-	if ( !pMatch )
+	CTFLobby *pLobby = GTFGCClientSystem()->GetLobby();
+	if ( pLobby == NULL )
 	{
 		sResult.Append( ",lobby:0" );
 	}
 	else
 	{
-		sResult.Append( CFmtStr( ",lobby:%016llx", pMatch->m_nLobbyID ) );
+		sResult.Append( CFmtStr( ",lobby:%016llx", pLobby->GetGroupID() ) );
 	}
 	if ( TFGameRules() && TFGameRules()->IsMannVsMachineMode() )
 	{
-		bool bMannup = pMatch && pMatch->m_eMatchGroup == k_nMatchGroup_MvM_MannUp;
-		sResult.Append( CFmtStr( ",mannup:%d", (int)bMannup ) );
+		sResult.Append( CFmtStr( ",mannup:%d", ( pLobby && pLobby->GetPlayingForBraggingRights() ) ? 1 : 0  ) );
 	}
 #endif
 
@@ -2686,7 +2709,7 @@ void CServerGameClients::ClientActive( edict_t *pEdict, bool bLoadGame )
 
 	#if defined( TF_DLL )
 		Assert( pPlayer );
-		if ( pPlayer && !pPlayer->IsFakeClient() && !pPlayer->IsHLTV() && !pPlayer->IsReplay() )
+		if ( pPlayer && !pPlayer->IsFakeClient() )
 		{
 			CSteamID steamID;
 			if ( pPlayer->GetSteamID( &steamID ) )
@@ -2695,10 +2718,7 @@ void CServerGameClients::ClientActive( edict_t *pEdict, bool bLoadGame )
 			}
 			else
 			{
-				if ( !pPlayer->IsReplay() && !pPlayer->IsHLTV() )
-				{
-					Log("WARNING: ClientActive, but we don't know his SteamID?\n");
-				}
+				Log("WARNING: ClientActive, but we don't know his SteamID?\n");
 			}
 		}
 	#endif
@@ -2772,10 +2792,7 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 				}
 				else
 				{
-					if ( !player->IsReplay() && !player->IsHLTV() )
-					{
-						Log("WARNING: ClientDisconnected, but we don't know his SteamID?\n");
-					}
+					Log("WARNING: ClientDisconnected, but we don't know his SteamID?\n");
 				}
 			}
 		#endif
@@ -3385,7 +3402,7 @@ void MessageWriteEHandle( CBaseEntity *pEntity )
 	{
 		EHANDLE hEnt = pEntity;
 
-		int iSerialNum = hEnt.GetSerialNumber() & ( (1 << NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS) - 1 );
+		int iSerialNum = hEnt.GetSerialNumber() & (1 << NUM_NETWORKED_EHANDLE_SERIAL_NUMBER_BITS) - 1;
 		iEncodedEHandle = hEnt.GetEntryIndex() | (iSerialNum << MAX_EDICT_BITS);
 	}
 	else

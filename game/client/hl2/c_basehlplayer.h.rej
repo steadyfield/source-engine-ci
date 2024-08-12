@@ -1,0 +1,102 @@
+--- game/client/hl2/c_basehlplayer.h	2024-08-11 15:07:30.366937025 +0500
++++ game/client/hl2/c_basehlplayer.h	2023-11-14 14:26:12.693360000 +0500
+@@ -16,6 +16,39 @@
+ #include "c_baseplayer.h"
+ #include "c_hl2_playerlocaldata.h"
+ 
++#include "COOLMOD/sp_animstate.h"
++
++class C_BaseHLRagdoll : public C_BaseAnimatingOverlay
++{
++public:
++	DECLARE_CLASS(C_BaseHLRagdoll, C_BaseAnimatingOverlay);
++	DECLARE_CLIENTCLASS();
++
++	C_BaseHLRagdoll();
++	~C_BaseHLRagdoll();
++
++	virtual void OnDataChanged(DataUpdateType_t type);
++
++	int GetPlayerEntIndex() const;
++	IRagdoll *GetIRagdoll() const;
++
++	void ImpactTrace(trace_t *pTrace, int iDamageType, char *pCustomImpactName);
++	void UpdateOnRemove();
++	virtual void SetupWeights(const matrix3x4_t *pBoneToWorld, int nFlexWeightCount, float *pFlexWeights, float *pFlexDelayedWeights);
++
++private:
++	C_BaseHLRagdoll(const C_BaseHLRagdoll &) {}
++
++	void Interp_Copy(C_BaseAnimatingOverlay *pDestinationEntity);
++	void CreateHL2Ragdoll();
++
++private:
++	EHANDLE	m_hPlayer;
++
++	CNetworkVector(m_vecRagdollVelocity);
++	CNetworkVector(m_vecRagdollOrigin);
++};
++
+ class C_BaseHLPlayer : public C_BasePlayer
+ {
+ public:
+@@ -26,6 +59,24 @@
+ 						C_BaseHLPlayer();
+ 
+ 	virtual void		OnDataChanged( DataUpdateType_t updateType );
++	virtual void		ClientThink(void);
++
++	virtual void		AddEntity(void);
++
++	void				SetFirstPersonBlurVar(float amount);
++	void				SetIronsightBlurTime(float amount);
++	void				SetBlastEffectTime();
++	void				SetBlurTime();
++	float				m_flBlastEffectTime;
++	bool				m_bBlastEffectBlur;
++	float				m_flBlurTime;
++	float				m_flFPBlur;
++	float				m_flIronsightBlurTime;
++
++	int					m_iShotsFired;
++
++	CNetworkVar( bool, m_bNightVisionOn );
++	float m_flNightVisionAlpha;
+ 
+ 	void				Weapon_DropPrimary( void );
+ 		
+@@ -51,6 +102,7 @@
+ 	void			PerformClientSideNPCSpeedModifiers( float flFrameTime, CUserCmd *pCmd );
+ 
+ 	bool				IsWeaponLowered( void ) { return m_HL2Local.m_bWeaponLowered; }
++	virtual void		CalcDeathCamView(Vector& eyeOrigin, QAngle& eyeAngles, float& fov);
+ 
+ public:
+ 
+@@ -64,6 +116,8 @@
+ 	
+ 	bool				TestMove( const Vector &pos, float fVertDist, float radius, const Vector &objPos, const Vector &objDir );
+ 
++	EHANDLE				m_hRagdoll;
++
+ 	float				m_flZoomStart;
+ 	float				m_flZoomEnd;
+ 	float				m_flZoomRate;
+@@ -73,9 +127,17 @@
+ 	float				m_flSpeedMod;
+ 	float				m_flExitSpeedMod;
+ 
++	CSinglePlayerAnimState *m_pPlayerAnimState;
+ 
+ friend class CHL2GameMovement;
+ };
+ 
++//SMOD: We needed a pointer directly to HL2's player (like the hl2mp player and the base player have)
++inline C_BaseHLPlayer *ToHL2Player(CBaseEntity *pEntity)
++{
++	if (!pEntity || !pEntity->IsPlayer())
++		return NULL;
+ 
++	return dynamic_cast<C_BaseHLPlayer*>(pEntity);
++}
+ #endif

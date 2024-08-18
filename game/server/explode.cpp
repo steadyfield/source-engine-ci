@@ -51,7 +51,7 @@ void CShower::Spawn( void )
 
 	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 	SetGravity( UTIL_ScaleForGravity( 400 ) ); // fall a bit more slowly than normal
-	SetNextThink( gpGlobals->curtime + 0.1f );
+	SetNextThink( gpGlobals->curtime + 0.3f );
 	SetSolid( SOLID_NONE );
 	UTIL_SetSize(this, vec3_origin, vec3_origin );
 	AddEffects( EF_NODRAW );
@@ -65,9 +65,9 @@ void CShower::Think( void )
 {
 	g_pEffects->Sparks( GetAbsOrigin() );
 
-	m_flSpeed -= 0.1;
+	m_flSpeed -= 0.03;
 	if ( m_flSpeed > 0 )
-		SetNextThink( gpGlobals->curtime + 0.1f );
+		SetNextThink( gpGlobals->curtime + 0.05f );
 	else
 		UTIL_Remove( this );
 	SetGroundEntity( NULL );

@@ -1254,28 +1254,9 @@ void CNPC_Vortigaunt::TraceAttack( const CTakeDamageInfo &inputInfo, const Vecto
 		info.SetDamage( 0.01 );
 	}
 
-	switch( ptr->hitgroup)
+	if (ptr->hitgroup == HITGROUP_HEAD)
 	{
-	case HITGROUP_CHEST:
-	case HITGROUP_STOMACH:
-		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_BLAST))
-		{
-			info.ScaleDamage( 0.5f );
-		}
-		break;
-	case 10:
-		if (info.GetDamageType() & (DMG_BULLET | DMG_SLASH | DMG_CLUB))
-		{
-			info.SetDamage( info.GetDamage() - 20 );
-			if (info.GetDamage() <= 0)
-			{
-				g_pEffects->Ricochet( ptr->endpos, (vecDir*-1.0f) );
-				info.SetDamage( 0.01 );
-			}
-		}
-		// always a head shot
-		ptr->hitgroup = HITGROUP_HEAD;
-		break;
+		EmitSound("Player.HeadShot");
 	}
 
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );

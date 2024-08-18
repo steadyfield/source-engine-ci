@@ -1565,6 +1565,13 @@ void CBasePlayer::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, 
 	if(IsLocalPlayer() && haptics)
 		haptics->UpdatePlayerFOV(fov);
 #endif
+
+#ifdef CLIENT_DLL
+    if ( !this->IsAlive() )
+	{
+		CalcDeathCamView( eyeOrigin, eyeAngles, fov );
+	}
+#endif
 }
 
 

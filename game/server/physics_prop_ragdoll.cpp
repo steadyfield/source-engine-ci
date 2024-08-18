@@ -21,7 +21,7 @@
 #include "ragdoll_shared.h"
 #include "hierarchy.h"
 #include "gib.h"
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 #include "decals.h"
 #include "te_effect_dispatch.h"
 

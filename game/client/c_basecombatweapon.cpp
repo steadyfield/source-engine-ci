@@ -17,8 +17,20 @@
 #include "toolframework/itoolframework.h"
 #include "toolframework_client.h"
 
+#include "vgui/ISurface.h"
+#include "vgui_controls/Controls.h"
+#include "hud_crosshair.h"
+#include "c_basehlplayer.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+ConVar cl_crosshaircolor("cl_crosshaircolor", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+ConVar cl_dynamiccrosshair("cl_dynamiccrosshair", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+ConVar cl_scalecrosshair("cl_scalecrosshair", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+ConVar cl_crosshairscale("cl_crosshairscale", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+ConVar cl_crosshairalpha("cl_crosshairalpha", "200", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+ConVar cl_crosshairusealpha("cl_crosshairusealpha", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
 
 //-----------------------------------------------------------------------------
 // Purpose: Gets the local client's active weapon, if any.
@@ -214,7 +226,14 @@ void C_BaseCombatWeapon::Redraw()
 {
 	if ( g_pClientMode->ShouldDrawCrosshair() )
 	{
-		DrawCrosshair();
+		if ( !IsIronsighted() )
+		{
+			DrawCrosshair();
+		}
+		else
+		{
+			return;
+		}
 	}
 
 	// ammo drawing has been moved into hud_ammo.cpp
@@ -225,76 +244,55 @@ void C_BaseCombatWeapon::Redraw()
 //-----------------------------------------------------------------------------
 void C_BaseCombatWeapon::DrawCrosshair()
 {
-	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
-	if ( !player )
-		return;
-
-	Color clr = gHUD.m_clrNormal;
-/*
-
-	// TEST: if the thing under your crosshair is on a different team, light the crosshair with a different color.
-	Vector vShootPos, vShootAngles;
-	GetShootPosition( vShootPos, vShootAngles );
-
-	Vector vForward;
-	AngleVectors( vShootAngles, &vForward );
-	
-	
-	// Change the color depending on if we're looking at a friend or an enemy.
-	CPartitionFilterListMask filter( PARTITION_ALL_CLIENT_EDICTS );	
-	trace_t tr;
-	traceline->TraceLine( vShootPos, vShootPos + vForward * 10000, COLLISION_GROUP_NONE, MASK_SHOT, &tr, true, ~0, &filter );
-
-	if ( tr.index != 0 && tr.index != INVALID_CLIENTENTITY_HANDLE )
+	if (crosshair.GetInt() == 1)
 	{
-		C_BaseEntity *pEnt = ClientEntityList().GetBaseEntityFromHandle( tr.index );
-		if ( pEnt )
+		if ( !IsIronsighted() )
 		{
-			if ( pEnt->GetTeamNumber() != player->GetTeamNumber() )
+			C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
+			if (!player)
+				return;
+
+			Color clr = gHUD.m_clrNormal;
+
+			CHudCrosshair *crosshair = GET_HUDELEMENT(CHudCrosshair);
+			if (!crosshair)
+				return;
+
+			// Find out if this weapon's auto-aimed onto a target
+			bool bOnTarget = (m_iState == WEAPON_IS_ONTARGET);
+
+			if (player->GetFOV() >= 90)
 			{
-				g = b = 0;
+				// normal crosshairs
+				if (bOnTarget && GetWpnData().iconAutoaim)
+				{
+					clr[3] = 255;
+
+					crosshair->SetCrosshair(GetWpnData().iconAutoaim, clr);
+				}
+				else if (GetWpnData().iconCrosshair)
+				{
+					clr[3] = 255;
+					crosshair->SetCrosshair(GetWpnData().iconCrosshair, clr);
+				}
+				else
+				{
+					crosshair->ResetCrosshair();
+				}
+			}
+			else
+			{
+				Color white(255, 255, 255, 255);
+
+				// zoomed crosshairs
+				if (bOnTarget && GetWpnData().iconZoomedAutoaim)
+					crosshair->SetCrosshair(GetWpnData().iconZoomedAutoaim, white);
+				else if (GetWpnData().iconZoomedCrosshair)
+					crosshair->SetCrosshair(GetWpnData().iconZoomedCrosshair, white);
+				else
+					crosshair->ResetCrosshair();
 			}
 		}
-	}		 
-*/
-
-	CHudCrosshair *crosshair = GET_HUDELEMENT( CHudCrosshair );
-	if ( !crosshair )
-		return;
-
-	// Find out if this weapon's auto-aimed onto a target
-	bool bOnTarget = ( m_iState == WEAPON_IS_ONTARGET );
-	
-	if ( player->GetFOV() >= 90 )
-	{ 
-		// normal crosshairs
-		if ( bOnTarget && GetWpnData().iconAutoaim )
-		{
-			clr[3] = 255;
-
-			crosshair->SetCrosshair( GetWpnData().iconAutoaim, clr );
-		}
-		else if ( GetWpnData().iconCrosshair )
-		{
-			clr[3] = 255;
-			crosshair->SetCrosshair( GetWpnData().iconCrosshair, clr );
-		}
-		else
-		{
-			crosshair->ResetCrosshair();
-		}
-	}
-	else
-	{ 
-		Color white( 255, 255, 255, 255 );
-
-		// zoomed crosshairs
-		if (bOnTarget && GetWpnData().iconZoomedAutoaim)
-			crosshair->SetCrosshair(GetWpnData().iconZoomedAutoaim, white);
-		else if ( GetWpnData().iconZoomedCrosshair )
-			crosshair->SetCrosshair( GetWpnData().iconZoomedCrosshair, white );
-		else
-			crosshair->ResetCrosshair();
 	}
 }
 

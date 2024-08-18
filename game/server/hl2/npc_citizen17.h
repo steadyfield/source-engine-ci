@@ -132,6 +132,9 @@ public:
 
 	void 			PickupItem( CBaseEntity *pItem );
 
+	// TraceAttack
+	virtual void    TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 	void 			SimpleUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
 	bool			IgnorePlayerPushing( void );
@@ -250,6 +253,7 @@ public:
 
 	virtual void	OnChangeRunningBehavior( CAI_BehaviorBase *pOldBehavior,  CAI_BehaviorBase *pNewBehavior );
 
+	CitizenType_t	m_Type;
 private:
 	//-----------------------------------------------------
 	// Conditions, Schedules, Tasks
@@ -307,7 +311,6 @@ private:
 	CSimpleSimTimer	m_AutoSummonTimer;
 	Vector			m_vAutoSummonAnchor;
 
-	CitizenType_t	m_Type;
 	CitizenExpressionTypes_t	m_ExpressionType;
 
 	int				m_iHead;

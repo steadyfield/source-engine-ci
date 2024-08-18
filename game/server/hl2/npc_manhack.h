@@ -92,6 +92,8 @@ public:
 	void			MoveExecute_Dead(float flInterval);
 	int				MoveCollisionMask(void);
 
+	virtual bool	BecomeRagdoll(const CTakeDamageInfo &info, const Vector &forceVector);
+
 	void			TurnHeadRandomly( float flInterval );
 
 	void			CrashTouch( CBaseEntity *pOther );

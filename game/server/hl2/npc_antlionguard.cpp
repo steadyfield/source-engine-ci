@@ -2298,6 +2298,11 @@ void CNPC_AntlionGuard::TraceAttack( const CTakeDamageInfo &inputInfo, const Vec
 		info.SetDamage( 1.0f );
 	}
 
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 

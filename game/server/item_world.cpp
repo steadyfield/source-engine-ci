@@ -167,7 +167,7 @@ void CItem::Spawn( void )
 
 	// This will make them not collide with the player, but will collide
 	// against other items + weapons
-	SetCollisionGroup( COLLISION_GROUP_WEAPON );
+	SetCollisionGroup( COLLISION_GROUP_NPC );
 	CollisionProp()->UseTriggerBounds( true, ITEM_PICKUP_BOX_BLOAT );
 	SetTouch(&CItem::ItemTouch);
 

@@ -34,7 +34,7 @@
 bool NPC_CheckBrushExclude( CBaseEntity *pEntity, CBaseEntity *pBrush );
 #endif
 
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 #include "decals.h"
 
 

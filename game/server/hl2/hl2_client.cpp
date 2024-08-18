@@ -26,7 +26,7 @@
 
 #include "tier0/vprof.h"
 
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

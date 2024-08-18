@@ -1,22 +1,23 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+//========= Copyright ? 1996-2008, Wargon, Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
-//
-// $NoKeywords: $
-//===========================================================================//
+//									Object: Physgun
+//									## public code ##
+//Author: Wargon
+// 
+//=============================================================================================//
 
 #include "cbase.h"
 #include "hud.h"
 #include "in_buttons.h"
 #include "beamdraw.h"
 #include "c_weapon__stubs.h"
-#include "clienteffectprecachesystem.h"
+#include "ClientEffectPrecacheSystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 CLIENTEFFECT_REGISTER_BEGIN( PrecacheEffectGravityGun )
-CLIENTEFFECT_MATERIAL( "sprites/physbeam" )
+CLIENTEFFECT_MATERIAL( "sprites/physbeam" )      
 CLIENTEFFECT_REGISTER_END()
 
 class C_BeamQuadratic : public CDefaultClientRenderable
@@ -40,6 +41,11 @@ public:
 		mins.Init(-32,-32,-32);
 		maxs.Init(32,32,32);
 	}
+	matrix3x4_t z;
+	const matrix3x4_t& RenderableToWorldTransform()
+	{
+		return z;
+	}
 
 	C_BaseEntity			*m_pOwner;
 	Vector					m_targetPosition;
@@ -48,7 +54,6 @@ public:
 	int						m_glueTouching;
 	int						m_viewModelIndex;
 };
-
 
 class C_WeaponGravityGun : public C_BaseCombatWeapon
 {
@@ -105,6 +110,7 @@ END_RECV_TABLE()
 C_BeamQuadratic::C_BeamQuadratic()
 {
 	m_pOwner = NULL;
+	m_hRenderHandle = INVALID_CLIENT_RENDER_HANDLE;
 }
 
 void C_BeamQuadratic::Update( C_BaseEntity *pOwner )
@@ -124,12 +130,14 @@ void C_BeamQuadratic::Update( C_BaseEntity *pOwner )
 	else if ( !m_active && m_hRenderHandle != INVALID_CLIENT_RENDER_HANDLE )
 	{
 		ClientLeafSystem()->RemoveRenderable( m_hRenderHandle );
+		m_hRenderHandle = INVALID_CLIENT_RENDER_HANDLE;
 	}
 }
 
 
 int	C_BeamQuadratic::DrawModel( int )
 {
+	CMatRenderContextPtr pRenderContext( materials );
 	Vector points[3];
 	QAngle tmpAngle;
 
@@ -159,7 +167,7 @@ int	C_BeamQuadratic::DrawModel( int )
 	}
 
 	float scrollOffset = gpGlobals->curtime - (int)gpGlobals->curtime;
-	materials->Bind( pMat );
+	pRenderContext->Bind( pMat );
 	DrawBeamQuadratic( points[0], points[1], points[2], 13, color, scrollOffset );
 	return 1;
 }

@@ -37,5 +37,9 @@
 #define IN_GRENADE1		(1 << 23)	// grenade 1
 #define IN_GRENADE2		(1 << 24)	// grenade 2
 #define	IN_ATTACK3		(1 << 25)
+#define IN_KICK			(1 << 26)
+#define IN_SLOWMO		(1 << 27)
+#define IN_LEANLEFT		(1 << 28)   // Lean left
+#define IN_LEANRIGHT	(1 << 29)   // Lean right
 
 #endif // IN_BUTTONS_H

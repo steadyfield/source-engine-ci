@@ -37,6 +37,7 @@ public:
 
 	virtual void	Init();
 	virtual bool	ShouldDrawCrosshair( void );
+	virtual float	GetViewModelFOV( void );
 };
 
 extern IClientMode *GetClientModeNormal();

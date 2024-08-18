@@ -10,9 +10,16 @@
 #include "npcevent.h"
 #include "ai_basenpc.h"
 #include "globalstate.h"
+#include "gamestats.h"
+#include "bullet_9mm.h"
+#include "hl2_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+extern ConVar bullettimesim;
+
+extern ConVar disable_bullettime;
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponAlyxGun, DT_WeaponAlyxGun)
 END_SEND_TABLE()
@@ -82,6 +89,14 @@ acttable_t	CWeaponAlyxGun::m_acttable[] =
 	{ ACT_READINESS_AGITATED_TO_STIMULATED, ACT_READINESS_PISTOL_AGITATED_TO_STIMULATED, false },
 	{ ACT_READINESS_STIMULATED_TO_RELAXED, ACT_READINESS_PISTOL_STIMULATED_TO_RELAXED, false },
 
+	{ ACT_HL2MP_IDLE, ACT_HL2MP_IDLE_PISTOL, false },
+	{ ACT_HL2MP_RUN, ACT_HL2MP_RUN_PISTOL, false },
+	{ ACT_HL2MP_IDLE_CROUCH, ACT_HL2MP_IDLE_CROUCH_PISTOL, false },
+	{ ACT_HL2MP_WALK_CROUCH, ACT_HL2MP_WALK_CROUCH_PISTOL, false },
+	{ ACT_HL2MP_GESTURE_RANGE_ATTACK, ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL, false },
+	{ ACT_HL2MP_GESTURE_RELOAD, ACT_HL2MP_GESTURE_RELOAD_PISTOL, false },
+	{ ACT_HL2MP_JUMP, ACT_HL2MP_JUMP_PISTOL, false },
+	{ ACT_RANGE_ATTACK1, ACT_RANGE_ATTACK_PISTOL, false },
 
 //	{ ACT_ARM,				ACT_ARM_PISTOL,					true },
 //	{ ACT_DISARM,			ACT_DISARM_PISTOL,				true },
@@ -116,6 +131,8 @@ CWeaponAlyxGun::~CWeaponAlyxGun( )
 void CWeaponAlyxGun::Precache( void )
 {
 	BaseClass::Precache();
+
+	UTIL_PrecacheOther("bullet_9mm");
 }
 
 //-----------------------------------------------------------------------------
@@ -123,6 +140,251 @@ void CWeaponAlyxGun::Precache( void )
 void CWeaponAlyxGun::Equip( CBaseCombatCharacter *pOwner )
 {
 	BaseClass::Equip( pOwner );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//
+//
+//-----------------------------------------------------------------------------
+void CWeaponAlyxGun::PrimaryAttack( void )
+{
+	CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >(UTIL_PlayerByIndex(1));
+
+	if (!pPlayer->m_HL2Local.m_bInSlowMo && disable_bullettime.GetInt() == 0)
+	{
+		// Only the player fires this way so we can cast
+		CBasePlayer *pPlayer = ToBasePlayer(GetOwner());
+		if (!pPlayer)
+			return;
+
+		// Abort here to handle burst and auto fire modes
+		if ((UsesClipsForAmmo1() && m_iClip1 == 0) || (!UsesClipsForAmmo1() && !pPlayer->GetAmmoCount(m_iPrimaryAmmoType)))
+			return;
+
+		m_nShotsFired++;
+
+		pPlayer->DoMuzzleFlash();
+
+		// To make the firing framerate independent, we may have to fire more than one bullet here on low-framerate systems, 
+		// especially if the weapon we're firing has a really fast rate of fire.
+		int iBulletsToFire = 0;
+		float fireRate = GetFireRate();
+
+		// MUST call sound before removing a round from the clip of a CHLMachineGun
+		while (m_flNextPrimaryAttack <= gpGlobals->curtime)
+		{
+			WeaponSound(SINGLE, m_flNextPrimaryAttack);
+			m_flNextPrimaryAttack = m_flNextPrimaryAttack + fireRate;
+			iBulletsToFire++;
+		}
+
+		// Make sure we don't fire more than the amount in the clip, if this weapon uses clips
+		if (UsesClipsForAmmo1())
+		{
+			if (iBulletsToFire > m_iClip1)
+				iBulletsToFire = m_iClip1;
+			m_iClip1 -= iBulletsToFire;
+		}
+
+		m_iPrimaryAttacks++;
+		gamestats->Event_WeaponFired(pPlayer, true, GetClassname());
+
+		// Fire the bullets
+		FireBulletsInfo_t info;
+		info.m_iShots = iBulletsToFire;
+		info.m_vecSrc = pPlayer->Weapon_ShootPosition();
+		info.m_vecDirShooting = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
+		info.m_vecSpread = pPlayer->GetAttackSpread(this);
+		info.m_flDistance = MAX_TRACE_LENGTH;
+		info.m_iAmmoType = m_iPrimaryAmmoType;
+		info.m_iTracerFreq = 2;
+		FireBullets(info);
+
+		//Factor in the view kick
+		AddViewKick();
+
+		CSoundEnt::InsertSound(SOUND_COMBAT, GetAbsOrigin(), SOUNDENT_VOLUME_MACHINEGUN, 0.2, pPlayer);
+
+		if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+		{
+			// HEV suit - indicate out of ammo condition
+			pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
+		}
+
+		SendWeaponAnim(GetPrimaryAttackActivity());
+		pPlayer->SetAnimation(PLAYER_ATTACK1);
+
+		// Register a muzzleflash for the AI
+		pPlayer->SetMuzzleFlashTime(gpGlobals->curtime + 0.5);
+	}
+	else if (pPlayer->m_HL2Local.m_bInSlowMo && disable_bullettime.GetInt() == 0)
+	{
+		Fire9MMBullet();
+	}
+
+	if (bullettimesim.GetInt() == 1 && disable_bullettime.GetInt() == 1)
+	{
+		Fire9MMBullet();
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//
+//
+//-----------------------------------------------------------------------------
+void CWeaponAlyxGun::Fire9MMBullet( void )
+{
+	// Only the player fires this way so we can cast
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	if (!pPlayer)
+		return;
+	
+	// Abort here to handle burst and auto fire modes
+	if ( (UsesClipsForAmmo1() && m_iClip1 == 0) || ( !UsesClipsForAmmo1() && !pPlayer->GetAmmoCount(m_iPrimaryAmmoType) ) )
+		return;
+
+	m_nShotsFired++;
+
+	pPlayer->DoMuzzleFlash();
+
+	// To make the firing framerate independent, we may have to fire more than one bullet here on low-framerate systems, 
+	// especially if the weapon we're firing has a really fast rate of fire.
+	int iBulletsToFire = 0;
+	float fireRate = GetFireRate();
+
+	// MUST call sound before removing a round from the clip of a CHLMachineGun
+	while ( m_flNextPrimaryAttack <= gpGlobals->curtime )
+	{
+		WeaponSound(SINGLE, m_flNextPrimaryAttack);
+		m_flNextPrimaryAttack = m_flNextPrimaryAttack + fireRate;
+		iBulletsToFire++;
+	}
+
+	// Make sure we don't fire more than the amount in the clip, if this weapon uses clips
+	if ( UsesClipsForAmmo1() )
+	{
+		if ( iBulletsToFire > m_iClip1 )
+			iBulletsToFire = m_iClip1;
+		m_iClip1 -= iBulletsToFire;
+	}
+
+	m_iPrimaryAttacks++;
+	gamestats->Event_WeaponFired( pPlayer, true, GetClassname() );
+
+	Vector vecAiming;
+	vecAiming = pPlayer->GetAutoaimVector(0);
+	Vector vecSrc = pPlayer->Weapon_ShootPosition();
+
+	QAngle angAiming;
+	VectorAngles(vecAiming, angAiming);
+
+	CBullet9MM *pBullet = CBullet9MM::BulletCreate(vecSrc, angAiming, pPlayer);
+
+	if (pPlayer->GetWaterLevel() == 3)
+	{
+		pBullet->SetAbsVelocity(vecAiming * 1100);
+	}
+	else
+	{
+		pBullet->SetAbsVelocity(vecAiming * 1400);
+	}
+
+	m_flNextPrimaryAttack = gpGlobals->curtime + fireRate;
+
+	/*
+	// Fire the bullets
+	FireBulletsInfo_t info;
+	info.m_iShots = iBulletsToFire;
+	info.m_vecSrc = pPlayer->Weapon_ShootPosition( );
+	info.m_vecDirShooting = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
+	info.m_vecSpread = pPlayer->GetAttackSpread( this );
+	info.m_flDistance = MAX_TRACE_LENGTH;
+	info.m_iAmmoType = m_iPrimaryAmmoType;
+	info.m_iTracerFreq = 2;
+	FireBullets( info );
+	*/
+
+	//Factor in the view kick
+	AddViewKick();
+
+	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), SOUNDENT_VOLUME_MACHINEGUN, 0.2, pPlayer );
+	
+	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+	{
+		// HEV suit - indicate out of ammo condition
+		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0); 
+	}
+
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+	// Register a muzzleflash for the AI
+	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
+}
+
+void CWeaponAlyxGun::FireNPC9MMBullet( void )
+{
+	// m_vecEnemyLKP should be center of enemy body
+	Vector vecArmPos;
+	QAngle angArmDir;
+	Vector vecDirToEnemy;
+	QAngle angDir;
+
+	if ( GetEnemy() )
+	{
+		Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
+
+		vecDirToEnemy = ( ( vecEnemyLKP ) - GetAbsOrigin() );
+		VectorAngles( vecDirToEnemy, angDir );
+		VectorNormalize( vecDirToEnemy );
+	}
+	else
+	{
+		angDir = GetAbsAngles();
+		angDir.x = -angDir.x;
+
+		Vector vForward;
+		AngleVectors( angDir, &vForward );
+		vecDirToEnemy = vForward;
+	}
+
+	DoMuzzleFlash();
+
+	// make angles +-180
+	if (angDir.x > 180)
+	{
+		angDir.x = angDir.x - 360;
+	}
+
+	VectorAngles( vecDirToEnemy, angDir );
+
+	float RandomAngle = (rand() % 55960);
+	float RandMagnitudeX = ((rand() % 70375) / 3800.0);
+	float RandMagnitudeY = ((rand() % 70375) / 3800.0);
+	angDir.x += (RandMagnitudeX)*cos(RandomAngle);
+	angDir.y += (RandMagnitudeY)*sin(RandomAngle);
+
+	AngleVectors(angDir, &vecDirToEnemy);
+
+	GetAttachment( "muzzle", vecArmPos, angArmDir );
+
+	vecArmPos = vecArmPos + vecDirToEnemy * 32;
+
+	CBaseEntity *pBullet = CBaseEntity::Create( "bullet_9mm", vecArmPos, QAngle( 0, 0, 0 ), this );
+
+	Vector vForward;
+	AngleVectors( angDir, &vForward );
+	
+	pBullet->SetAbsVelocity( vForward * 475 );
+	pBullet->SetOwnerEntity( this );
+			
+	// CSoundEnt::InsertSound( SOUND_COMBAT|SOUND_CONTEXT_GUNFIRE, GetAbsOrigin(), SOUNDENT_VOLUME_MACHINEGUN, 0.2, this, SOUNDENT_CHANNEL_WEAPON, GetEnemy() );
+
+	WeaponSound( SINGLE_NPC );
+
+	m_iClip1 = m_iClip1 - 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -270,11 +532,24 @@ void CWeaponAlyxGun::Operator_ForceNPCFire( CBaseCombatCharacter *pOperator, boo
 //-----------------------------------------------------------------------------
 void CWeaponAlyxGun::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
 {
+	CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >(UTIL_PlayerByIndex(1));
+
 	switch( pEvent->event )
 	{
 		case EVENT_WEAPON_PISTOL_FIRE:
 		{
-			FireNPCPrimaryAttack( pOperator, false );
+			if (!pPlayer->m_HL2Local.m_bInSlowMo && disable_bullettime.GetInt() == 0)
+			{
+		        FireNPCPrimaryAttack(pOperator, false);
+			}
+			else if (pPlayer->m_HL2Local.m_bInSlowMo && disable_bullettime.GetInt() == 0)
+			{
+				FireNPC9MMBullet();
+			}
+			if (bullettimesim.GetInt() == 1 && disable_bullettime.GetInt() == 1)
+			{
+				FireNPC9MMBullet();
+			}
 			break;
 		}
 		

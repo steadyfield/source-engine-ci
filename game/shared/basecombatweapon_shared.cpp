@@ -42,7 +42,7 @@
 
 #endif
 
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 #include "hl2_player_shared.h"
 #ifndef CLIENT_DLL
 #include "class_override.h"
@@ -438,6 +438,11 @@ void CBaseCombatWeapon::Precache( void )
 
 	PrecacheScriptSound("HL2Player.Ironsighton");
 	PrecacheScriptSound("HL2Player.Ironsightoff");
+}
+
+void CBaseCombatWeapon::PrecacheCustom()
+{
+	printf(" У нее тишка сан лоран\n");
 }
 
 //-----------------------------------------------------------------------------

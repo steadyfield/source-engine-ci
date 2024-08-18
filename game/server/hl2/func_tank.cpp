@@ -77,7 +77,7 @@ BEGIN_DATADESC( CFuncTank )
 	DEFINE_KEYFIELD( m_iBulletDamageVsPlayer, FIELD_INTEGER, "bullet_damage_vs_player" ),
 	DEFINE_KEYFIELD( m_iszMaster, FIELD_STRING, "master" ),
 	
-#ifdef HL2_EPISODIC	
+#if FALSE	
 	DEFINE_KEYFIELD( m_iszAmmoType, FIELD_STRING, "ammotype" ),
 	DEFINE_FIELD( m_iAmmoType, FIELD_INTEGER ),
 #else
@@ -735,7 +735,7 @@ void CFuncTank::Spawn( void )
 {
 	Precache();
 
-#ifdef HL2_EPISODIC
+#if FALSE
 	m_iAmmoType = GetAmmoDef()->Index( STRING( m_iszAmmoType ) );
 #else
 	m_iSmallAmmoType	= GetAmmoDef()->Index("Pistol");
@@ -868,64 +868,6 @@ void CFuncTank::Spawn( void )
 void CFuncTank::Activate( void )
 {
 	BaseClass::Activate();
-	
-	CBaseEntity *pParent = gEntList.FindEntityByName( NULL, m_iParent );
-
-	if ((pParent != NULL) && (pParent->edict() != NULL))
-	{
-		SetParent( pParent );
-	}
-
-	if ( GetParent() && GetParent()->GetBaseAnimating() )
-	{
-		CBaseAnimating *pAnim = GetParent()->GetBaseAnimating();
-		if ( m_iszBaseAttachment != NULL_STRING )
-		{
-			int nAttachment = pAnim->LookupAttachment( STRING( m_iszBaseAttachment ) );
-			if ( nAttachment != 0 )
-			{
-				SetParent( pAnim, nAttachment );
-				SetLocalOrigin( vec3_origin );
-				SetLocalAngles( vec3_angle );
-			}
-		}
-
-		m_bUsePoseParameters = (m_iszYawPoseParam != NULL_STRING) && (m_iszPitchPoseParam != NULL_STRING);
-
-		if ( m_iszBarrelAttachment != NULL_STRING )
-		{
-			if ( m_bUsePoseParameters )
-			{
-				pAnim->SetPoseParameter( STRING( m_iszYawPoseParam ), 0 );
-				pAnim->SetPoseParameter( STRING( m_iszPitchPoseParam ), 0 );
-				pAnim->InvalidateBoneCache();
-			}
-
-			m_nBarrelAttachment = pAnim->LookupAttachment( STRING(m_iszBarrelAttachment) );
-
-			Vector vecWorldBarrelPos;
-			QAngle worldBarrelAngle;
-			pAnim->GetAttachment( m_nBarrelAttachment, vecWorldBarrelPos, worldBarrelAngle );
-			VectorITransform( vecWorldBarrelPos, EntityToWorldTransform( ), m_barrelPos );
-		}
-
-		if ( m_bUsePoseParameters )
-		{
-			// In this case, we're relying on the parent to have the gun model
-			AddEffects( EF_NODRAW );
-			QAngle localAngles( m_flPitchPoseCenter, m_flYawPoseCenter, 0 );
-			SetLocalAngles( localAngles );
-			SetSolid( SOLID_NONE );
-			SetMoveType( MOVETYPE_NOCLIP );
-
-			// If our parent is a prop_dynamic, make it use hitboxes for renderbox
-			CDynamicProp *pProp = dynamic_cast<CDynamicProp*>(GetParent());
-			if ( pProp )
-			{
-				pProp->m_bUseHitboxesForRenderBox = true;
-			}
-		}
-	}
 	
 	// Necessary for save/load
 	if ( (m_iszBarrelAttachment != NULL_STRING) && (m_nBarrelAttachment == 0) )
@@ -2517,7 +2459,7 @@ void CFuncTankGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector 
 	info.m_pAttacker = pAttacker;
 	info.m_pAdditionalIgnoreEnt = GetParent();
 
-#ifdef HL2_EPISODIC
+#if FALSE
 	if ( m_iAmmoType != -1 )
 	{
 		for ( i = 0; i < bulletCount; i++ )

@@ -91,8 +91,8 @@
 #include "querycache.h"
 
 #include "map_parser.h"
-#include "coolmod/luamanager.h"
-#include "coolmod/smod_addcontents.h"
+#include "COOLMOD/luamanager.h"
+#include "COOLMOD/smod_addcontents.h"
 
 #ifdef TF_DLL
 #include "gc_clientsystem.h"

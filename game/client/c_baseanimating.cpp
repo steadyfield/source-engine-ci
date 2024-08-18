@@ -88,6 +88,8 @@ void VCollideWireframe_ChangeCallback( IConVar *pConVar, char const *pOldString,
 
 ConVar vcollide_wireframe( "vcollide_wireframe", "0", FCVAR_CHEAT, "Render physics collision models in wireframe", VCollideWireframe_ChangeCallback );
 
+ConVar r_muzzledynamiclight("r_muzzledynamiclight", "0", FCVAR_ARCHIVE);
+
 bool C_AnimationLayer::IsActive( void )
 {
 	return (m_nOrder != C_BaseAnimatingOverlay::MAX_OVERLAYS);
@@ -3318,7 +3320,11 @@ void C_BaseAnimating::ProcessMuzzleFlashEvent()
 			GetAttachment( 1, vAttachment, dummyAngles );
 
 			// Make an elight
-			dlight_t *el = effects->CL_AllocElight( LIGHT_INDEX_MUZZLEFLASH + index );
+			dlight_t *el;
+			if(r_muzzledynamiclight.GetBool())
+				el = effects->CL_AllocDlight( index );
+			else
+				el = effects->CL_AllocElight(LIGHT_INDEX_MUZZLEFLASH + index);
 			el->origin = vAttachment;
 			el->radius = random->RandomInt( 32, 64 ); 
 			el->decay = el->radius / 0.05f;

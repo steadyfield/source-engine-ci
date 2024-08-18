@@ -17,6 +17,7 @@
 #include "iclientmode.h"
 #include "voice_status.h"
 #include "glow_overlay.h"
+#include "c_basehlplayer.h"
 #include "materialsystem/imesh.h"
 #include "materialsystem/itexture.h"
 #include "materialsystem/imaterial.h"
@@ -77,6 +78,10 @@
 // Projective textures
 #include "C_Env_Projected_Texture.h"
 
+#include "c_world.h"
+
+#include "strtools.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -109,7 +114,7 @@ ConVar r_entityclips( "r_entityclips", "1" ); //FIXME: Nvidia drivers before 81.
 static ConVar r_drawopaqueworld( "r_drawopaqueworld", "1", FCVAR_CHEAT );
 static ConVar r_drawtranslucentworld( "r_drawtranslucentworld", "1", FCVAR_CHEAT );
 static ConVar r_3dsky( "r_3dsky","1", 0, "Enable the rendering of 3d sky boxes" );
-static ConVar r_skybox( "r_skybox","1", FCVAR_CHEAT, "Enable the rendering of sky boxes" );
+ ConVar r_skybox( "r_skybox","1", FCVAR_CHEAT, "Enable the rendering of sky boxes" );
 #ifdef TF_CLIENT_DLL
 ConVar r_drawviewmodel( "r_drawviewmodel","1", FCVAR_ARCHIVE );
 #else
@@ -159,10 +164,15 @@ static ConVar mat_clipz( "mat_clipz", "1" );
 //-----------------------------------------------------------------------------
 // Other convars
 //-----------------------------------------------------------------------------
-static ConVar r_screenfademinsize( "r_screenfademinsize", "0" );
-static ConVar r_screenfademaxsize( "r_screenfademaxsize", "0" );
-static ConVar cl_drawmonitors( "cl_drawmonitors", "1" );
-static ConVar r_eyewaterepsilon( "r_eyewaterepsilon", "10.0f", FCVAR_CHEAT );
+static ConVar r_screenfademinsize("r_screenfademinsize", "0");
+static ConVar r_screenfademaxsize("r_screenfademaxsize", "0");
+static ConVar cl_drawmonitors("cl_drawmonitors", "1");
+static ConVar r_eyewaterepsilon("r_eyewaterepsilon", "10.0f", FCVAR_CHEAT);
+
+static ConVar r_radialblur_samplecount("r_screenblur_samplecount", "1", FCVAR_ARCHIVE);
+static ConVar r_ironsightblur_samplecount("r_ironsightblur_samplecount", "1", FCVAR_ARCHIVE);
+static ConVar r_distanceblur_samplecount("r_distanceblur_samplecount", "1", FCVAR_ARCHIVE);
+static ConVar r_subviewcam("r_subviewcam", "1");
 
 #ifdef TF_CLIENT_DLL
 static ConVar pyro_dof( "pyro_dof", "1", FCVAR_ARCHIVE );
@@ -259,8 +269,10 @@ private:
 class CWorldListCache
 {
 public:
-	CWorldListCache() = default;
+	CWorldListCache()
+	{
 
+	}
 	void Flush()
 	{
 		for ( int i = m_Entries.FirstInorder(); i != m_Entries.InvalidIndex(); i = m_Entries.NextInorder( i ) )
@@ -745,7 +757,7 @@ static inline unsigned long BuildEngineDrawWorldListFlags( unsigned nDrawFlags )
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-static void SetClearColorToFogColor()
+void SetClearColorToFogColor()
 {
 	unsigned char ucFogColor[3];
 	CMatRenderContextPtr pRenderContext( materials );
@@ -1433,8 +1445,8 @@ static void GetFogColorTransition( fogparams_t *pFogParams, float *pColorPrimary
 	{
 		float flPercent = 1.0f - (( pFogParams->lerptime - gpGlobals->curtime ) / pFogParams->duration );
 
-		float flPrimaryColorLerp[3] = { (float)pFogParams->colorPrimaryLerpTo.GetR(), (float)pFogParams->colorPrimaryLerpTo.GetG(), (float)pFogParams->colorPrimaryLerpTo.GetB() };
-		float flSecondaryColorLerp[3] = { (float)pFogParams->colorSecondaryLerpTo.GetR(), (float)pFogParams->colorSecondaryLerpTo.GetG(), (float)pFogParams->colorSecondaryLerpTo.GetB() };
+		float flPrimaryColorLerp[3] = { pFogParams->colorPrimaryLerpTo.GetR(), pFogParams->colorPrimaryLerpTo.GetG(), pFogParams->colorPrimaryLerpTo.GetB() };
+		float flSecondaryColorLerp[3] = { pFogParams->colorSecondaryLerpTo.GetR(), pFogParams->colorSecondaryLerpTo.GetG(), pFogParams->colorSecondaryLerpTo.GetB() };
 
 		CheckAndTransitionColor( flPercent, pColorPrimary, flPrimaryColorLerp );
 		CheckAndTransitionColor( flPercent, pColorSecondary, flSecondaryColorLerp );
@@ -1457,8 +1469,8 @@ static void GetFogColor( fogparams_t *pFogParams, float *pColor )
 	}
 	else
 	{
-		float flPrimaryColor[3] = { (float)pFogParams->colorPrimary.GetR(), (float)pFogParams->colorPrimary.GetG(), (float)pFogParams->colorPrimary.GetB() };
-		float flSecondaryColor[3] = { (float)pFogParams->colorSecondary.GetR(), (float)pFogParams->colorSecondary.GetG(), (float)pFogParams->colorSecondary.GetB() };
+		float flPrimaryColor[3] = { pFogParams->colorPrimary.GetR(), pFogParams->colorPrimary.GetG(), pFogParams->colorPrimary.GetB() };
+		float flSecondaryColor[3] = { pFogParams->colorSecondary.GetR(), pFogParams->colorSecondary.GetG(), pFogParams->colorSecondary.GetB() };
 
 		GetFogColorTransition( pFogParams, flPrimaryColor, flSecondaryColor );
 
@@ -1853,6 +1865,99 @@ void CViewRender::CleanupMain3DView( const CViewSetup &view )
 	render->PopView( GetFrustum() );
 }
 
+void CViewRender::DrawScope(const CViewSetup &viewSet)
+{
+	C_BasePlayer *localPlayer = C_BasePlayer::GetLocalPlayer();
+
+	if (!localPlayer)
+		return;
+
+	if (!localPlayer->GetActiveWeapon())
+		return;
+
+	if (!localPlayer->GetActiveWeapon()->GetViewModel())
+		return;
+
+	//Copy our current View.
+	CViewSetup scopeView = viewSet;
+
+	//Get our camera render target.
+	ITexture *pRenderTarget = GetScopeTexture();
+
+	if (pRenderTarget == NULL)
+		return;
+
+	CMatRenderContextPtr pRenderContext(materials);
+
+	if (!pRenderTarget->IsRenderTarget())
+		Msg(" not a render target");
+
+	//Our view information, Origin, View Direction, window size
+	//	location on material, and visual ratios.
+	scopeView.width = pRenderTarget->GetActualWidth();
+	scopeView.height = pRenderTarget->GetActualHeight();
+	scopeView.x = 0;
+	scopeView.y = 0;
+	scopeView.fov *= m_flscopeFOV;
+	scopeView.m_bOrtho = false;
+
+	float mouseX, mouseY;
+	ClientModeShared *mode = (ClientModeShared *)GetClientModeNormal();
+	mode->GetMouseXAndY(mouseX, mouseY);
+	scopeView.angles.x += mouseY;
+	scopeView.angles.y -= mouseX;
+
+	scopeView.m_flAspectRatio = 1.0f;
+
+
+	//Set the view up and output the scene to our RenderTarget (Scope Material).
+	render->Push3DView(scopeView, VIEW_CLEAR_DEPTH | VIEW_CLEAR_COLOR, pRenderTarget, GetFrustum());
+
+	if (r_subviewcam.GetBool())
+	{
+		SkyboxVisibility_t nSkyboxVisible = SKYBOX_NOT_VISIBLE;
+		int ClearFlags = 0;
+		CSkyboxView *pSkyView = new CSkyboxView(this);
+		if (pSkyView->Setup(scopeView, &ClearFlags, &nSkyboxVisible) != false)
+			AddViewToScene(pSkyView);
+		SafeRelease(pSkyView);
+
+		ViewDrawScene(false, SKYBOX_3DSKYBOX_VISIBLE, scopeView, VIEW_CLEAR_DEPTH, VIEW_MONITOR);
+	}
+
+	if (m_ScopeFilter1 && !FStrEq(m_ScopeFilter1->GetName(), "") && !FStrEq(m_ScopeFilter1->GetName(), "0") && !FStrEq(m_ScopeFilter1->GetName(), "___error"))
+	{
+		IMaterial *pOverlayMaterial = m_ScopeFilter1;
+		int sw = pRenderTarget->GetActualWidth();
+		int sh = pRenderTarget->GetActualHeight();
+		// Note - don't offset by x,y - already done by the viewport.
+		pRenderContext->DrawScreenSpaceRectangle(pOverlayMaterial, 0, 0, scopeView.width, scopeView.height,
+			0, 0, sw - 1, sh - 1, sw, sh);
+	}
+
+	if (m_ScopeFilter2 && !FStrEq(m_ScopeFilter2->GetName(), "") && !FStrEq(m_ScopeFilter2->GetName(), "0") && !FStrEq(m_ScopeFilter2->GetName(), "___error"))
+	{
+		IMaterial *pOverlayMaterial = m_ScopeFilter2;
+		int sw = pRenderTarget->GetActualWidth();
+		int sh = pRenderTarget->GetActualHeight();
+		// Note - don't offset by x,y - already done by the viewport.
+		pRenderContext->DrawScreenSpaceRectangle(pOverlayMaterial, 0, 0, scopeView.width, scopeView.height,
+			0, 0, sw - 1, sh - 1, sw, sh);
+	}
+
+	if (localPlayer->GetActiveWeapon()->GetIronsightDelta() != 1.0f && m_ScopeOverlay && !FStrEq(m_ScopeOverlay->GetName(),"") && !FStrEq(m_ScopeOverlay->GetName(), "___error"))
+	{
+		IMaterial *pOverlayMaterial = m_ScopeOverlay;
+		int sw = pRenderTarget->GetActualWidth();
+		int sh = pRenderTarget->GetActualHeight();
+		pOverlayMaterial->AlphaModulate(fabs(localPlayer->GetActiveWeapon()->GetIronsightDelta() - 1.0f));
+		// Note - don't offset by x,y - already done by the viewport.
+		pRenderContext->DrawScreenSpaceRectangle(pOverlayMaterial, 0, 0, scopeView.width, scopeView.height,
+			0, 0, sw - 1, sh - 1, sw, sh);
+	}
+
+	render->PopView(m_Frustum);
+}
 
 //-----------------------------------------------------------------------------
 // Queues up an overlay rendering
@@ -2328,6 +2433,11 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 
 	g_bRenderingView = false;
 
+	if (g_pMaterialSystemHardwareConfig->GetDXSupportLevel() >= 70)
+	{
+		DrawScope(view);
+	}
+
 	// We can no longer use the 'current view' stuff set up in ViewDrawScene
 	s_bCanAccessCurrentView = false;
 
@@ -2340,11 +2450,99 @@ void CViewRender::RenderView( const CViewSetup &view, int nClearFlags, int whatT
 	g_WorldListCache.Flush();
 }
 
+void CViewRender::PerformNightVisionEffect(const CViewSetup &view)
+{
+	C_BaseHLPlayer *pPlayer = dynamic_cast< C_BaseHLPlayer* >(CBasePlayer::GetLocalPlayer());
+
+	if (!pPlayer)
+		return;
+
+	if (pPlayer->GetObserverMode() == OBS_MODE_IN_EYE)
+	{
+		CBaseEntity *target = pPlayer->GetObserverTarget();
+		if (target && target->IsPlayer())
+		{
+			pPlayer = (C_BaseHLPlayer *)target;
+		}
+	}
+
+	if (pPlayer && pPlayer->m_flNightVisionAlpha > 0)
+	{
+		IMaterial *pMaterial = materials->FindMaterial("effects/nightvision", TEXTURE_GROUP_CLIENT_EFFECTS, true);
+
+		if (pMaterial)
+		{
+			int iMaxValue = 255;
+			byte overlaycolor[4] = { 0, 255, 0, 255 };
+
+			if (g_pMaterialSystemHardwareConfig->GetDXSupportLevel() >= 80)
+			{
+				UpdateScreenEffectTexture(0, view.x, view.y, view.width, view.height);
+			}
+			else
+			{
+				// In DX7, use the values CS:goldsrc uses.
+				iMaxValue = 225;
+				overlaycolor[0] = overlaycolor[2] = 50 / 2;
+				overlaycolor[1] = 225 / 2;
+			}
+
+			if (pPlayer->m_bNightVisionOn)
+			{
+				pPlayer->m_flNightVisionAlpha += 15;
+
+				pPlayer->m_flNightVisionAlpha = MIN(pPlayer->m_flNightVisionAlpha, iMaxValue);
+			}
+			else
+			{
+				pPlayer->m_flNightVisionAlpha -= 40;
+
+				pPlayer->m_flNightVisionAlpha = MAX(pPlayer->m_flNightVisionAlpha, 0);
+
+			}
+
+			overlaycolor[3] = pPlayer->m_flNightVisionAlpha;
+
+			render->ViewDrawFade(overlaycolor, pMaterial);
+
+			// Only one pass in DX7.
+			if (g_pMaterialSystemHardwareConfig->GetDXSupportLevel() >= 80)
+			{
+				CMatRenderContextPtr pRenderContext(materials);
+				pRenderContext->DrawScreenSpaceQuad(pMaterial);
+				render->ViewDrawFade(overlaycolor, pMaterial);
+				pRenderContext->DrawScreenSpaceQuad(pMaterial);
+			}
+		}
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Renders extra 2D effects in derived classes while the 2D view is on the stack
 //-----------------------------------------------------------------------------
-void CViewRender::Render2DEffectsPreHUD( const CViewSetup &view )
+void CViewRender::Render2DEffectsPreHUD(const CViewSetup &view)
 {
+	if (!building_cubemaps.GetBool()) // We probably should use a different view. variable here
+	{
+		for (int i = 0; i < r_radialblur_samplecount.GetInt(); i++)
+		{
+			RenderClassicBlur(view, view.x, view.y, view.width, view.height);
+		}
+		for (int i = 0; i < r_ironsightblur_samplecount.GetInt(); i++)
+		{
+			RenderRadialBlur(view, view.x, view.y, view.width, view.height);
+		}
+		for (int i = 0; i < r_distanceblur_samplecount.GetInt(); i++)
+		{
+			RenderDistanceBlur(view, view.x, view.y, view.width, view.height);
+		}
+
+		// RenderMotionBlur(view, view.x, view.y, view.width, view.height);
+
+		RenderClassicRadialBlur(view, view.x, view.y, view.width, view.height);
+
+		PerformNightVisionEffect( view );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -2687,7 +2885,6 @@ bool DoesViewPlaneIntersectWater( float waterZ, int leafWaterDataID )
 //			&view - the camera view to render from
 //			nClearFlags -  how to clear the buffer
 //-----------------------------------------------------------------------------
-
 void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCustomVisibility_t *pCustomVisibility )
 {
 	VPROF( "CViewRender::ViewDrawScene_PortalStencil" );
@@ -2699,6 +2896,28 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	QAngle vecOldAngles = CurrentViewAngles();
 
 	int iCurrentViewID = g_CurrentViewID;
+	int iRecursionLevel = g_pPortalRender->GetViewRecursionLevel();
+	Assert( iRecursionLevel > 0 );
+
+	//get references to reflection textures
+	CTextureReference pPrimaryWaterReflectionTexture;
+	pPrimaryWaterReflectionTexture.Init( GetWaterReflectionTexture() );
+	CTextureReference pReplacementWaterReflectionTexture;
+	pReplacementWaterReflectionTexture.Init( portalrendertargets->GetWaterReflectionTextureForStencilDepth( iRecursionLevel ) );
+
+	//get references to refraction textures
+	CTextureReference pPrimaryWaterRefractionTexture;
+	pPrimaryWaterRefractionTexture.Init( GetWaterRefractionTexture() );
+	CTextureReference pReplacementWaterRefractionTexture;
+	pReplacementWaterRefractionTexture.Init( portalrendertargets->GetWaterRefractionTextureForStencilDepth( iRecursionLevel ) );
+
+
+	//swap texture contents for the primary render targets with those we set aside for this recursion level
+	if( pReplacementWaterReflectionTexture != NULL )
+		pPrimaryWaterReflectionTexture->SwapContents( pReplacementWaterReflectionTexture );
+
+	if( pReplacementWaterRefractionTexture != NULL )
+		pPrimaryWaterRefractionTexture->SwapContents( pReplacementWaterRefractionTexture );
 
 	bool bDrew3dSkybox = false;
 	SkyboxVisibility_t nSkyboxVisible = SKYBOX_NOT_VISIBLE;
@@ -2715,7 +2934,7 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	//generate unique view ID's for each stencil view
 	view_id_t iNewViewID = (view_id_t)g_pPortalRender->GetCurrentViewId();
 	SetupCurrentView( view.origin, view.angles, (view_id_t)iNewViewID );
-
+	
 	// update vis data
 	unsigned int visFlags;
 	SetupVis( view, visFlags, pCustomVisibility );
@@ -2734,10 +2953,10 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	DetermineWaterRenderInfo( fogInfo, waterInfo );
 
 	if ( waterInfo.m_bCheapWater )
-	{
+	{		     
 		cplane_t glassReflectionPlane;
 		if ( IsReflectiveGlassInView( viewIn, glassReflectionPlane ) )
-		{
+		{								    
 			CRefPtr<CReflectiveGlassView> pGlassReflectionView = new CReflectiveGlassView( this );
 			pGlassReflectionView->Setup( viewIn, VIEW_CLEAR_DEPTH | VIEW_CLEAR_COLOR | VIEW_CLEAR_OBEY_STENCIL, drawSkybox, fogInfo, waterInfo, glassReflectionPlane );
 			AddViewToScene( pGlassReflectionView );
@@ -2790,6 +3009,14 @@ void CViewRender::ViewDrawScene_PortalStencil( const CViewSetup &viewIn, ViewCus
 	// Return to the previous view
 	SetupCurrentView( vecOldOrigin, vecOldAngles, (view_id_t)iCurrentViewID );
 	g_CurrentViewID = iCurrentViewID; //just in case the cast to view_id_t screwed up the id #
+
+
+	//swap back the water render targets
+	if( pReplacementWaterReflectionTexture != NULL )
+		pPrimaryWaterReflectionTexture->SwapContents( pReplacementWaterReflectionTexture );
+
+	if( pReplacementWaterRefractionTexture != NULL )
+		pPrimaryWaterRefractionTexture->SwapContents( pReplacementWaterRefractionTexture );
 }
 
 void CViewRender::Draw3dSkyboxworld_Portal( const CViewSetup &view, int &nClearFlags, bool &bDrew3dSkybox, SkyboxVisibility_t &nSkyboxVisible, ITexture *pRenderTarget ) 
@@ -3143,7 +3370,6 @@ void CViewRender::DrawMonitors( const CViewSetup &cameraView )
 
 #endif // USE_MONITORS
 }
-
 
 //-----------------------------------------------------------------------------
 //
@@ -4008,7 +4234,7 @@ void CRendering3dView::DrawOpaqueRenderables( ERenderDepthMode DepthMode )
 		}
 	}
 
-	if ( r_threaded_renderables.GetBool() )
+	if ( 0 && r_threaded_renderables.GetBool() )
 	{
 		ParallelProcess( "BoneSetupNpcsLast", arrBoneSetupNpcsLast.Base() + numOpaqueEnts - numNpcs, numNpcs, &SetupBonesOnBaseAnimating );
 		ParallelProcess( "BoneSetupNpcsLast NonNPCs", arrBoneSetupNpcsLast.Base(), numNonNpcsAnimating, &SetupBonesOnBaseAnimating );

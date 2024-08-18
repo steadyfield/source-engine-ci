@@ -144,9 +144,9 @@ IMPLEMENT_SERVERCLASS_ST( CPropJeep, DT_PropJeep )
 END_SEND_TABLE();
 
 // This is overriden for the episodic jeep
-#ifndef HL2_EPISODIC
+//#ifndef HL2_EPISODIC
 LINK_ENTITY_TO_CLASS( prop_vehicle_jeep, CPropJeep );
-#endif
+//#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1325,7 +1325,7 @@ void CPropJeep::DriveVehicle( float flFrameTime, CUserCmd *ucmd, int iButtonsDow
 	int iButtons = ucmd->buttons;
 
 	//Adrian: No headlights on Superfly.
-/*	if ( ucmd->impulse == 100 )
+	if ( ucmd->impulse == 100 )
 	{
 		if (HeadlightIsOn())
 		{
@@ -1335,7 +1335,7 @@ void CPropJeep::DriveVehicle( float flFrameTime, CUserCmd *ucmd, int iButtonsDow
 		{
 			HeadlightTurnOn();
 		}
-	}*/
+	}
 		
 	// Only handle the cannon if the vehicle has one
 	if ( m_bHasGun )

@@ -46,6 +46,7 @@
 #include "citadel_effects_shared.h"
 #include "eventqueue.h"
 #include "beam_flags.h"
+#include "hl2_player.h"
 #include "ai_eventresponse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -237,6 +238,8 @@ public:
 	void	GatherEnemyConditions( CBaseEntity *pEnemy );
 
 	void	Flight( void );
+
+	void    Fire9MMBullet( void );
 
 	bool	FVisible( CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
 	int		OnTakeDamage_Alive( const CTakeDamageInfo &info );
@@ -1558,6 +1561,71 @@ void CNPC_CombineGunship::PrescheduleThink( void )
 
 }
 
+void CNPC_CombineGunship::Fire9MMBullet(void)
+{
+	// Start up the cannon sound.
+	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
+	controller.SoundChangeVolume(m_pCannonSound, 1.0, 0);
+
+	m_iBurstSize = m_iBurstSize - 1;
+
+	// m_vecEnemyLKP should be center of enemy body
+	Vector vecArmPos;
+	QAngle angArmDir;
+	Vector vecDirToEnemy;
+	QAngle angDir;
+
+	if ( GetEnemy() )
+	{
+		Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
+
+		vecDirToEnemy = ( ( vecEnemyLKP ) - GetAbsOrigin() );
+		VectorAngles( vecDirToEnemy, angDir );
+		VectorNormalize( vecDirToEnemy );
+	}
+	else
+	{
+		angDir = GetAbsAngles();
+		angDir.x = -angDir.x;
+
+		Vector vForward;
+		AngleVectors( angDir, &vForward );
+		vecDirToEnemy = vForward;
+	}
+
+	DoMuzzleFlash();
+
+	// make angles +-180
+	if (angDir.x > 180)
+	{
+		angDir.x = angDir.x - 360;
+	}
+
+	VectorAngles( vecDirToEnemy, angDir );
+
+	float RandomAngle = (rand() % 42960);
+	float RandMagnitudeX = ((rand() % 47375) / 3000.0);
+	float RandMagnitudeY = ((rand() % 47375) / 3000.0);
+	angDir.x += (RandMagnitudeX)*cos(RandomAngle);
+	angDir.y += (RandMagnitudeY)*sin(RandomAngle);
+
+	AngleVectors(angDir, &vecDirToEnemy);
+
+	GetAttachment( "muzzle", vecArmPos, angArmDir );
+
+	vecArmPos = vecArmPos + vecDirToEnemy * 32;
+
+	CBaseEntity *pBullet = CBaseEntity::Create( "bullet_heli", vecArmPos, QAngle( 0, 0, 0 ), this );
+
+	Vector vForward;
+	AngleVectors( angDir, &vForward );
+	
+	pBullet->SetAbsVelocity( vForward * 10000 );
+	pBullet->SetOwnerEntity( this );
+			
+	CSoundEnt::InsertSound( SOUND_COMBAT | SOUND_CONTEXT_GUNFIRE, GetAbsOrigin(), SOUNDENT_VOLUME_PISTOL, 0.2, this, SOUNDENT_CHANNEL_WEAPON, GetEnemy() );
+}	
+
 //------------------------------------------------------------------------------
 // Purpose :	If the enemy is in front of the gun, load up a burst. 
 //				Actual gunfire is handled in PrescheduleThink
@@ -1566,6 +1634,8 @@ void CNPC_CombineGunship::PrescheduleThink( void )
 //------------------------------------------------------------------------------
 bool CNPC_CombineGunship::FireGun( void )
 {
+	CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >( UTIL_PlayerByIndex( 1 ) );
+
 	if ( m_lifeState != LIFE_ALIVE )
 		return false;
 
@@ -1614,8 +1684,15 @@ bool CNPC_CombineGunship::FireGun( void )
 
 		if ( DotProduct( vecToEnemy, vecAimDir ) > 0.9 )
 		{
-			StartCannonBurst( sk_gunship_burst_size.GetInt() );
-			return true;
+			if (pPlayer->m_HL2Local.m_bInSlowMo)
+			{
+				Fire9MMBullet();
+			}
+			else
+			{
+				StartCannonBurst(sk_gunship_burst_size.GetInt());
+				return true;
+			}
 		}
 
 		return false;

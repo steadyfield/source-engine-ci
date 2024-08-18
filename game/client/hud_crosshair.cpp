@@ -28,7 +28,7 @@
 #endif // PORTAL
 
 #include "c_basehlplayer.h"
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

@@ -107,6 +107,10 @@ public:
 
 	DECLARE_DATADESC();
 
+private:
+	int	m_bloodColor;			// color of blood particless
+	float m_flGibHealth;
+
 protected:
 	void CalcRagdollSize( void );
 	ragdoll_t			m_ragdoll;

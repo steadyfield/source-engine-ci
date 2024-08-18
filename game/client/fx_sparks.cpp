@@ -809,7 +809,7 @@ void FX_MetalSpark(const Vector &position, const Vector &direction, const Vector
 		Color32Init(pEmberParticle->m_color, 255, 255, 255, 255);
 	}
 
-	CSmartPtr<CSimpleEmitter> pSimpleCloud = CSimpleEmitter::Create("FX_MetalSpark 3");
+	CSmartPtr<CTrailParticles> pSimpleCloud = CTrailParticles::Create("FX_MetalSpark 3");
 	pSimpleCloud->SetSortOrigin(offset);
 	pSimpleCloud->SetGravity(0.0f);
 

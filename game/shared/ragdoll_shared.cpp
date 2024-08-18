@@ -31,6 +31,16 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+ConVar ragdoll_damper("ragdoll_damper", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_rotdamper("ragdoll_rotdamper", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_dragcoefficient("ragdoll_dragcoefficient", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_inertia("ragdoll_inertia", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_massscale("ragdoll_massscale", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_rotlimit("ragdoll_rotlimit", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_jointFrictionScale("ragdoll_jointFrictionScale", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_rotIntertiaLimit_Min("ragdoll_rotIntertiaLimit_Min", "-5", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+ConVar ragdoll_rotIntertiaLimit_Max("ragdoll_rotIntertiaLimit_Max", "5", FCVAR_ARCHIVE | FCVAR_REPLICATED);
+
 CRagdollLowViolenceManager g_RagdollLVManager;
 
 void CRagdollLowViolenceManager::SetLowViolence( const char *pMapName )
@@ -40,7 +50,7 @@ void CRagdollLowViolenceManager::SetLowViolence( const char *pMapName )
 
 #if !defined( CLIENT_DLL )
 	// the server doesn't worry about low violence during multiplayer games
-	if ( g_pGameRules && g_pGameRules->IsMultiplayer() )
+	if ( g_pGameRules->IsMultiplayer() )
 	{
 		m_bLowViolence = false;
 	}
@@ -189,7 +199,13 @@ static void RagdollAddSolid( IPhysicsEnvironment *pPhysEnv, ragdoll_t &ragdoll, 
 				solid.params.mass = 1000.f;
 			}
 
-			solid.params.rotInertiaLimit = 0.1;
+			solid.params.rotInertiaLimit = RandomFloat( ragdoll_rotIntertiaLimit_Min.GetFloat(), ragdoll_rotIntertiaLimit_Max.GetFloat() );
+			solid.params.inertia = ragdoll_inertia.GetFloat();
+			solid.params.damping = ragdoll_damper.GetFloat();
+			solid.params.rotdamping = ragdoll_rotdamper.GetFloat();
+			solid.params.dragCoefficient = ragdoll_dragcoefficient.GetFloat();
+			solid.params.mass *= ragdoll_massscale.GetFloat();
+
 			solid.params.pGameData = params.pGameData;
 			int surfaceData = physprops->GetSurfaceIndex( solid.surfaceprop );
 
@@ -229,13 +245,22 @@ static void RagdollAddConstraint( IPhysicsEnvironment *pPhysEnv, ragdoll_t &ragd
 		// save parent index
 		childElement.parentIndex = constraint.parentIndex;
 	
-		if ( params.jointFrictionScale > 0 )
+		if (params.jointFrictionScale > 0)
 		{
-			for ( int k = 0; k < 3; k++ )
+			for (int k = 0; k < 3; k++)
 			{
-				constraint.axes[k].torque *= params.jointFrictionScale;
+				constraint.axes[k].torque *= params.jointFrictionScale * ragdoll_jointFrictionScale.GetFloat();
 			}
 		}
+		if (ragdoll_rotlimit.GetFloat() != 0)
+		{
+			for (int k = 0; k < 3; k++)
+			{
+				constraint.axes[k].maxRotation *= ragdoll_rotlimit.GetFloat() *1;
+				constraint.axes[k].minRotation *= ragdoll_rotlimit.GetFloat();
+			}
+		}
+
 		// this parent/child pair is not usually a parent/child pair in the skeleton.  There
 		// are often bones in between that are collapsed for simulation.  So we need to compute
 		// the transform.
@@ -778,7 +803,7 @@ bool ShouldRemoveThisRagdoll( CBaseAnimating *pRagdoll )
 
 		return true;
 	}
-	else if( !pPlayer->FInViewCone( pRagdoll ) )
+	else if(pPlayer && !pPlayer->FInViewCone( pRagdoll ) )
 	{
 		if ( g_debug_ragdoll_removal.GetBool() )
 			 NDebugOverlay::Line( pRagdoll->GetAbsOrigin(), pRagdoll->GetAbsOrigin() + Vector( 0, 0, 64 ), 0, 0, 255, true, 5 );

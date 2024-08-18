@@ -51,6 +51,9 @@ private:
 	int		m_iAmmo;
 	int		m_iAmmo2;
 	CHudTexture *m_iconPrimaryAmmo;
+
+	CPanelAnimationVarAliasType(float, icon_xpos, "icon_xpos", "6", "proportional_float");
+	CPanelAnimationVarAliasType(float, icon_ypos, "icon_ypos", "7", "proportional_float");
 };
 
 DECLARE_HUDELEMENT( CHudAmmo );
@@ -78,7 +81,7 @@ void CHudAmmo::Init( void )
 	
 	m_iconPrimaryAmmo = NULL;
 
-	wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
+	/*wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
 	if (tempString)
 	{
 		SetLabelText(tempString);
@@ -86,7 +89,7 @@ void CHudAmmo::Init( void )
 	else
 	{
 		SetLabelText(L"AMMO");
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------
@@ -337,16 +340,8 @@ void CHudAmmo::Paint( void )
 
 #ifndef HL2MP
 	if ( m_hCurrentVehicle == NULL && m_iconPrimaryAmmo )
-	{
-		int nLabelHeight;
-		int nLabelWidth;
-		surface()->GetTextSize( m_hTextFont, m_LabelText, nLabelWidth, nLabelHeight );
-
-		// Figure out where we're going to put this
-		int x = text_xpos + ( nLabelWidth - m_iconPrimaryAmmo->Width() ) / 2;
-		int y = text_ypos - ( nLabelHeight + ( m_iconPrimaryAmmo->Height() / 2 ) );
-		
-		m_iconPrimaryAmmo->DrawSelf( x, y, GetFgColor() );
+	{		
+		m_iconPrimaryAmmo->DrawSelf(icon_xpos, icon_ypos, GetFgColor() );
 	}
 #endif // HL2MP
 }

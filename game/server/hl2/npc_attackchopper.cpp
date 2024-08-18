@@ -36,6 +36,7 @@
 #include "vphysics/constraints.h"
 #include "physics_saverestore.h"
 #include "ai_memory.h"
+#include "hl2_player.h"
 #include "npc_attackchopper.h"
 
 #ifdef HL2_EPISODIC
@@ -370,6 +371,8 @@ public:
 	virtual void	Activate( void );
 	virtual bool	CreateComponents();
 	virtual int		ObjectCaps();
+
+	void            Fire9MMBullet( void );
 
 #ifdef HL2_EPISODIC
 	virtual bool	CreateVPhysics( void );
@@ -980,6 +983,8 @@ void CNPC_AttackHelicopter::Precache( void )
 
 	PrecacheScriptSound( "ReallyLoudSpark" );
 	PrecacheScriptSound( "NPC_AttackHelicopterGrenade.Ping" );
+
+	UTIL_PrecacheOther( "bullet_heli" );
 }
 
 int CNPC_AttackHelicopter::ObjectCaps() 
@@ -2245,7 +2250,78 @@ void CNPC_AttackHelicopter::ComputeVehicleFireAtPosition( Vector *pVecActualTarg
 //		0, 0, 255, false, 0.1f );
 }
 
+void CNPC_AttackHelicopter::Fire9MMBullet( void )
+{
+	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
+	float flVolume = controller.SoundGetVolume(m_pGunFiringSound);
+	if (flVolume != 1.0f)
+	{
+		controller.SoundChangeVolume(m_pGunFiringSound, 1.0, 0.01f);
+	}
+
+	// m_vecEnemyLKP should be center of enemy body
+	Vector vecArmPos;
+	QAngle angArmDir;
+	Vector vecDirToEnemy;
+	QAngle angDir;
+
+	if ( GetEnemy() )
+	{
+		Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
+
+		vecDirToEnemy = ( ( vecEnemyLKP ) - GetAbsOrigin() );
+		VectorAngles( vecDirToEnemy, angDir );
+		VectorNormalize( vecDirToEnemy );
+	}
+	else
+	{
+		angDir = GetAbsAngles();
+		angDir.x = -angDir.x;
+
+		Vector vForward;
+		AngleVectors( angDir, &vForward );
+		vecDirToEnemy = vForward;
+	}
+
+	DoMuzzleFlash();
+
+	// make angles +-180
+	if (angDir.x > 180)
+	{
+		angDir.x = angDir.x - 360;
+	}
+
+	VectorAngles( vecDirToEnemy, angDir );
+
+	float RandomAngle = (rand() % 55960);
+	float RandMagnitudeX = ((rand() % 70375) / 3800.0);
+	float RandMagnitudeY = ((rand() % 70375) / 3800.0);
+	angDir.x += (RandMagnitudeX)*cos(RandomAngle);
+	angDir.y += (RandMagnitudeY)*sin(RandomAngle);
+
+	AngleVectors(angDir, &vecDirToEnemy);
+
+	GetAttachment( "muzzle", vecArmPos, angArmDir );
+
+	vecArmPos = vecArmPos + vecDirToEnemy * 32;
+
+	CBaseEntity *pBullet = CBaseEntity::Create( "bullet_heli", vecArmPos, QAngle( 0, 0, 0 ), this );
+
+	Vector vForward;
+	AngleVectors( angDir, &vForward );
 	
+	pBullet->SetAbsVelocity( vForward * 4000 );
+	pBullet->SetOwnerEntity( this );
+
+	m_nRemainingBursts--;
+
+	float flIdleTime = CHOPPER_GUN_IDLE_TIME;
+	float flVariance = flIdleTime * 0.1f;
+	m_flNextAttack = gpGlobals->curtime + m_flIdleTimeDelay + random->RandomFloat(flIdleTime - flVariance, flIdleTime + flVariance);
+			
+	CSoundEnt::InsertSound( SOUND_COMBAT | SOUND_CONTEXT_GUNFIRE, GetAbsOrigin(), SOUNDENT_VOLUME_PISTOL, 0.2, this, SOUNDENT_CHANNEL_WEAPON, GetEnemy() );
+}	
+
 //------------------------------------------------------------------------------
 // Here's what we do when we're looking for a target
 //------------------------------------------------------------------------------
@@ -3156,6 +3232,8 @@ void CNPC_AttackHelicopter::InputGunOff( inputdata_t &inputdata )
 //------------------------------------------------------------------------------
 bool CNPC_AttackHelicopter::FireGun( void )
 {
+	CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >( UTIL_PlayerByIndex( 1 ) );
+
 	// Do the test electricity gun
 	if ( HasSpawnFlags(SF_HELICOPTER_ELECTRICAL_DRONE) )
 	{
@@ -3246,7 +3324,14 @@ bool CNPC_AttackHelicopter::FireGun( void )
 	// Are we firing?
 	if ( m_nGunState == GUN_STATE_FIRING )
 	{
-		return DoGunFiring( vTipPos, vGunDir, vecFireAtPosition );
+		if ( pPlayer->m_HL2Local.m_bInSlowMo )
+		{
+			Fire9MMBullet();
+		}
+		else
+		{
+			return DoGunFiring( vTipPos, vGunDir, vecFireAtPosition );
+		}
 	}
 
 	return DoGunIdle( vGunDir, vTargetDir );

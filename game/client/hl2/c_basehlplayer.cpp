@@ -17,7 +17,7 @@
 #include "materialsystem/imaterialvar.h"
 #include "materialsystem/imaterialsystem.h"
 
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 #include "materialsystem/imaterialsystemhardwareconfig.h"
 
 #include "ScreenSpaceEffects.h"

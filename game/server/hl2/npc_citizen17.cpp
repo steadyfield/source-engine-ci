@@ -1812,6 +1812,19 @@ void CNPC_Citizen::RunTask( const Task_t *pTask )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_Citizen::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : code - 
 //-----------------------------------------------------------------------------

@@ -278,7 +278,7 @@ public:
 	virtual void			CorpseFade( void );	// Called instead of GibNPC() when gibs are disabled
 	virtual bool			HasHumanGibs( void );
 	virtual bool			HasAlienGibs( void );
-	virtual bool			ShouldGib( const CTakeDamageInfo &info ) { return false; }	// Always ragdoll, unless specified by the leaf class
+	virtual bool			ShouldGib( const CTakeDamageInfo &info );
 
 	float GetDamageAccumulator() { return m_flDamageAccumulator; }
 	int	  GetDamageCount( void ) { return m_iDamageCount; }	// # of times NPC has been damaged.  used for tracking 1-shot kills.
@@ -400,19 +400,11 @@ public:
 	void				SetPreventWeaponPickup( bool bPrevent ) { m_bPreventWeaponPickup = bPrevent; }
 	bool				m_bPreventWeaponPickup;
 
-	virtual CNavArea *GetLastKnownArea( void ) const 
-	{
-#ifdef NEXT_BOT
-		return m_lastNavArea;
-#else
-		return NULL;
-#endif
-	}		// return the last nav area the player occupied - NULL if unknown
-
+	virtual CNavArea *GetLastKnownArea( void ) const		{ return m_lastNavArea; }		// return the last nav area the player occupied - NULL if unknown
+	virtual bool IsAreaTraversable( const CNavArea *area ) const;							// return true if we can use the given area 
 	virtual void ClearLastKnownArea( void );
 	virtual void UpdateLastKnownArea( void );										// invoke this to update our last known nav area (since there is no think method chained to CBaseCombatCharacter)
 	virtual void OnNavAreaChanged( CNavArea *enteredArea, CNavArea *leftArea ) { }	// invoked (by UpdateLastKnownArea) when we enter a new nav area (or it is reset to NULL)
-	virtual bool IsAreaTraversable( const CNavArea *area ) const;							// return true if we can use the given area 
 	virtual void OnNavAreaRemoved( CNavArea *removedArea );
 
 	// -----------------------

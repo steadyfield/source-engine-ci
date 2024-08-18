@@ -54,6 +54,7 @@
 #include "filters.h"
 #include "saverestore_utlvector.h"
 #include "eventqueue.h"
+#include "hl2_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -472,6 +473,8 @@ void CNPC_Strider::Precache()
 	PrecacheModel( "models/chefhat.mdl" );
 
 	UTIL_PrecacheOther( "sparktrail" );
+
+	UTIL_PrecacheOther( "bullet_strider" );
 
 	BaseClass::Precache();
 }
@@ -1511,8 +1514,10 @@ void CNPC_Strider::StartTask( const Task_t *pTask )
 		break;
 
 	case TASK_STRIDER_FIRE_CANNON:
-		FireCannon();
-		TaskComplete();
+	    {
+		    FireCannon();
+		    TaskComplete();
+	    }
 		break;
 
 	case TASK_STRIDER_SET_CANNON_HEIGHT:
@@ -1898,11 +1903,11 @@ void CNPC_Strider::HandleAnimEvent( animevent_t *pEvent )
 
 	case STRIDER_AE_SHOOTMINIGUN:
 	{
-		CBaseEntity *pTarget = gEntList.FindEntityGeneric( NULL, pEvent->options, this, this );
-		if ( pTarget )
+		CBaseEntity *pTarget = gEntList.FindEntityGeneric(NULL, pEvent->options, this, this);
+		if (pTarget)
 		{
 			Vector vecTarget = pTarget->CollisionProp()->WorldSpaceCenter();
-			ShootMinigun( &vecTarget, 0 );
+			ShootMinigun(&vecTarget, 0);
 		}
 		break;
 	}
@@ -2598,6 +2603,72 @@ int CNPC_Strider::MeleeAttack2Conditions( float flDot, float flDist )
 	// HACKHACK: Disabled until we get a good right-leg animation
 	return COND_NONE;
 }
+
+void CNPC_Strider::Fire9MMBullet(void)
+{
+	// m_vecEnemyLKP should be center of enemy body
+	Vector vecArmPos;
+	QAngle angArmDir;
+	Vector vecDirToEnemy;
+	QAngle angDir;
+
+	if ( GetEnemy() )
+	{
+		Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
+
+		vecDirToEnemy = ( ( vecEnemyLKP ) - GetAbsOrigin() );
+		VectorAngles( vecDirToEnemy, angDir );
+		VectorNormalize( vecDirToEnemy );
+	}
+	else
+	{
+		angDir = GetAbsAngles();
+		angDir.x = -angDir.x;
+
+		Vector vForward;
+		AngleVectors( angDir, &vForward );
+		vecDirToEnemy = vForward;
+	}
+
+	DoMuzzleFlash();
+
+	// make angles +-180
+	if (angDir.x > 180)
+	{
+		angDir.x = angDir.x - 360;
+	}
+
+	VectorAngles( vecDirToEnemy, angDir );
+
+	float RandomAngle = (rand() %100);
+	float RandMagnitudeX = ((rand() % 100) / 100.0);
+	float RandMagnitudeY = ((rand() % 100) / 100.0);
+	angDir.x += (RandMagnitudeX)*cos(RandomAngle);
+	angDir.y += (RandMagnitudeY)*sin(RandomAngle);
+
+	AngleVectors(angDir, &vecDirToEnemy);
+
+	Vector muzzlePos;
+	QAngle muzzleAng;
+
+	GetAttachment("minigun", muzzlePos, muzzleAng);
+
+	// GetAttachment( "minigun", vecArmPos, angArmDir );
+
+	vecArmPos = vecArmPos + vecDirToEnemy * 32;
+
+	CBaseEntity *pBullet = CBaseEntity::Create( "bullet_strider", vecArmPos, QAngle( 0, 0, 0 ), this );
+
+	Vector vForward;
+	AngleVectors( angDir, &vForward );
+	
+	pBullet->SetAbsVelocity( vForward * 7000 );
+	pBullet->SetOwnerEntity( this );
+			
+	CPASAttenuationFilter filter2(this, "NPC_Strider.Shoot");
+	EmitSound(filter2, entindex(), "NPC_Strider.Shoot");
+	SetContextThink(&CNPC_Strider::CannonHitThink, gpGlobals->curtime + 0.2f, "CANNON_HIT");
+}	
 
 //---------------------------------------------------------
 //---------------------------------------------------------
@@ -3339,9 +3410,9 @@ bool CNPC_Strider::ShouldExplodeFromDamage( const CTakeDamageInfo &info )
 
 //---------------------------------------------------------
 //---------------------------------------------------------
+ConVarRef mat_dxlevel( "mat_dxlevel" );
 bool CNPC_Strider::BecomeRagdoll( const CTakeDamageInfo &info, const Vector &forceVector ) 
 { 
-	static ConVarRef mat_dxlevel( "mat_dxlevel" );
 	// Combine balls make us explode
 	if ( m_bExploding )
 	{
@@ -3800,32 +3871,137 @@ void CNPC_Strider::DoMuzzleFlash( void )
 //---------------------------------------------------------
 void CNPC_Strider::ShootMinigun( const Vector *pTarget, float aimError, const Vector &vecSpread )
 {
-	if ( pTarget )
+	if (pTarget)
 	{
 		Vector muzzlePos;
 		QAngle muzzleAng;
 
-		GetAttachment( "minigun", muzzlePos, muzzleAng );
-		
-		Vector vecShootDir = *pTarget - muzzlePos;
-		VectorNormalize( vecShootDir );
+		GetAttachment("minigun", muzzlePos, muzzleAng);
 
-		if( m_bMinigunUseDirectFire )
+		Vector vecShootDir = *pTarget - muzzlePos;
+		VectorNormalize(vecShootDir);
+
+		if (m_bMinigunUseDirectFire)
 		{
 			// exactly on target w/tracer
-			FireBullets( 1, muzzlePos, vecShootDir, vecSpread, 8192, m_miniGunDirectAmmo, 1 );
+			FireBullets(1, muzzlePos, vecShootDir, vecSpread, 8192, m_miniGunDirectAmmo, 1);
 		}
 		else
 		{
 			// exactly on target w/tracer
-			FireBullets( 1, muzzlePos, vecShootDir, vecSpread, 8192, m_miniGunAmmo, 1 );
+			FireBullets(1, muzzlePos, vecShootDir, vecSpread, 8192, m_miniGunAmmo, 1);
 		}
 
 		//g_pEffects->MuzzleFlash( muzzlePos, muzzleAng, random->RandomFloat( 2.0f, 4.0f ) , MUZZLEFLASH_TYPE_STRIDER );
 		DoMuzzleFlash();
 
-		EmitSound( "NPC_Strider.FireMinigun" );
+		EmitSound("NPC_Strider.FireMinigun");
 	}
+
+	/*
+	CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >( UTIL_PlayerByIndex( 1 ) );
+
+	if (pPlayer->m_HL2Local.m_bInSlowMo)
+	{
+		if (pTarget)
+		{
+			// m_vecEnemyLKP should be center of enemy body
+			Vector vecArmPos;
+			QAngle angArmDir;
+			Vector vecDirToEnemy;
+			QAngle angDir;
+
+			if (GetEnemy())
+			{
+				Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
+
+				vecDirToEnemy = ((vecEnemyLKP)-GetAbsOrigin());
+				VectorAngles(vecDirToEnemy, angDir);
+				VectorNormalize(vecDirToEnemy);
+			}
+			else
+			{
+				angDir = GetAbsAngles();
+				angDir.x = -angDir.x;
+
+				Vector vForward;
+				AngleVectors(angDir, &vForward);
+				vecDirToEnemy = vForward;
+			}
+
+			DoMuzzleFlash();
+
+			// make angles +-180
+			if (angDir.x > 180)
+			{
+				angDir.x = angDir.x - 360;
+			}
+
+			VectorAngles(vecDirToEnemy, angDir);
+
+			float RandomAngle = (rand() % 100);
+			float RandMagnitudeX = ((rand() % 100) / 100.0);
+			float RandMagnitudeY = ((rand() % 100) / 100.0);
+			angDir.x += (RandMagnitudeX)*cos(RandomAngle);
+			angDir.y += (RandMagnitudeY)*sin(RandomAngle);
+
+			AngleVectors(angDir, &vecDirToEnemy);
+
+			Vector muzzlePos;
+			QAngle muzzleAng;
+
+			GetAttachment("minigun", muzzlePos, muzzleAng);
+
+			Vector vecShootDir = *pTarget - muzzlePos;
+			VectorNormalize(vecShootDir);
+
+			// GetAttachment( "minigun", vecArmPos, angArmDir );
+
+			vecArmPos = vecArmPos + vecDirToEnemy * 32;
+
+			CBaseEntity *pBullet = CBaseEntity::Create("bullet_strider", muzzlePos, QAngle(0, 0, 0), this);
+
+			Vector vForward;
+			AngleVectors(angDir, &vForward);
+
+			pBullet->SetAbsVelocity(vecShootDir * 7000);
+			pBullet->SetOwnerEntity(this);
+
+			CPASAttenuationFilter filter2(this, "NPC_Strider.Shoot");
+			EmitSound(filter2, entindex(), "NPC_Strider.Shoot");
+			SetContextThink(&CNPC_Strider::CannonHitThink, gpGlobals->curtime + 0.2f, "CANNON_HIT");
+		}
+	}
+	else
+	{
+		if (pTarget)
+		{
+			Vector muzzlePos;
+			QAngle muzzleAng;
+
+			GetAttachment("minigun", muzzlePos, muzzleAng);
+
+			Vector vecShootDir = *pTarget - muzzlePos;
+			VectorNormalize(vecShootDir);
+
+			if (m_bMinigunUseDirectFire)
+			{
+				// exactly on target w/tracer
+				FireBullets(1, muzzlePos, vecShootDir, vecSpread, 8192, m_miniGunDirectAmmo, 1);
+			}
+			else
+			{
+				// exactly on target w/tracer
+				FireBullets(1, muzzlePos, vecShootDir, vecSpread, 8192, m_miniGunAmmo, 1);
+			}
+
+			//g_pEffects->MuzzleFlash( muzzlePos, muzzleAng, random->RandomFloat( 2.0f, 4.0f ) , MUZZLEFLASH_TYPE_STRIDER );
+			DoMuzzleFlash();
+
+			EmitSound("NPC_Strider.FireMinigun");
+		}
+	}
+	*/
 }
 
 //---------------------------------------------------------

@@ -81,6 +81,9 @@ public:
 	int				OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	void			OnScheduleChange();
 
+	// TraceAttack
+	virtual void    TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 	void			StalkerThink(void);
 	void			NotifyDeadFriend( CBaseEntity *pFriend );
 

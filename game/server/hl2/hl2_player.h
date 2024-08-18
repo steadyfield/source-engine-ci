@@ -15,7 +15,7 @@
 #include "simtimer.h"
 #include "soundenvelope.h"
 
-#include "coolmod/sp_animstate.h"
+#include "COOLMOD/sp_animstate.h"
 
 class CAI_Squad;
 class CPropCombineBall;

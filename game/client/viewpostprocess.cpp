@@ -19,7 +19,7 @@
 #include "filesystem.h"
 #include "tier0/vprof.h"
 
-#include "coolmod/smod_cvars.h"
+#include "COOLMOD/smod_cvars.h"
 
 #include "proxyentity.h"
 

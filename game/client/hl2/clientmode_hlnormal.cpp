@@ -19,7 +19,7 @@
 
 extern bool g_bRollingCredits;
 
-ConVar fov_desired( "fov_desired", "75", FCVAR_ARCHIVE | FCVAR_USERINFO, "Sets the base field-of-view.", true, 75.0, true, 110.0 );
+ConVar fov_desired( "fov_desired", "75", FCVAR_ARCHIVE | FCVAR_USERINFO, "Sets the base field-of-view.", true, 75.0, true, 90.0 );
 
 //-----------------------------------------------------------------------------
 // Globals
@@ -92,7 +92,21 @@ void ClientModeHLNormal::Init()
 
 bool ClientModeHLNormal::ShouldDrawCrosshair( void )
 {
-	return ( g_bRollingCredits == false );
+	CBaseCombatWeapon *pWeapon = GetActiveWeapon();
+
+	if ( pWeapon && !pWeapon->IsIronsighted() )
+	{
+		return ( g_bRollingCredits == false );
+	}
+	else
+	{
+		return false;
+	}
+}
+
+float ClientModeHLNormal::GetViewModelFOV( void )
+{
+	return 60.0f;
 }
 
 

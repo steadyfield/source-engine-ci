@@ -29,9 +29,12 @@
 #include "weapon_physcannon.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "npc_headcrab.h"
+#include "te_effect_dispatch.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+ConVar ai_combinecanjump("ai_combinecanjump","0", FCVAR_ARCHIVE);
 
 int g_fCombineQuestion;				// true if an idle grunt asked a question. Cleared when someone answers. YUCK old global from grunt code
 
@@ -317,8 +320,11 @@ void CNPC_Combine::Spawn( void )
 	m_flNextAlertSoundTime	= 0;
 	m_bShouldPatrol			= false;
 
-	//	CapabilitiesAdd( bits_CAP_TURN_HEAD | bits_CAP_MOVE_GROUND | bits_CAP_MOVE_JUMP | bits_CAP_MOVE_CLIMB);
 	// JAY: Disabled jump for now - hard to compare to HL1
+	// TotteryNine: fuck you JAY. i dont care about HL2
+	if(ai_combinecanjump.GetBool())
+		CapabilitiesAdd( bits_CAP_TURN_HEAD | bits_CAP_MOVE_GROUND | bits_CAP_MOVE_JUMP | bits_CAP_MOVE_CLIMB);
+	else
 	CapabilitiesAdd( bits_CAP_TURN_HEAD | bits_CAP_MOVE_GROUND );
 
 	CapabilitiesAdd( bits_CAP_AIM_GUN );
@@ -378,7 +384,7 @@ void CNPC_Combine::PostNPCInit()
 		// an AR2. 
 		if( !GetActiveWeapon() || !FClassnameIs( GetActiveWeapon(), "weapon_ar2" ) )
 		{
-			// DevWarning("**Combine Elite Soldier MUST be equipped with AR2\n");
+			DevWarning("**Combine Elite Soldier MUST be equipped with AR2\n");
 		}
 	}
 
@@ -1876,6 +1882,27 @@ int CNPC_Combine::SelectSchedule( void )
 }
 
 //-----------------------------------------------------------------------------
+// TraceAttack
+//-----------------------------------------------------------------------------
+void CNPC_Combine::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if ( ptr->hitgroup == HITGROUP_HEAD )
+	{
+		EmitSound("Player.Helmet");
+		CEffectData data;
+
+		data.m_vOrigin = ptr->endpos;
+		data.m_vAngles = GetAbsAngles();
+
+		data.m_vNormal = ptr->plane.normal;
+
+		DispatchEffect("ManhackSparks", data);
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
+}
+
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 int CNPC_Combine::SelectFailSchedule( int failedSchedule, int failedTask, AI_TaskFailureCode_t taskFailCode )
 {
@@ -2320,18 +2347,7 @@ void CNPC_Combine::HandleAnimEvent( animevent_t *pEvent )
 	{
 		if ( pEvent->event == COMBINE_AE_BEGIN_ALTFIRE )
 		{
-			if( FClassnameIs( GetActiveWeapon(), "weapon_ar2" ) )
-			{
 				EmitSound( "Weapon_CombineGuard.Special1" );
-			}
-			else if( FClassnameIs( GetActiveWeapon(), "weapon_smg1" ) )
-			{
-				EmitSound( "Weapon_SMG1.Double" );
-			}
-			else
-			{
-				EmitSound( "Weapon_CombineGuard.Special1" );
-			}
 			handledEvent = true;
 		}
 		else if ( pEvent->event == COMBINE_AE_ALTFIRE )

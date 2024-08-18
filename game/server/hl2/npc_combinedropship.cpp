@@ -31,6 +31,7 @@
 #include "EntityFlame.h"
 #include "entityblocker.h"
 #include "eventqueue.h"
+#include "hl2_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -234,6 +235,8 @@ public:
 	// Updates the facing direction
 	virtual void UpdateFacingDirection();
 
+	void    Fire9MMBullet( void );
+
 	// Combat
 	void	GatherEnemyConditions( CBaseEntity *pEnemy );
 	void	DoCombatStuff( void );
@@ -343,8 +346,6 @@ private:
 	int			m_iMachineGunRefAttachment;
 	int			m_iAttachmentTroopDeploy;
 	int			m_iAttachmentDeployStart;
-	int 			m_poseWeapon_Pitch;
-	int 			m_poseWeapon_Yaw;
 
 	// Sounds
 	CSoundPatch		*m_pCannonSound;
@@ -365,7 +366,8 @@ protected:
 	// Should the dropship end up having inheritors, their activate may
 	// stomp these numbers, in which case you should make these ordinary members
 	// again.
-	static int m_poseBody_Accel, m_poseBody_Sway, m_poseCargo_Body_Accel, m_poseCargo_Body_Sway;
+	static int m_poseBody_Accel, m_poseBody_Sway, m_poseCargo_Body_Accel, m_poseCargo_Body_Sway, 
+		m_poseWeapon_Pitch, m_poseWeapon_Yaw;
 	static bool m_sbStaticPoseParamsLoaded;
 	virtual void	PopulatePoseParameters( void );
 };
@@ -376,11 +378,13 @@ int CNPC_CombineDropship::m_poseBody_Accel = 0;
 int CNPC_CombineDropship::m_poseBody_Sway = 0;
 int CNPC_CombineDropship::m_poseCargo_Body_Accel = 0;
 int CNPC_CombineDropship::m_poseCargo_Body_Sway = 0;
+int CNPC_CombineDropship::m_poseWeapon_Pitch = 0;
+int CNPC_CombineDropship::m_poseWeapon_Yaw = 0;
 
 //-----------------------------------------------------------------------------
 // Purpose: Cache whatever pose parameters we intend to use
 //-----------------------------------------------------------------------------
-void CNPC_CombineDropship::PopulatePoseParameters( void )
+void	CNPC_CombineDropship::PopulatePoseParameters( void )
 {
 	if (!m_sbStaticPoseParamsLoaded)
 	{
@@ -388,14 +392,10 @@ void CNPC_CombineDropship::PopulatePoseParameters( void )
 		m_poseBody_Sway			= LookupPoseParameter( "body_sway" );
 		m_poseCargo_Body_Accel  = LookupPoseParameter( "cargo_body_accel" );
 		m_poseCargo_Body_Sway   = LookupPoseParameter( "cargo_body_sway" );
+		m_poseWeapon_Pitch		= LookupPoseParameter( "weapon_pitch" );
+		m_poseWeapon_Yaw		= LookupPoseParameter( "weapon_yaw" );
 
 		m_sbStaticPoseParamsLoaded = true;
-	}
-
-	if( m_hContainer )
-	{
-		m_poseWeapon_Pitch = m_hContainer->LookupPoseParameter( "weapon_pitch" );
-		m_poseWeapon_Yaw = m_hContainer->LookupPoseParameter( "weapon_yaw" );
 	}
 
 	BaseClass::PopulatePoseParameters();
@@ -864,8 +864,6 @@ void CNPC_CombineDropship::Spawn( void )
 	m_iMachineGunRefAttachment = -1;
 	m_iAttachmentTroopDeploy = -1;
 	m_iAttachmentDeployStart = -1;
-	m_poseWeapon_Pitch = -1;
-	m_poseWeapon_Yaw = -1;
 
 	// create the correct bin for the ship to carry
 	switch ( m_iCrateType )
@@ -901,9 +899,6 @@ void CNPC_CombineDropship::Spawn( void )
 			m_iMachineGunBaseAttachment = m_hContainer->LookupAttachment( "gun_base" );
 			// NOTE: gun_ref must have the same position as gun_base, but rotates with the gun
 			m_iMachineGunRefAttachment = m_hContainer->LookupAttachment( "gun_ref" );
-
-			m_poseWeapon_Pitch = m_hContainer->LookupPoseParameter( "weapon_pitch" );
-			m_poseWeapon_Yaw = m_hContainer->LookupPoseParameter( "weapon_yaw" );
 		}
 		break;
 
@@ -1031,6 +1026,75 @@ void CNPC_CombineDropship::Spawn( void )
 		m_bWaitForDropoffInput = false;
 	}
 }
+
+void CNPC_CombineDropship::Fire9MMBullet(void)
+{
+	// Start up the cannon sound.
+	if ( m_pCannonSound )
+	{
+		CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
+		controller.SoundChangeVolume( m_pCannonSound, 1.0, 0.0 );
+	}
+
+	// m_vecEnemyLKP should be center of enemy body
+	Vector vecArmPos;
+	QAngle angArmDir;
+	Vector vecDirToEnemy;
+	QAngle angDir;
+
+	if ( GetEnemy() )
+	{
+		Vector vecEnemyLKP = GetEnemy()->GetAbsOrigin();
+
+		vecDirToEnemy = ( ( vecEnemyLKP ) - GetAbsOrigin() );
+		VectorAngles( vecDirToEnemy, angDir );
+		VectorNormalize( vecDirToEnemy );
+	}
+	else
+	{
+		angDir = GetAbsAngles();
+		angDir.x = -angDir.x;
+
+		Vector vForward;
+		AngleVectors( angDir, &vForward );
+		vecDirToEnemy = vForward;
+	}
+
+	DoMuzzleFlash();
+
+	// make angles +-180
+	if (angDir.x > 180)
+	{
+		angDir.x = angDir.x - 360;
+	}
+
+	VectorAngles( vecDirToEnemy, angDir );
+
+	float RandomAngle = (rand() % 42960);
+	float RandMagnitudeX = ((rand() % 47375) / 3000.0);
+	float RandMagnitudeY = ((rand() % 47375) / 3000.0);
+	angDir.x += (RandMagnitudeX)*cos(RandomAngle);
+	angDir.y += (RandMagnitudeY)*sin(RandomAngle);
+
+	AngleVectors(angDir, &vecDirToEnemy);
+
+	GetAttachment( m_iMuzzleAttachment, vecArmPos, angArmDir );
+
+	vecArmPos = vecArmPos + vecDirToEnemy * 32;
+
+	CBaseEntity *pBullet = CBaseEntity::Create( "bullet_heli", vecArmPos, QAngle( 0, 0, 0 ), this );
+
+	//g_pEffects->MuzzleFlash(vecArmPos, angArmDir, random->RandomFloat(5.0f, 7.0f), MUZZLEFLASH_TYPE_GUNSHIP);
+	//m_flTimeNextAttack = gpGlobals->curtime + 0.05;
+
+	Vector vForward;
+	AngleVectors( angDir, &vForward );
+	
+	pBullet->SetAbsVelocity( vForward * 8000 );
+	pBullet->SetOwnerEntity( this );
+			
+	CSoundEnt::InsertSound( SOUND_COMBAT | SOUND_CONTEXT_GUNFIRE, GetAbsOrigin(), SOUNDENT_VOLUME_PISTOL, 0.2, this, SOUNDENT_CHANNEL_WEAPON, GetEnemy() );
+}	
 
 //-----------------------------------------------------------------------------
 // Purpose: Called after spawning on map load or on a load from save game.
@@ -2865,6 +2929,8 @@ void CNPC_CombineDropship::UpdateContainerGunFacing( Vector &vecMuzzle, Vector &
 //------------------------------------------------------------------------------
 bool CNPC_CombineDropship::FireCannonRound( void )
 {
+	// CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >(UTIL_PlayerByIndex(1));
+
 	// Try and aim my cannon at the enemy, if I have a container
 	if ( !m_hContainer || (m_iCrateType < 0) )
 		return false;
@@ -2908,18 +2974,44 @@ bool CNPC_CombineDropship::FireCannonRound( void )
 
 	// Add a muzzle flash
 	QAngle vecAimAngles;
-	VectorAngles( vecAimDir, vecAimAngles );
-	g_pEffects->MuzzleFlash( vecMuzzle, vecAimAngles, random->RandomFloat( 5.0f, 7.0f ), MUZZLEFLASH_TYPE_GUNSHIP );
+	VectorAngles(vecAimDir, vecAimAngles);
+	g_pEffects->MuzzleFlash(vecMuzzle, vecAimAngles, random->RandomFloat(5.0f, 7.0f), MUZZLEFLASH_TYPE_GUNSHIP);
 	m_flTimeNextAttack = gpGlobals->curtime + 0.05;
 
 	// Clamp to account for inaccuracy in aiming w/ pose parameters
 	vecAimDir = vecToEnemy;
 
 	// Fire the bullet
-	int ammoType = GetAmmoDef()->Index("CombineCannon"); 
-	FireBullets( 1, vecMuzzle, vecAimDir, VECTOR_CONE_2DEGREES, 8192, ammoType, 1, -1, -1, sk_npc_dmg_dropship.GetInt() );
+	int ammoType = GetAmmoDef()->Index("CombineCannon");
+	FireBullets(1, vecMuzzle, vecAimDir, VECTOR_CONE_2DEGREES, 8192, ammoType, 1, -1, -1, sk_npc_dmg_dropship.GetInt());
 
 	return true;
+
+	/*
+	if (pPlayer->m_HL2Local.m_bInSlowMo)
+	{
+		Fire9MMBullet();
+	}
+	else
+	{
+		// Add a muzzle flash
+		QAngle vecAimAngles;
+		VectorAngles(vecAimDir, vecAimAngles);
+		g_pEffects->MuzzleFlash(vecMuzzle, vecAimAngles, random->RandomFloat(5.0f, 7.0f), MUZZLEFLASH_TYPE_GUNSHIP);
+		m_flTimeNextAttack = gpGlobals->curtime + 0.05;
+
+		// Clamp to account for inaccuracy in aiming w/ pose parameters
+		vecAimDir = vecToEnemy;
+
+		// Fire the bullet
+		int ammoType = GetAmmoDef()->Index("CombineCannon");
+		FireBullets(1, vecMuzzle, vecAimDir, VECTOR_CONE_2DEGREES, 8192, ammoType, 1, -1, -1, sk_npc_dmg_dropship.GetInt());
+
+		return true;
+	}
+
+	return false;
+	*/
 }
 
 //------------------------------------------------------------------------------

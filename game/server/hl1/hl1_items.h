@@ -1,9 +1,3 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
-//
-// Purpose: 
-//
-//=============================================================================//
-
 #ifndef HL1_ITEMS_H
 #define HL1_ITEMS_H
 #ifdef _WIN32
@@ -16,11 +10,11 @@
 class CHL1Item : public CItem
 {
 public:
-	DECLARE_CLASS( CHL1Item, CItem );
+	DECLARE_CLASS(CHL1Item, CItem);
 
-	void Spawn( void );
-	void Activate( void );
+	void Spawn(void);
+	void Activate(void);
 };
 
 
-#endif // HL1_ITEMS_H
+#endif

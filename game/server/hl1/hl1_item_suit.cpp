@@ -1,61 +1,47 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
-//
-// Purpose: 
-//
-//=============================================================================//
-/*
-===== item_suit.cpp ========================================================
-
-  handling for the player's suit.
-*/
-
 #include "cbase.h"
 #include "player.h"
 #include "gamerules.h"
 #include "items.h"
 #include "hl1_items.h"
 
+#define SF_SHORT_LOGON	0x0001
 
-#define SF_SUIT_SHORTLOGON		0x0001
-
-#define SUIT_MODEL "models/w_suit.mdl"
-
-extern int gEvilImpulse101;
-
-class CItemSuit : public CHL1Item
+class CHL1Suit : public CHL1Item
 {
+	DECLARE_CLASS(CHL1Suit, CHL1Item);
 public:
-	DECLARE_CLASS( CItemSuit, CHL1Item );
-
-	void Spawn( void )
-	{ 
-		Precache( );
-		SetModel( SUIT_MODEL );
-		BaseClass::Spawn( );
-
-		CollisionProp()->UseTriggerBounds( true, 12.0f );
-	}
-	void Precache( void )
-	{
-		PrecacheModel( SUIT_MODEL );
-	}
-	bool MyTouch( CBasePlayer *pPlayer )
-	{
-		if ( pPlayer->IsSuitEquipped() )
-			return false;
-
-		if( !gEvilImpulse101 )
-		{
-			if ( HasSpawnFlags( SF_SUIT_SHORTLOGON ) )
-				UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_A0");		// short version of suit logon,
-			else
-				UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_AAx");	// long version of suit logon
-		}
-
-		pPlayer->EquipSuit();
-		return true;
-	}
+	void Spawn(void);
+	void Precache(void);
+	bool MyTouch(CBasePlayer *pPlayer);
 };
 
-LINK_ENTITY_TO_CLASS(item_suit, CItemSuit);
+LINK_ENTITY_TO_CLASS(item_suit, CHL1Suit);
 PRECACHE_REGISTER(item_suit);
+
+void CHL1Suit::Spawn(void)
+{
+	Precache();
+	SetModel("models/w_suit.mdl");
+	BaseClass::Spawn();
+
+	CollisionProp()->UseTriggerBounds(true, 12.0f);
+}
+
+void CHL1Suit::Precache(void)
+{
+	PrecacheModel("models/w_suit.mdl");
+}
+
+bool CHL1Suit::MyTouch(CBasePlayer *pPlayer)
+{
+	if (pPlayer->IsSuitEquipped())
+		return false;
+
+	if (HasSpawnFlags(SF_SHORT_LOGON))
+		UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_A0");
+	else
+		UTIL_EmitSoundSuit(pPlayer->edict(), "!HEV_AAx");
+
+	pPlayer->EquipSuit();
+	return true;
+}

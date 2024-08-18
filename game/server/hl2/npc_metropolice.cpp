@@ -2985,7 +2985,7 @@ bool CNPC_MetroPolice::HandleInteraction(int interactionType, void *data, CBaseC
 
 	if ( interactionType == g_interactionMetrocopIdleChatter )
 	{
-		m_nIdleChatterType = (int)data;
+		m_nIdleChatterType = (intp)data;
 		return true;
 	}
 

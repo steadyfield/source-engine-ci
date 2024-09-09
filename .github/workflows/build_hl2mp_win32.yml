@@ -14,7 +14,7 @@ jobs:
       run: |
         #
         git submodule init;git submodule update
-        ./waf.bat configure -T release --prefix=./win --disable-warns --build-game=hl2mp 
+        ./waf.bat configure -T release --32bits --prefix=./win --disable-warns --build-game=hl2mp 
         
         ./waf.bat install --target=client,server -j4
         cat build/config.log > ./win/info.txt

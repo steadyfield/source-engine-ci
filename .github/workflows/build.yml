@@ -39,7 +39,7 @@ jobs:
     - name: Build windows-i386
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug
+        ./waf.bat configure -T debug --32bits
         ./waf.bat build
 
   build-windows-amd64:
@@ -50,7 +50,7 @@ jobs:
     - name: Build windows-amd64
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug -8
+        ./waf.bat configure -T debug
         ./waf.bat build
 
   build-dedicated-windows-i386:
@@ -72,7 +72,7 @@ jobs:
     - name: Build dedicated windows-amd64
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug -d -8
+        ./waf.bat configure -T debug -d
         ./waf.bat build
 
   build-dedicated-linux-i386:

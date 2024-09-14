@@ -16,6 +16,7 @@ games = {
 	'hl2mp': ['client_base.vpc', 'client_hl2mp.vpc'],
 	'hl1': ['client_base.vpc', 'client_hl1.vpc'],
 	'episodic': ['client_base.vpc', 'client_episodic.vpc'],
+	'lostcoast': ['client_base.vpc', 'client_lostcoast.vpc'],
 	'portal': ['client_base.vpc', 'client_portal.vpc'],
 	'hl1mp': ['client_base.vpc', 'client_hl1mp.vpc'],
 	'cstrike': ['client_base.vpc', 'client_cstrike.vpc'],

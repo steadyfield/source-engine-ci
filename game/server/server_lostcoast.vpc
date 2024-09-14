@@ -1,0 +1,30 @@
+//-----------------------------------------------------------------------------
+//	SERVER_EPISODIC.VPC
+//
+//	Project Script
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR		"..\.."
+$Macro GAMENAME 	"episodic" [!$SOURCESDK]
+$Macro GAMENAME 	"mod_episodic" [$SOURCESDK]
+
+$Include "$SRCDIR\game\server\server_base.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;.\hl2;.\episodic"
+		$PreprocessorDefinitions		"$BASE;HL2_DLL;HL2_EPISODIC;USES_SAVERESTORE"
+	}
+}
+
+$Project "Server (Episodic)"
+{
+	$Folder	"Source Files"
+	{
+		$File "weapon_oldmanharpoon.cpp"
+	// я вот не понимаю, почему они не добавили эту энтити в эпизоды,
+	// чтобы можно просто было через -game lostcoast запустить
+	}
+}

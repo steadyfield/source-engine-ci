@@ -1,6 +1,6 @@
-export ICON=tf2.png
-export PACKAGE=episodic
-export APP_NAME="Default APP NAME"
+export ICON=lc.png
+export PACKAGE=lostcoast
+export APP_NAME="Half-Life 2: Lost Coast"
 cd srceng-mod-launcher
 git clone https://gitlab.com/LostGamer/android-sdk
 export ANDROID_SDK_HOME=$PWD/android-sdk

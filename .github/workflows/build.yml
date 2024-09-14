@@ -31,31 +31,6 @@ jobs:
         name: ubuntu-amd64
         path: bin
 
-  build-apk-for-android:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build Android (32 bit)
-      run: |
-        scripts/build-android-armv7a.sh
-    - name: Build Android (64 bit)
-      run: |
-        chmod +x scripts/build-android-aarch64.sh
-        scripts/build-android-aarch64.sh   
-    - name: Build APK
-      run: |
-        sudo apt-get update
-        sudo apt-get install -f -y openjdk-8-jre zip apksigner imagemagick
-        chmod +x scripts/build-apk.sh
-        scripts/build-apk.sh
-
-    - name: 'Upload Artifact'
-      uses: actions/upload-artifact@v3
-      with:
-        name: base-apk
-        path: apk-engine/build/android/base-signed.apk
-
   build-windows-i386:
     runs-on: windows-latest
 

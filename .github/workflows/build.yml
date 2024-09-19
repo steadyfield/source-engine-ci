@@ -14,7 +14,7 @@ jobs:
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v3
       with:
-        name: ubuntu-i386
+        name: linux-i386
         path: bin
 
   build-linux-amd64:
@@ -28,7 +28,7 @@ jobs:
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v3
       with:
-        name: ubuntu-amd64
+        name: linux-amd64
         path: bin
 
   build-windows-i386:
@@ -39,7 +39,7 @@ jobs:
     - name: Build windows-i386
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T release --build-games=lostcoast --prefix=bin --32bits
+        ./waf.bat configure -T release --build-games=episodic --prefix=bin --32bits
         ./waf.bat install
 
     - name: 'Upload Artifact'
@@ -56,7 +56,7 @@ jobs:
     - name: Build windows-amd64
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T release --build-games=lostcoast --prefix=bin
+        ./waf.bat configure -T release --build-games=episodic --prefix=bin
         ./waf.bat install
 
     - name: 'Upload Artifact'

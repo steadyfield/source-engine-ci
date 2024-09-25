@@ -7,7 +7,7 @@
 #include "cbase.h"
 #include "c_baseentity.h"
 #ifdef WIN32
-#include <typeinfo>
+#include <typeinfo.h>
 #endif
 #include "tier0/vprof.h"
 

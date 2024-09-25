@@ -66,7 +66,7 @@ projects={
 		'launcher',
 		'launcher_main',
 		'materialsystem',
-#		'materialsystem/shaderapiempty',
+		'materialsystem/game_shader_dx9',
 		'materialsystem/shaderapidx9',
 		'materialsystem/shaderlib',
 		'materialsystem/stdshaders',
@@ -94,6 +94,8 @@ projects={
 		'utils/vtex',
 		'unicode',
 		'video',
+		'vscript',
+		'raytrace',
 	],
 	'tests': [
 		'appframework',

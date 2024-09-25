@@ -358,7 +358,7 @@ void CScriptKeyValues::ScriptSetBool( bool bValue )
 
 
 // constructors
-CScriptKeyValues::CScriptKeyValues( KeyValues *pKeyValues = NULL )
+CScriptKeyValues::CScriptKeyValues( KeyValues *pKeyValues )
 {
 	if (pKeyValues == NULL)
 	{

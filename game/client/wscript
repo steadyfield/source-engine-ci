@@ -12,8 +12,8 @@ def options(opt):
 	return
 
 games = {
-	'mapbase_episodic': ['server_base.vpc', 'server_mapbase.vpc', 'server_episodic.vpc'],
-	'mapbase_hl2': ['server_base.vpc', 'server_mapbase.vpc', 'server_hl2.vpc'],
+	'mapbase_episodic': ['client_base.vpc', 'client_mapbase.vpc', 'client_episodic.vpc'],
+	'mapbase_hl2': ['client_base.vpc', 'client_mapbase.vpc', 'client_hl2.vpc'],
 }
 
 def configure(conf):

@@ -1404,7 +1404,7 @@ CBaseEntityOutput *CBaseEntity::FindNamedOutput( const char *pszOutput )
 			typedescription_t *dataDesc = &dmap->dataDesc[i];
 			if ( ( dataDesc->fieldType == FIELD_CUSTOM ) && ( dataDesc->flags & FTYPEDESC_OUTPUT ) )
 			{
-				CBaseEntityOutput *pOutput = ( CBaseEntityOutput * )( ( int )this + ( int )dataDesc->fieldOffset[0] );
+				CBaseEntityOutput *pOutput = ( CBaseEntityOutput * )( ( intp )this + ( int )dataDesc->fieldOffset[0] );
 				if ( !Q_stricmp( dataDesc->externalName, pszOutput ) )
 				{
 					return pOutput;
@@ -5124,6 +5124,12 @@ bool CBaseEntity::IsMoving()
 	return velocity != vec3_origin; 
 }
 
+// Ported from the Alien Swarm SDK to fix false IsWorld() positives on server-only entities
+bool CBaseEntity::IsWorld() const 
+{ 
+	return (void *)this == (void *)GetWorldEntity();
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Retrieves the coordinate frame for this entity.
 // Input  : forward - Receives the entity's forward vector.
@@ -8071,7 +8077,7 @@ void CBaseEntity::InputRemoveOutput( inputdata_t& inputdata )
 				// If our names match, remove
 				if (Matcher_NamesMatch(szOutput, dataDesc->externalName))
 				{
-					CBaseEntityOutput *pOutput = (CBaseEntityOutput *)((int)this + (int)dataDesc->fieldOffset[0]);
+					CBaseEntityOutput *pOutput = (CBaseEntityOutput *)((intp)this + (int)dataDesc->fieldOffset[0]);
 					pOutput->DeleteAllElements();
 				}
 			}
@@ -8133,7 +8139,7 @@ void CBaseEntity::InputReplaceOutput( inputdata_t& inputdata )
 				// If our names match, replace
 				if (Matcher_NamesMatch(szOutput, dataDesc->externalName))
 				{
-					CBaseEntityOutput *pOutput = (CBaseEntityOutput *)((int)this + (int)dataDesc->fieldOffset[0]);
+					CBaseEntityOutput *pOutput = (CBaseEntityOutput *)((intp)this + (int)dataDesc->fieldOffset[0]);
 					const char *szTarget;
 					const char *szInputName;
 					const char *szParam;

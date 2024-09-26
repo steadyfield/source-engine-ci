@@ -1245,7 +1245,7 @@ void CAI_Expresser::SpeechMsg( CBaseEntity *pFlex, const char *pszFormat, ... )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-char *CAI_Expresser::ParseApplyContext( const char *szContext )
+const char *CAI_Expresser::ParseApplyContext( const char *szContext )
 {
 	char szKey[128];
 	char szValue[128];

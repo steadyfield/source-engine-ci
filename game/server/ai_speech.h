@@ -238,7 +238,7 @@ protected:
 
 #ifdef MAPBASE
 	// Handles context operators
-	char *ParseApplyContext( const char *szContext );
+	const char *ParseApplyContext( const char *szContext );
 #endif
 
 	// --------------------------------

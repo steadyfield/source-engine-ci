@@ -20,6 +20,8 @@
 #include "usermessages.h"
 #endif
 
+#define offsetof(s,m)	( (size_t)&(((s *)0x1000000)->m) - 0x1000000u )
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1216,7 +1218,7 @@ public:
 #define LESSON_VARIABLE_MACRO_BOOL		LESSON_VARIABLE_INIT_INFO_BOOL
 #define LESSON_VARIABLE_MACRO_EHANDLE	LESSON_VARIABLE_INIT_INFO_EHANDLE
 #define LESSON_VARIABLE_MACRO_STRING	LESSON_VARIABLE_INIT_INFO_STRING
-	LESSON_VARIABLE_FACTORY
+	LESSON_VARIABLE_FACTORY;
 #undef LESSON_VARIABLE_MACRO
 #undef LESSON_VARIABLE_MACRO_BOOL
 #undef LESSON_VARIABLE_MACRO_EHANDLE

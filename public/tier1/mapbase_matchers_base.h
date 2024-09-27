@@ -12,6 +12,7 @@
 #endif
 
 #include <math.h>
+#include <cstdlib>
 
 #define MAPBASE_MATCHERS 1
 

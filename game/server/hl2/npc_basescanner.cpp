@@ -1675,6 +1675,10 @@ void CNPC_BaseScanner::PainSound( const CTakeDamageInfo &info )
 //-----------------------------------------------------------------------------
 float CNPC_BaseScanner::GetMaxSpeed()
 {
+#ifdef MAPBASE
+	if (m_flCustomMaxSpeed > 0.0f)
+		return m_flCustomMaxSpeed;
+#endif	
 	return SCANNER_MAX_SPEED;
 }
 

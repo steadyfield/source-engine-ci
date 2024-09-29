@@ -1425,9 +1425,10 @@ PLATFORM_INTERFACE bool Is64BitOS();
 //-----------------------------------------------------------------------------
 // General Mapbase version constants compiled into projects for versioning purposes
 //-----------------------------------------------------------------------------
+#ifdef MAPBASE
 #define MAPBASE_VERSION "7.2"
 #define MAPBASE_VER_INT 7200	// For use in #if in a similar fashion to macros like _MSC_VER
-
+#endif
 //-----------------------------------------------------------------------------
 // XBOX Components valid in PC compilation space
 //-----------------------------------------------------------------------------

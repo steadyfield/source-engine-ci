@@ -164,7 +164,12 @@ T *_CreateEntity( T *newClass, const char *className )
 // Misc useful
 inline bool FStrEq(const char *sz1, const char *sz2)
 {
-	return (sz1 == sz2 || V_stricmp(sz1, sz2) == 0);
+#ifdef MAPBASE
+	// V_stricmp() already checks if the pointers are equal, so having a comparison here is pointless.
+	return ( V_stricmp(sz1, sz2) == 0 );
+#else
+ 	return (sz1 == sz2 || V_stricmp(sz1, sz2) == 0);
+#endif
 }
 
 // Given a vector, clamps the scalar axes to MAX_COORD_FLOAT ranges from worldsize.h

@@ -1705,26 +1705,31 @@ void Panel::DeletePanel()
 //-----------------------------------------------------------------------------
 HScheme Panel::GetScheme()
 {
+	HScheme iScheme;
+
 	if (m_iScheme)
 	{
-		return m_iScheme; // return our internal scheme
+		iScheme = m_iScheme; // return our internal scheme
 	}
-	
-	if (GetVParent()) // recurse down the heirarchy 
+	else if (GetVParent()) // recurse down the heirarchy 
 	{
-		return ipanel()->GetScheme(GetVParent());
+		iScheme = ipanel()->GetScheme(GetVParent());
+	}
+	else
+	{
+		iScheme = scheme()->GetDefaultScheme();
 	}
 
 #ifdef MAPBASE
 	// If a custom client scheme is available, use the custom scheme.
 	// TODO: Need a better way to detect that this panel actually uses ClientScheme.res
-	if (g_iCustomClientSchemeOverride != 0 && m_iScheme == scheme()->GetScheme( "ClientScheme" ) && vgui_mapbase_custom_schemes.GetBool())
+	if (g_iCustomClientSchemeOverride != 0 && iScheme == scheme()->GetScheme( "ClientScheme" ) && vgui_mapbase_custom_schemes.GetBool())
 	{
 		return g_iCustomClientSchemeOverride;
 	}
 #endif
 
-	return m_iScheme;
+	return iScheme;
 }
 
 //-----------------------------------------------------------------------------

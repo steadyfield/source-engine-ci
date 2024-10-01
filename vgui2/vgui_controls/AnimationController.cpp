@@ -324,10 +324,10 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 			return false;
 		}
 		
-		int seqIndex;
+		int seqIndex = -1;
 		UtlSymId_t nameIndex = g_ScriptSymbols.AddString(token);
 				
-#if 0
+#ifdef MAPBASE
 		if (g_bUsingCustomHudAnimations)
 		{
 			// look through for the sequence
@@ -345,8 +345,14 @@ bool AnimationController::ParseScriptFile(char *pMem, int length)
 				m_Sequences[seqIndex].cmdList.RemoveAll();
 			}
 		}
+
+		if (seqIndex == -1)
 #endif
-		seqIndex = m_Sequences.AddToTail();
+		{
+			// Create a new sequence
+			seqIndex = m_Sequences.AddToTail();
+		}
+
 		AnimSequence_t &seq = m_Sequences[seqIndex];
 		seq.name = nameIndex;
 		seq.duration = 0.0f;

@@ -86,6 +86,7 @@ bool CBaseEntity::sm_bDisableTouchFuncs = false;	// Disables PhysicsTouch and Ph
 bool CBaseEntity::sm_bAccurateTriggerBboxChecks = true;	// set to false for legacy behavior in ep1
 
 int CBaseEntity::m_nPredictionRandomSeed = -1;
+int CBaseEntity::m_nPredictionRandomSeedServer = -1;
 CBasePlayer *CBaseEntity::m_pPredictionPlayer = NULL;
 
 // Used to make sure nobody calls UpdateTransmitState directly.
@@ -344,6 +345,8 @@ void CBaseEntityModelLoadProxy::Handler::OnModelLoadComplete( const model_t *pMo
 
 CBaseEntity::CBaseEntity( bool bServerOnly )
 {
+	m_pAttributes = NULL;
+
 	COMPILE_TIME_ASSERT( MOVETYPE_LAST < (1 << MOVETYPE_MAX_BITS) );
 	COMPILE_TIME_ASSERT( MOVECOLLIDE_COUNT < (1 << MOVECOLLIDE_MAX_BITS) );
 

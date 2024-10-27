@@ -289,8 +289,13 @@ void CBasePlayerAnimState::ComputeMainSequence()
 #endif
 }
 
+bool CBasePlayerAnimState::ShouldResetMainSequence( int iCurrentSequence, int iNewSequence )
+{
+	if ( !GetOuter() )
+		return false;
 
-
+	return GetOuter()->GetSequenceActivity( iCurrentSequence ) != GetOuter()->GetSequenceActivity( iNewSequence );
+}
 
 
 void CBasePlayerAnimState::UpdateAimSequenceLayers(

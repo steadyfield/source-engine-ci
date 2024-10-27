@@ -192,12 +192,8 @@ public:
 		CNavArea *closestArea = NULL;
 		bool pathResult = NavAreaBuildPath( startArea, subjectArea, &subjectPos, costFunc, &closestArea, maxPathLength, bot->GetEntity()->GetTeamNumber() );
 
-		// Failed?
-		if ( closestArea == NULL )
-			return false;
-
 		//
-		// Build actual path by following parent links back from goal area
+		// Build actual path by following parent links back from subject area
 		//
 
 		// get count
@@ -212,10 +208,18 @@ public:
 				// startArea can be re-evaluated during the pathfind and given a parent...
 				break;
 			}
-			if ( count >= MAX_PATH_SEGMENTS-1 ) // save room for endpoint
-				break;
 		}
-		
+
+		// save room for endpoint
+		if ( count > MAX_PATH_SEGMENTS-1 )
+		{
+			count = MAX_PATH_SEGMENTS-1;
+		}
+		else if ( count == 0 )
+		{
+			return false;
+		}
+
 		if ( count == 1 )
 		{
 			BuildTrivialPath( bot, subjectPos );
@@ -313,10 +317,6 @@ public:
 		CNavArea *closestArea = NULL;
 		bool pathResult = NavAreaBuildPath( startArea, goalArea, &goal, costFunc, &closestArea, maxPathLength, bot->GetEntity()->GetTeamNumber() );
 
-		// Failed?
-		if ( closestArea == NULL )
-			return false;
-
 		//
 		// Build actual path by following parent links back from goal area
 		//
@@ -333,10 +333,18 @@ public:
 				// startArea can be re-evaluated during the pathfind and given a parent...
 				break;
 			}
-			if ( count >= MAX_PATH_SEGMENTS-1 ) // save room for endpoint
-				break;
 		}
-		
+
+		// save room for endpoint
+		if ( count > MAX_PATH_SEGMENTS-1 )
+		{
+			count = MAX_PATH_SEGMENTS-1;
+		}
+		else if ( count == 0 )
+		{
+			return false;
+		}
+
 		if ( count == 1 )
 		{
 			BuildTrivialPath( bot, goal );
@@ -398,7 +406,7 @@ public:
 		CNavArea *startArea = bot->GetEntity()->GetLastKnownArea();
 
 		if ( startArea == NULL )
-			return NULL;
+			return false;
 
 		startArea->SetParent( NULL );
 
@@ -407,7 +415,7 @@ public:
 
 		float initCost = costFunc( startArea, NULL, NULL, NULL, -1.0f );
 		if ( initCost < 0.0f )
-			return NULL;
+			return false;
 
 		startArea->SetTotalCost( initCost );
 		startArea->AddToOpenList();

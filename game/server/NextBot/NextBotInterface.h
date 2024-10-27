@@ -54,10 +54,6 @@ public:
 	virtual CBaseCombatCharacter *GetEntity( void ) const	= 0;
 	virtual class NextBotCombatCharacter *GetNextBotCombatCharacter( void ) const	{ return NULL; }
 
-#ifdef TERROR
-	virtual class SurvivorBot *MySurvivorBotPointer() const { return NULL; }
-#endif
-
 	// interfaces are never NULL - return base no-op interfaces at a minimum
 	virtual ILocomotion *	GetLocomotionInterface( void ) const;
 	virtual IBody *			GetBodyInterface( void ) const;

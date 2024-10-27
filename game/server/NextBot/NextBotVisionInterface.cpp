@@ -238,13 +238,13 @@ void IVision::ForgetEntity( CBaseEntity *forgetMe )
 	if ( !forgetMe )
 		return;
 
-	FOR_EACH_VEC( m_knownEntityVector, it )
+	for ( int i=0; i < m_knownEntityVector.Count(); ++i )
 	{
-		const CKnownEntity &known = m_knownEntityVector[ it ];
+		const CKnownEntity &known = m_knownEntityVector[ i ];
 
 		if ( known.GetEntity() && known.GetEntity()->entindex() == forgetMe->entindex() )
 		{
-			m_knownEntityVector.FastRemove( it );
+			m_knownEntityVector.FastRemove( i );
 			return;
 		}
 	}
@@ -266,9 +266,9 @@ int IVision::GetKnownCount( int team, bool onlyVisible, float rangeLimit ) const
 {
 	int count = 0;
 
-	FOR_EACH_VEC( m_knownEntityVector, it )
+	for ( int i = 0; i < m_knownEntityVector.Count(); ++i )
 	{
-		const CKnownEntity &known = m_knownEntityVector[ it ];
+		const CKnownEntity &known = m_knownEntityVector[ i ];
 
 		if ( !known.IsObsolete() && IsAwareOf( known ) )
 		{
@@ -374,104 +374,104 @@ void IVision::UpdateKnownEntities( void )
 
 	// collect set of visible and recognized entities at this moment
 	CollectVisible visibleNow( this );
-	FOR_EACH_VEC( potentiallyVisible, pit )
+	for (int i=0; i < potentiallyVisible.Count(); ++i)
 	{
 		VPROF_BUDGET( "IVision::UpdateKnownEntities( collect visible )", "NextBot" );
 
-		if ( visibleNow( potentiallyVisible[ pit ] ) == false )
+		if (visibleNow( potentiallyVisible[i] ) == false)
 			break;
 	}
-	
+
 	// update known set with new data
 	{	VPROF_BUDGET( "IVision::UpdateKnownEntities( update status )", "NextBot" );
 
-		int i;
-		for( i=0; i < m_knownEntityVector.Count(); ++i )
+	int i;
+	for (i=0; i < m_knownEntityVector.Count(); ++i)
+	{
+		CKnownEntity &known = m_knownEntityVector[i];
+
+		// clear out obsolete knowledge
+		if (known.GetEntity() == NULL || known.IsObsolete())
 		{
-			CKnownEntity &known = m_knownEntityVector[i];
+			m_knownEntityVector.Remove( i );
+			--i;
+			continue;
+		}
 
-			// clear out obsolete knowledge
-			if ( known.GetEntity() == NULL || known.IsObsolete() )
-			{
-				m_knownEntityVector.Remove( i );
-				--i;
-				continue;
-			}
-			
-			if ( visibleNow.Contains( known.GetEntity() ) )
-			{
-				// this visible entity was already known (but perhaps not visible until now)
-				known.UpdatePosition();
-				known.UpdateVisibilityStatus( true );
+		if (visibleNow.Contains( known.GetEntity() ))
+		{
+			// this visible entity was already known (but perhaps not visible until now)
+			known.UpdatePosition();
+			known.UpdateVisibilityStatus( true );
 
-				// has our reaction time just elapsed?
-				if ( gpGlobals->curtime - known.GetTimeWhenBecameVisible() >= GetMinRecognizeTime() &&
-					 m_lastVisionUpdateTimestamp - known.GetTimeWhenBecameVisible() < GetMinRecognizeTime() )
+			// has our reaction time just elapsed?
+			if (gpGlobals->curtime - known.GetTimeWhenBecameVisible() >= GetMinRecognizeTime() &&
+				 m_lastVisionUpdateTimestamp - known.GetTimeWhenBecameVisible() < GetMinRecognizeTime())
+			{
+				if (GetBot()->IsDebugging( NEXTBOT_VISION ))
 				{
-					if ( GetBot()->IsDebugging( NEXTBOT_VISION ) )
-					{
-						ConColorMsg( Color( 0, 255, 0, 255 ), "%3.2f: %s caught sight of %s(#%d)\n", 
-										gpGlobals->curtime,
-										GetBot()->GetDebugIdentifier(),
-										known.GetEntity()->GetClassname(),
-										known.GetEntity()->entindex() );
+					ConColorMsg( Color( 0, 255, 0, 255 ), "%3.2f: %s caught sight of %s(#%d)\n",
+								 gpGlobals->curtime,
+								 GetBot()->GetDebugIdentifier(),
+								 known.GetEntity()->GetClassname(),
+								 known.GetEntity()->entindex() );
 
-						NDebugOverlay::Line( GetBot()->GetBodyInterface()->GetEyePosition(), known.GetLastKnownPosition(), 255, 255, 0, false, 0.2f );
-					}
-
-					GetBot()->OnSight( known.GetEntity() );
-				}
-		
-				// restart 'not seen' timer
-				m_notVisibleTimer[ known.GetEntity()->GetTeamNumber() ].Start();
-			}
-			else // known entity is not currently visible
-			{
-				if ( known.IsVisibleInFOVNow() )
-				{
-					// previously known and visible entity is now no longer visible
-					known.UpdateVisibilityStatus( false );
-
-					// lost sight of this entity
-					if ( GetBot()->IsDebugging( NEXTBOT_VISION ) )
-					{
-						ConColorMsg( Color( 255, 0, 0, 255 ), "%3.2f: %s Lost sight of %s(#%d)\n", 
-										gpGlobals->curtime,
-										GetBot()->GetDebugIdentifier(),
-										known.GetEntity()->GetClassname(),
-										known.GetEntity()->entindex() );
-					}
-
-					GetBot()->OnLostSight( known.GetEntity() );
+					NDebugOverlay::Line( GetBot()->GetBodyInterface()->GetEyePosition(), known.GetLastKnownPosition(), 255, 255, 0, false, 0.2f );
 				}
 
-				if ( !known.HasLastKnownPositionBeenSeen() )
+				GetBot()->OnSight( known.GetEntity() );
+			}
+
+			// restart 'not seen' timer
+			m_notVisibleTimer[known.GetEntity()->GetTeamNumber()].Start();
+		}
+		else // known entity is not currently visible
+		{
+			if (known.IsVisibleInFOVNow())
+			{
+				// previously known and visible entity is now no longer visible
+				known.UpdateVisibilityStatus( false );
+
+				// lost sight of this entity
+				if (GetBot()->IsDebugging( NEXTBOT_VISION ))
 				{
-					// can we see the entity's last know position?
-					if ( IsAbleToSee( known.GetLastKnownPosition(), IVision::USE_FOV ) )
-					{
-						known.MarkLastKnownPositionAsSeen();
-					}
+					ConColorMsg( Color( 255, 0, 0, 255 ), "%3.2f: %s Lost sight of %s(#%d)\n",
+								 gpGlobals->curtime,
+								 GetBot()->GetDebugIdentifier(),
+								 known.GetEntity()->GetClassname(),
+								 known.GetEntity()->entindex() );
+				}
+
+				GetBot()->OnLostSight( known.GetEntity() );
+			}
+
+			if (!known.HasLastKnownPositionBeenSeen())
+			{
+				// can we see the entity's last know position?
+				if (IsAbleToSee( known.GetLastKnownPosition(), IVision::USE_FOV ))
+				{
+					known.MarkLastKnownPositionAsSeen();
 				}
 			}
 		}
 	}
-		
+	}
+
 	// check for new recognizes that were not in the known set
 	{	VPROF_BUDGET( "IVision::UpdateKnownEntities( new recognizes )", "NextBot" );
 
 		int i, j;
-		for( i=0; i < visibleNow.m_recognized.Count(); ++i )
-		{	
-			for( j=0; j < m_knownEntityVector.Count(); ++j )
+		for (i=0; i < visibleNow.m_recognized.Count(); ++i)
+		{
+			for (j=0; j < m_knownEntityVector.Count(); ++j)
 			{
-				if ( visibleNow.m_recognized[i] == m_knownEntityVector[j].GetEntity() )
+				if (visibleNow.m_recognized[i] == m_knownEntityVector[j].GetEntity())
 				{
 					break;
 				}
 			}
-			
-			if ( j == m_knownEntityVector.Count() )
+
+			if (j == m_knownEntityVector.Count())
 			{
 				// recognized a previously unknown entity (emit OnSight() event after reaction time has passed)
 				CKnownEntity known( visibleNow.m_recognized[i] );
@@ -602,7 +602,7 @@ bool IVision::IsAbleToSee( CBaseEntity *subject, FieldOfViewCheckType checkFOV, 
 	}
 
 	// do actual line-of-sight trace
-	if ( !IsLineOfSightClearToEntity( subject ) )
+	if ( !IsLineOfSightClearToEntity( subject, visibleSpot ) )
 	{
 		return false;
 	}

@@ -85,7 +85,8 @@ ConVar mp_show_voice_icons( "mp_show_voice_icons", "1", FCVAR_REPLICATED, "Show 
 
 #ifdef GAME_DLL
 
-ConVar tv_delaymapchange( "tv_delaymapchange", "0", 0, "Delays map change until broadcast is complete" );
+ConVar tv_delaymapchange( "tv_delaymapchange", "0", FCVAR_NONE, "Delays map change until broadcast is complete" );
+ConVar tv_delaymapchange_protect( "tv_delaymapchange_protect", "1", FCVAR_NONE, "Protect against doing a manual map change if HLTV is broadcasting and has not caught up with a major game event such as round_end" );
 
 ConVar mp_restartgame( "mp_restartgame", "0", FCVAR_GAMEDLL, "If non-zero, game will restart in the specified number of seconds" );
 ConVar mp_restartgame_immediate( "mp_restartgame_immediate", "0", FCVAR_GAMEDLL, "If non-zero, game will restart immediately" );
@@ -117,7 +118,7 @@ void cc_GotoNextMapInCycle()
 ConCommand skip_next_map( "skip_next_map", cc_SkipNextMapInCycle, "Skips the next map in the map rotation for the server." );
 ConCommand changelevel_next( "changelevel_next", cc_GotoNextMapInCycle, "Immediately changes to the next map in the map rotation for the server." );
 
-#ifndef TF_DLL		// TF overrides the default value of this convar
+#if !defined( TF_DLL ) && !defined( TF_MOD )		// TF overrides the default value of this convar
 ConVar mp_waitingforplayers_time( "mp_waitingforplayers_time", "0", FCVAR_GAMEDLL, "WaitingForPlayers time length in seconds" );
 #endif
 
@@ -129,7 +130,7 @@ ConVar mp_clan_ready_signal( "mp_clan_ready_signal", "ready", FCVAR_GAMEDLL, "Te
 ConVar nextlevel( "nextlevel", 
 				  "", 
 				  FCVAR_GAMEDLL | FCVAR_NOTIFY,
-#if defined( CSTRIKE_DLL ) || defined( TF_DLL )
+#if defined( CSTRIKE_DLL ) || defined( TF_DLL ) || defined( TF_MOD )
 				  "If set to a valid map name, will trigger a changelevel to the specified map at the end of the round" );
 #else
 				  "If set to a valid map name, will change to this map during the next changelevel" );
@@ -278,7 +279,7 @@ CMultiplayRules::CMultiplayRules()
 
 		if ( cfgfile && cfgfile[0] )
 		{
-			char szCommand[256];
+			char szCommand[MAX_PATH];
 
 			Log( "Executing dedicated server config file %s\n", cfgfile );
 			Q_snprintf( szCommand,sizeof(szCommand), "exec %s\n", cfgfile );
@@ -292,7 +293,7 @@ CMultiplayRules::CMultiplayRules()
 
 		if ( cfgfile && cfgfile[0] )
 		{
-			char szCommand[256];
+			char szCommand[MAX_PATH];
 
 			Log( "Executing listen server config file %s\n", cfgfile );
 			Q_snprintf( szCommand,sizeof(szCommand), "exec %s\n", cfgfile );
@@ -342,7 +343,7 @@ bool CMultiplayRules::Init()
 	// override some values for multiplay.
 
 		// suitcharger
-#ifndef TF_DLL
+#if !defined( TF_DLL ) && !defined( TF_MOD )
 //=============================================================================
 // HPE_BEGIN:
 // [menglish] CS doesn't have the suitcharger either
@@ -1151,17 +1152,19 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	void StripChar(char *szBuffer, const char cWhiteSpace )
 	{
+		char *src, *dst;
 
-		while ( char *pSpace = strchr( szBuffer, cWhiteSpace ) )
+		for (src = dst = szBuffer; *src != '\0'; src++)
 		{
-			char *pNextChar = pSpace + sizeof(char);
-			V_strcpy( pSpace, pNextChar );
+			*dst = *src;
+			if (*dst != cWhiteSpace) dst++;
 		}
+		*dst = '\0';
 	}
 
 	void CMultiplayRules::GetNextLevelName( char *pszNextMap, int bufsize, bool bRandom /* = false */ )
 	{
-		char mapcfile[256];
+		char mapcfile[MAX_PATH];
 		DetermineMapCycleFilename( mapcfile, sizeof(mapcfile), false );
 
 		// Check the time of the mapcycle file and re-populate the list of level names if the file has been modified
@@ -1206,7 +1209,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	void CMultiplayRules::DetermineMapCycleFilename( char *pszResult, int nSizeResult, bool bForceSpew )
 	{
-		static char szLastResult[ 256];
+		static char szLastResult[ MAX_PATH ];
 
 		const char *pszVar = mapcyclefile.GetString();
 		if ( *pszVar == '\0' )
@@ -1220,7 +1223,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 			return;
 		}
 
-		char szRecommendedName[ 256 ];
+		char szRecommendedName[ MAX_PATH ];
 		V_sprintf_safe( szRecommendedName, "cfg/%s", pszVar );
 
 		// First, look for a mapcycle file in the cfg directory, which is preferred
@@ -1319,6 +1322,27 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		mapList.RemoveAll();
 	}
 
+	bool CMultiplayRules::IsManualMapChangeOkay( const char **pszReason )
+	{
+		if ( HLTVDirector()->IsActive() && ( HLTVDirector()->GetDelay() >= HLTV_MIN_DIRECTOR_DELAY ) )
+		{
+			if ( tv_delaymapchange.GetBool() && tv_delaymapchange_protect.GetBool() )
+			{
+				float flLastEvent = GetLastMajorEventTime();
+				if ( flLastEvent > -1 )
+				{
+					if ( flLastEvent > ( gpGlobals->curtime - ( HLTVDirector()->GetDelay() + 3 ) ) ) // +3 second delay to prevent instant change after a major event
+					{
+						*pszReason = "\n***WARNING*** Map change blocked. HLTV is broadcasting and has not caught up to the last major game event yet.\nYou can disable this check by setting the value of the server convar \"tv_delaymapchange_protect\" to 0.\n";
+						return false;
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
 	bool CMultiplayRules::IsMapInMapCycle( const char *pszName )
 	{
 		for ( int i = 0; i < m_MapList.Count(); i++ )
@@ -1355,6 +1379,9 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		DetermineMapCycleFilename( mapcfile, sizeof(mapcfile), false );
 
 		FreeMapCycleFileVector( m_MapList );
+
+		const int nMapCycleTimeStamp = filesystem->GetPathTime( mapcfile, "GAME" );
+		m_nMapCycleTimeStamp = nMapCycleTimeStamp;
 
 		// Repopulate map list from mapcycle file
 		LoapMapCycleFileIntoVector( mapcfile, m_MapList );

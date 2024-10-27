@@ -16,7 +16,9 @@
 #include "mathlib/ssemath.h"
 #include "nav_area.h"
 
+#ifdef STAGING_ONLY
 extern int g_DebugPathfindCounter;
+#endif
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -108,7 +110,9 @@ bool NavAreaBuildPath( CNavArea *startArea, CNavArea *goalArea, const Vector *go
 		*closestArea = startArea;
 	}
 
+#ifdef STAGING_ONLY
 	bool isDebug = ( g_DebugPathfindCounter-- > 0 );
+#endif
 
 	if (startArea == NULL)
 		return false;
@@ -154,10 +158,12 @@ bool NavAreaBuildPath( CNavArea *startArea, CNavArea *goalArea, const Vector *go
 		// get next area to check
 		CNavArea *area = CNavArea::PopOpenList();
 
+#ifdef STAGING_ONLY
 		if ( isDebug )
 		{
 			area->DrawFilled( 0, 255, 0, 128, 30.0f );
 		}
+#endif
 
 		// don't consider blocked areas
 		if ( area->IsBlocked( teamID, ignoreNavBlockers ) )
@@ -339,7 +345,13 @@ bool NavAreaBuildPath( CNavArea *startArea, CNavArea *goalArea, const Vector *go
 				continue;
 
 			float newCostSoFar = costFunc( newArea, area, ladder, elevator, length );
-			
+
+			// NaNs really mess this function up causing tough to track down hangs. If
+			//  we get inf back, clamp it down to a really high number.
+			DebuggerBreakOnNaN_StagingOnly( newCostSoFar );
+			if ( IS_NAN( newCostSoFar ) )
+				newCostSoFar = 1e30f;
+
 			// check if cost functor says this area is a dead-end
 			if ( newCostSoFar < 0.0f )
 				continue;
@@ -352,7 +364,7 @@ bool NavAreaBuildPath( CNavArea *startArea, CNavArea *goalArea, const Vector *go
 			// Make sure that any jump to a new area incurs some pathfinsing
 			// cost, to avoid us spinning our wheels over insignificant cost
 			// benefit, floating point precision bug, or busted cost functor.
-			float minNewCostSoFar = area->GetCostSoFar() * 1.00001 + 0.00001;
+			float minNewCostSoFar = area->GetCostSoFar() * 1.00001f + 0.00001f;
 			newCostSoFar = Max( newCostSoFar, minNewCostSoFar );
 				
 			// stop if path length limit reached
@@ -729,76 +741,78 @@ inline void SearchSurroundingAreas( CNavArea *startArea, ISearchSurroundingAreas
 }
 
 
+//TF_MOD_BOT changes
 //--------------------------------------------------------------------------------------------------------------
 /**
  * Starting from 'startArea', collect adjacent areas via a breadth-first search continuing outward until
  * 'travelDistanceLimit' is reached.
- * Areas in the collection will be "marked", returning true for IsMarked(). 
+ * Areas in the collection will be "marked", returning true for IsMarked().
  * Each area in the collection's GetCostSoFar() will be approximate travel distance from 'startArea'.
  */
-inline void CollectSurroundingAreas( CUtlVector< CNavArea * > *nearbyAreaVector, CNavArea *startArea, float travelDistanceLimit = 1500.0f, float maxStepUpLimit = StepHeight, float maxDropDownLimit = 100.0f )
+template< typename T >
+inline void CollectSurroundingAreas(CUtlVector< T* >* nearbyAreaVector, CNavArea* startArea, float travelDistanceLimit = 1500.0f, float maxStepUpLimit = StepHeight, float maxDropDownLimit = 100.0f)
 {
 	nearbyAreaVector->RemoveAll();
 
-	if ( startArea )
+	if (startArea)
 	{
 		CNavArea::MakeNewMarker();
 		CNavArea::ClearSearchLists();
 
 		startArea->AddToOpenList();
-		startArea->SetTotalCost( 0.0f );
-		startArea->SetCostSoFar( 0.0f );
-		startArea->SetParent( NULL );
+		startArea->SetTotalCost(0.0f);
+		startArea->SetCostSoFar(0.0f);
+		startArea->SetParent(NULL);
 		startArea->Mark();
 
-		CUtlVector< CNavArea * > adjVector;
+		CUtlVector< CNavArea* > adjVector;
 
-		while( !CNavArea::IsOpenListEmpty() )
+		while (!CNavArea::IsOpenListEmpty())
 		{
 			// get next area to check
-			CNavArea *area = CNavArea::PopOpenList();
+			CNavArea* area = CNavArea::PopOpenList();
 
-			if ( travelDistanceLimit > 0.0f && area->GetCostSoFar() > travelDistanceLimit )
+			if (travelDistanceLimit > 0.0f && area->GetCostSoFar() > travelDistanceLimit)
 				continue;
 
-			if ( area->GetParent() )
+			if (area->GetParent())
 			{
-				float deltaZ = area->GetParent()->ComputeAdjacentConnectionHeightChange( area );
+				float deltaZ = area->GetParent()->ComputeAdjacentConnectionHeightChange(area);
 
-				if ( deltaZ > maxStepUpLimit )
+				if (deltaZ > maxStepUpLimit)
 					continue;
 
-				if ( deltaZ < -maxDropDownLimit )
+				if (deltaZ < -maxDropDownLimit)
 					continue;
 			}
 
-			nearbyAreaVector->AddToTail( area );
+			nearbyAreaVector->AddToTail((T*)area);
 
 			// mark here to ensure all marked areas are also valid areas that are in the collection
 			area->Mark();
 
 			// search adjacent outgoing connections
-			for( int dir=0; dir<NUM_DIRECTIONS; ++dir )
+			for (int dir = 0; dir < NUM_DIRECTIONS; ++dir)
 			{
-				int count = area->GetAdjacentCount( (NavDirType)dir );
-				for( int i=0; i<count; ++i )
+				int count = area->GetAdjacentCount((NavDirType)dir);
+				for (int i = 0; i < count; ++i)
 				{
-					CNavArea *adjArea = area->GetAdjacentArea( (NavDirType)dir, i );
+					CNavArea* adjArea = area->GetAdjacentArea((NavDirType)dir, i);
 
-					if ( adjArea->IsBlocked( TEAM_ANY ) )
+					if (adjArea->IsBlocked(TEAM_ANY))
 					{
 						continue;
 					}
 
-					if ( !adjArea->IsMarked() )
+					if (!adjArea->IsMarked())
 					{
-						adjArea->SetTotalCost( 0.0f );
-						adjArea->SetParent( area );
+						adjArea->SetTotalCost(0.0f);
+						adjArea->SetParent(area);
 
 						// compute approximate travel distance from start area of search
 						float distAlong = area->GetCostSoFar();
-						distAlong += ( adjArea->GetCenter() - area->GetCenter() ).Length();
-						adjArea->SetCostSoFar( distAlong );
+						distAlong += (adjArea->GetCenter() - area->GetCenter()).Length();
+						adjArea->SetCostSoFar(distAlong);
 						adjArea->AddToOpenList();
 					}
 				}

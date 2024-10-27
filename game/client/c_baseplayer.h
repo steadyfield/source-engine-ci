@@ -169,7 +169,7 @@ public:
 	virtual IRagdoll* GetRepresentativeRagdoll() const;
 
 	// override the initial bone position for ragdolls
-	virtual void GetRagdollInitBoneArrays( matrix3x4_t *pDeltaBones0, matrix3x4_t *pDeltaBones1, matrix3x4_t *pCurrentBones, float boneDt );
+	virtual bool GetRagdollInitBoneArrays( matrix3x4_t *pDeltaBones0, matrix3x4_t *pDeltaBones1, matrix3x4_t *pCurrentBones, float boneDt ) OVERRIDE;
 
 	// Returns eye vectors
 	void			EyeVectors( Vector *pForward, Vector *pRight = NULL, Vector *pUp = NULL );
@@ -585,7 +585,7 @@ protected:
 	virtual bool IsDucked( void ) const { return m_Local.m_bDucked; }
 	virtual bool IsDucking( void ) const { return m_Local.m_bDucking; }
 	virtual float GetFallVelocity( void ) { return m_Local.m_flFallVelocity; }
-	void ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOut, float curtimeOffset );
+	bool ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOut, float curtimeOffset );
 
 	float m_flLaggedMovementValue;
 
@@ -611,6 +611,7 @@ protected:
 	float			m_flNextAchievementAnnounceTime;
 
 	int				m_nForceVisionFilterFlags; // Force our vision filter to a specific setting
+	int				m_nLocalPlayerVisionFlags;
 
 #if defined USES_ECON_ITEMS
 	// Wearables

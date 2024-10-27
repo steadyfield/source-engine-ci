@@ -402,11 +402,7 @@ public:
 
 	virtual CNavArea *GetLastKnownArea( void ) const 
 	{
-#ifdef NEXT_BOT
 		return m_lastNavArea;
-#else
-		return NULL;
-#endif
 	}		// return the last nav area the player occupied - NULL if unknown
 
 	virtual void ClearLastKnownArea( void );

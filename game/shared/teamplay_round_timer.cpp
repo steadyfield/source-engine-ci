@@ -14,15 +14,15 @@
 #include "vgui_controls/AnimationController.h"
 #include "c_playerresource.h"
 #include "c_team_objectiveresource.h"
-#if defined( TF_CLIENT_DLL )
+#if defined( TF_CLIENT_DLL ) || ( TF_MOD_CLIENT )
 #include "tf_gamerules.h"
-#include "c_tf_player.h"
 #endif // TF_CLIENT_DLL
 #else
 #include "team.h"
 #include "team_objectiveresource.h"
-#if defined( TF_DLL )
+#if defined( TF_DLL ) || ( TF_MOD )
 #include "tf_player.h"
+#include "tf_gamerules.h"
 #endif // TF_DLL
 #endif
 
@@ -636,89 +636,20 @@ const char *CTeamRoundTimer::GetTimeWarningSound( int nWarning )
 //-----------------------------------------------------------------------------
 void CTeamRoundTimer::SendTimeWarning( int nWarning )
 {
-#if defined( TF_CLIENT_DLL )
-	// don't play any time warnings for Helltower
-	if ( TFGameRules() && TFGameRules()->IsHalloweenScenario( CTFGameRules::HALLOWEEN_SCENARIO_HIGHTOWER ) )
-		return;
-#endif
-
 	// don't play sounds if the level designer has turned them off or if it's during the WaitingForPlayers time
 	if ( !m_bTimerPaused && m_bAutoCountdown && !TeamplayRoundBasedRules()->IsInWaitingForPlayers() )
 	{
 		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
 		if ( pPlayer )
 		{
-			if ( ObjectiveResource() )
+			if ( ObjectiveResource() && ObjectiveResource()->GetTimerToShowInHUD() == entindex() )
 			{
-				bool bShouldPlaySound = false;
-
-				if ( TeamplayRoundBasedRules()->IsInTournamentMode() == true && TeamplayRoundBasedRules()->IsInStopWatch() == true )
-				{
-					int iActiveTimer = ObjectiveResource()->GetTimerToShowInHUD();
-					int iStopWatchTimer = ObjectiveResource()->GetStopWatchTimer();
-
-					if ( IsStopWatchTimer() == true && IsWatchingTimeStamps() == false )
-					{
-						CTeamRoundTimer *pTimer = dynamic_cast< CTeamRoundTimer* >( ClientEntityList().GetEnt( iActiveTimer ) );
-
-						if ( pTimer && pTimer->IsTimerPaused() == false && pTimer->GetTimeRemaining() > GetTimeRemaining() )
-						{
-							bShouldPlaySound = true;
-						}
-					}
-					else
-					{
-						CTeamRoundTimer *pStopWatch = dynamic_cast< CTeamRoundTimer* >( ClientEntityList().GetEnt( iStopWatchTimer ) );
-
-						if ( ObjectiveResource()->GetTimerToShowInHUD() == entindex()  )
-						{
-							if ( pStopWatch )
-							{
-								if ( pStopWatch->IsTimerPaused() == true )
-								{
-									bShouldPlaySound = true;
-								}
-
-								if ( pStopWatch->GetTimeRemaining() > GetTimeRemaining() && pStopWatch->IsWatchingTimeStamps() == false )
-								{
-									bShouldPlaySound = true;
-								}
-
-								if ( pStopWatch->IsWatchingTimeStamps() == true )
-								{
-									bShouldPlaySound = true;
-								}
-							}
-							else
-							{
-								bShouldPlaySound = true;
-							}
-						}
-					}
-				}
-				else 
-				{
-					if( ObjectiveResource()->GetTimerToShowInHUD() == entindex() )
-					{
-						bShouldPlaySound = true;
-					}
-
-					if ( TeamplayRoundBasedRules() && TeamplayRoundBasedRules()->IsInKothMode() )
-					{
-						bShouldPlaySound = true;
-					}
-				}
-
-#ifdef TF_CLIENT_DLL
-				if ( bShouldPlaySound == true )
-				{
-					pPlayer->EmitSound( GetTimeWarningSound( nWarning ) );
-				}
-#endif // TF_CLIENT_DLL
+				pPlayer->EmitSound( GetTimeWarningSound( nWarning ) );
 			}
 		}
 	}
 }
+
 
 #else
 
@@ -781,7 +712,7 @@ void CTeamRoundTimer::SetTimerThink( int nType )
 //-----------------------------------------------------------------------------
 void CTeamRoundTimer::RoundTimerSetupThink( void )
 {
-	if ( TeamplayRoundBasedRules()->IsInPreMatch() == true && IsDisabled() == false )
+	if ( TFGameRules()->IsInPreMatch() == true && IsDisabled() == false )
 	{
 		inputdata_t data;
 		InputDisable( data );
@@ -866,7 +797,7 @@ void CTeamRoundTimer::RoundTimerSetupThink( void )
 //-----------------------------------------------------------------------------
 void CTeamRoundTimer::RoundTimerThink( void )
 {
-	if ( TeamplayRoundBasedRules()->IsInPreMatch() == true && IsDisabled() == false )
+	if ( TFGameRules()->IsInPreMatch() == true && IsDisabled() == false )
 	{
 		inputdata_t data;
 		InputDisable( data );
@@ -1169,9 +1100,9 @@ void CTeamRoundTimer::AddTimerSeconds( int iSecondsToAdd, int iTeamResponsible /
 	m_nTimerLength += iSecondsToAdd;
 	CalculateOutputMessages();
 
-	if ( ( ObjectiveResource() && ObjectiveResource()->GetTimerInHUD() == entindex() ) || ( TeamplayRoundBasedRules()->IsInKothMode() ) )
+	if ( ( ObjectiveResource() && ObjectiveResource()->GetTimerInHUD() == entindex() ) )
 	{
-		if ( !TeamplayRoundBasedRules()->InStalemate() && !TeamplayRoundBasedRules()->RoundHasBeenWon() && !TeamplayRoundBasedRules()->IsInKothMode() )
+		if ( !TeamplayRoundBasedRules()->InStalemate() && !TeamplayRoundBasedRules()->RoundHasBeenWon() )
 		{
 			if ( iTeamResponsible >= LAST_SHARED_TEAM+1 )
 			{

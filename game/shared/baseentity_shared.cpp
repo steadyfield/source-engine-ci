@@ -636,10 +636,17 @@ void CBaseEntity::SetPredictionRandomSeed( const CUserCmd *cmd )
 	if ( !cmd )
 	{
 		m_nPredictionRandomSeed = -1;
+#ifdef GAME_DLL
+		m_nPredictionRandomSeedServer = -1;
+#endif
+
 		return;
 	}
 
 	m_nPredictionRandomSeed = ( cmd->random_seed );
+#ifdef GAME_DLL
+	m_nPredictionRandomSeedServer = ( cmd->server_random_seed );
+#endif
 }
 
 
@@ -2257,7 +2264,6 @@ int CBaseEntity::GetTracerAttachment( void )
 
 	return iAttachment;
 }
-
 
 int CBaseEntity::BloodColor()
 {

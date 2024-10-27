@@ -113,7 +113,7 @@ CON_COMMAND_F( nb_delete_all, "Delete all non-player NextBot entities.", FCVAR_C
 	{
 		const char *teamName = args[1];
 
-		for( int i=0; i < g_Teams.Count(); ++i )
+		for( int i=0; i < g_Teams.Size(); ++i )
 		{
 			if ( FStrEq( teamName, g_Teams[i]->GetName() ) )
 			{
@@ -406,17 +406,6 @@ void NextBotCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 	
 	// Advance life state to dying
 	m_lifeState = LIFE_DYING;
-
-#ifdef TERROR
-	/*
-	 * TODO: Make this game-generic
-	 */
-	// Create the death event just like players do.
-	TerrorGameRules()->DeathNoticeForEntity( this, info );
-
-	// Infected specific event
-	TerrorGameRules()->DeathNoticeForInfected( this, info );
-#endif
 
 	if ( GetOwnerEntity() != NULL )
 	{

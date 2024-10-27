@@ -289,7 +289,6 @@ void AI_Response::GetName( char *buf, size_t buflen ) const
 	Q_strncpy( buf, m_szResponseName, buflen );
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Output : char const
@@ -298,6 +297,20 @@ void AI_Response::GetResponse( char *buf, size_t buflen ) const
 {
 	GetName( buf, buflen );
 }
+
+const char * AI_Response::GetNamePtr() const
+{
+    return m_szResponseName;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+const char * AI_Response::GetResponsePtr() const
+{
+    return m_szResponseName;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : type - 

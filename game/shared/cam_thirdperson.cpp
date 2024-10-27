@@ -21,10 +21,6 @@ static Vector CAM_HULL_MAX( CAM_HULL_OFFSET, CAM_HULL_OFFSET, CAM_HULL_OFFSET);
 
 extern const ConVar *sv_cheats;
 
-extern ConVar cam_idealdist;
-extern ConVar cam_idealdistright;
-extern ConVar cam_idealdistup;
-
 void CAM_ToThirdPerson(void);
 void CAM_ToFirstPerson(void);
 
@@ -99,16 +95,6 @@ void CThirdPersonManager::Update( void )
 
 }
 
-Vector CThirdPersonManager::GetDesiredCameraOffset( void )
-{ 
-	if ( IsOverridingThirdPerson() == true )
-	{
-		return Vector( cam_idealdist.GetFloat(), cam_idealdistright.GetFloat(), cam_idealdistup.GetFloat() );
-	}
-
-	return m_vecDesiredCameraOffset; 
-}
-
 Vector CThirdPersonManager::GetFinalCameraOffset( void )
 {
 	Vector vDesired = GetDesiredCameraOffset();
@@ -153,7 +139,7 @@ Vector CThirdPersonManager::GetDistanceFraction( void )
 	return Vector( flFraction, flFraction, flUpFraction );
 }
 
-void CThirdPersonManager::PositionCamera( CBasePlayer *pPlayer, QAngle angles )
+void CThirdPersonManager::PositionCamera( CBasePlayer *pPlayer, const QAngle& angles )
 {
 	if ( pPlayer )
 	{

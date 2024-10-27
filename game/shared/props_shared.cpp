@@ -600,6 +600,10 @@ public:
 				pModel->mpBreakMode = MULTIPLAYER_BREAK_CLIENTSIDE;
 			}
 		}
+		else if ( !strcmpi( pKey, "velocity" ) )
+		{
+			UTIL_StringToVector( pModel->velocity.Base(), pValue );
+		}
 	}
 	virtual void SetDefaults( void *pData ) 
 	{
@@ -617,6 +621,7 @@ public:
 		pModel->placementName[0] = 0;
 		pModel->placementIsBone = false;
 		pModel->mpBreakMode = MULTIPLAYER_BREAK_DEFAULT;
+		pModel->velocity = vec3_origin;
 		m_wroteCollisionGroup = false;
 	}
 
@@ -1448,12 +1453,21 @@ CBaseEntity *CreateGibsFromList( CUtlVector<breakmodel_t> &list, int modelindex,
 			}
 			Vector objectVelocity = params.velocity;
 
-			float flScale = VectorNormalize( objectVelocity );
-			objectVelocity.x += RandomFloat( -1.f, 1.0f );
-			objectVelocity.y += RandomFloat( -1.0f, 1.0f );
-			objectVelocity.z += RandomFloat( 0.0f, 1.0f );
-			VectorNormalize( objectVelocity );
-			objectVelocity *= flScale;
+			Vector gibVelocity = vec3_origin;
+			if ( !list[i].velocity.IsZero() )
+			{
+				VectorRotate( list[i].velocity, matrix, gibVelocity );
+				objectVelocity = gibVelocity;
+			}
+			else
+			{
+				float flScale = VectorNormalize( objectVelocity );
+				objectVelocity.x += RandomFloat( -1.f, 1.0f );
+				objectVelocity.y += RandomFloat( -1.0f, 1.0f );
+				objectVelocity.z += RandomFloat( 0.0f, 1.0f );
+				VectorNormalize( objectVelocity );
+				objectVelocity *= flScale;
+			}
 
 			if (pPhysics)
 			{

@@ -244,15 +244,18 @@ public:
 
 	bool IsMapInMapCycle( const char *pszName );
 
+	virtual bool IsManualMapChangeOkay( const char **pszReason ) OVERRIDE;
+
 protected:
 	virtual bool UseSuicidePenalty() { return true; }		// apply point penalty for suicide?
+ 	virtual float GetLastMajorEventTime( void ){ return -1.0f; }
 
 public:
 	virtual void ChangeLevel( void );
 
 protected:
 	virtual void GoToIntermission( void );
-	void LoadMapCycleFile( void );
+	virtual void LoadMapCycleFile( void );
 	void ChangeLevelToMap( const char *pszMap );
 
 	float m_flIntermissionEndTime;

@@ -93,7 +93,6 @@ public:
 	virtual void PerformLayout( void );
 	virtual void Paint( void );
 	virtual bool IsVisible( void );
-	virtual void Reset( void );
 
 	void SetupForPoint( CControlPointIcon *pIcon );
 	void UpdateBarText( void );
@@ -309,10 +308,7 @@ public:
 	void		 SetCapProgressDir( int iDir ) { m_iCapProgressDir = iDir; }
 	void		 FakePulse( float flTime );
 	bool		 IsVisible( void );
-	virtual void Paint( void );
 	bool		 IsPointUnlockCountdownRunning( void );
-
-	virtual void FireGameEvent( IGameEvent *event );
 
 	void SetUnlockTime( float flTime )
 	{
@@ -323,9 +319,6 @@ public:
 	}
 
 	void SetTimerTime( float flTime ); // used to display CCPTimerLogic countdowns
-
-private:
-	virtual void OnTick();
 
 private:
 	int								m_iCPIndex;
@@ -345,7 +338,7 @@ private:
 	bool							m_bCachedCountdownState;
 	CControlPointCountdown			*m_pCountdown;
 
-	DHANDLE< CExLabel >				m_pCPTimerLabel; // used to display CCPTimerLogic countdowns
+	DHANDLE< vgui::Label >			m_pCPTimerLabel; // used to display CCPTimerLogic countdowns
 	DHANDLE< vgui::ImagePanel >		m_pCPTimerBG; // used to display CCPTimerLogic countdowns
 	float							m_flCPTimerTime;
 	bool							m_bRedText;

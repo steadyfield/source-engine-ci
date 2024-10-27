@@ -18,7 +18,7 @@
 //-----------------------------------------------------------------------------
 // Purpose: basic solid geometry
 // enabled state:	brush is visible
-// disabled staute:	brush not visible
+// disabled state:	brush not visible
 //-----------------------------------------------------------------------------
 class CFuncBrush : public CBaseEntity
 {

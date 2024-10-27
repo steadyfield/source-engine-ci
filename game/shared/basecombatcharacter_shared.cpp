@@ -92,6 +92,25 @@ bool CBaseCombatCharacter::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 	{
 		if ( !m_hActiveWeapon->CanHolster() )
 			return false;
+
+		if ( IsPlayer() )
+		{
+			CBasePlayer *pPlayer = (CBasePlayer *)this;
+			// check if active weapon force the last weapon to switch
+			if ( m_hActiveWeapon->ForceWeaponSwitch() )
+			{
+				// last weapon wasn't allowed to switch, don't allow to switch to new weapon
+#ifdef CLIENT_DLL
+				CBaseCombatWeapon *pLastWeapon = pPlayer->GetLastWeapon();
+#else
+				CBaseCombatWeapon *pLastWeapon = pPlayer->Weapon_GetLast();
+#endif
+				if ( pLastWeapon && pWeapon != pLastWeapon && !pLastWeapon->CanHolster() && !pWeapon->ForceWeaponSwitch() )
+				{
+					return false;
+				}
+			}
+		}
 	}
 
 	return true;

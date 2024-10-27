@@ -3,7 +3,7 @@
 *.vpc_crc
 *.vpc.*
 *.project
-*obj_*
+# вот это вот не дает залится некоторым тф2 файлам (крик) *obj_*
 .waf*
 .lock-waf*
 __pycache__

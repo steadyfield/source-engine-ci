@@ -222,6 +222,7 @@ float		UTIL_GetSimulationInterval();
 // NOTENOTE: Use UTIL_GetLocalPlayer instead of UTIL_PlayerByIndex IF you're in single player
 // and you want the player.
 CBasePlayer	*UTIL_PlayerByIndex( int playerIndex );
+CBasePlayer *UTIL_PlayerBySteamID( const CSteamID &steamID );
 
 // NOTENOTE: Use this instead of UTIL_PlayerByIndex IF you're in single player
 // and you want the player.
@@ -365,7 +366,7 @@ void		UTIL_Beam( Vector &Start, Vector &End, int nModelIndex, int nHaloIndex, un
 				float Life, unsigned char Width, unsigned char EndWidth, unsigned char FadeLength, unsigned char Noise, unsigned char Red, unsigned char Green,
 				unsigned char Blue, unsigned char Brightness, unsigned char Speed);
 
-char		*UTIL_VarArgs( PRINTF_FORMAT_STRING const char *format, ... );
+const char	*UTIL_VarArgs( PRINTF_FORMAT_STRING const char *format, ... ) FMTFUNCTION( 1, 2 );
 bool		UTIL_IsValidEntity( CBaseEntity *pEnt );
 bool		UTIL_TeamsMatch( const char *pTeamName1, const char *pTeamName2 );
 

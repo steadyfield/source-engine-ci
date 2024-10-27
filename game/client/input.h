@@ -99,7 +99,8 @@ public:
 	virtual		bool		CAM_IsOrthographic() const;
 	virtual		void		CAM_OrthographicSize( float& w, float& h ) const;
 
-	virtual		float		CAM_CapYaw( float fVal ) { return fVal; }
+	virtual		float		CAM_CapYaw( float fVal ) const { return fVal; }
+	virtual		float		CAM_CapPitch( float fVal ) const { return fVal; }
 	
 #if defined( HL2_CLIENT_DLL )
 	// IK back channel info
@@ -113,7 +114,7 @@ public:
 	virtual	bool		EnableJoystickMode();
 
 // Private Implementation
-private:
+protected:
 	// Implementation specific initialization
 	void		Init_Camera( void );
 	void		Init_Keyboard( void );

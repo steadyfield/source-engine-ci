@@ -246,7 +246,7 @@ protected:
 	int m_prevInputButtons;
 	CountdownTimer m_fireButtonTimer;
 	CountdownTimer m_meleeButtonTimer;
-	CountdownTimer m_specialFireButtonTimer;
+	CountdownTimer m_specialButtonTimer;
 	CountdownTimer m_useButtonTimer;
 	CountdownTimer m_reloadButtonTimer;
 	CountdownTimer m_forwardButtonTimer;
@@ -359,14 +359,14 @@ template < typename PlayerType >
 inline void NextBotPlayer< PlayerType >::PressSpecialFireButton( float duration )
 {
 	m_inputButtons |= IN_ATTACK3;
-	m_specialFireButtonTimer.Start( duration );
+	m_specialButtonTimer.Start( duration );
 }
 
 template < typename PlayerType >
 inline void NextBotPlayer< PlayerType >::ReleaseSpecialFireButton( void )
 {
 	m_inputButtons &= ~IN_ATTACK3;
-	m_specialFireButtonTimer.Invalidate();
+	m_specialButtonTimer.Invalidate();
 }
 
 template < typename PlayerType >
@@ -532,7 +532,6 @@ inline void NextBotPlayer< PlayerType >::Spawn( void )
 	m_prevInputButtons = m_inputButtons = 0;
 	m_fireButtonTimer.Invalidate();
 	m_meleeButtonTimer.Invalidate();
-	m_specialFireButtonTimer.Invalidate();
 	m_useButtonTimer.Invalidate();
 	m_reloadButtonTimer.Invalidate();
 	m_forwardButtonTimer.Invalidate();
@@ -578,12 +577,6 @@ inline void NextBotPlayer< PlayerType >::PhysicsSimulate( void )
 {
 	VPROF( "NextBotPlayer::PhysicsSimulate" );
 
-	// Make sure not to simulate this guy twice per frame
-	if ( PlayerType::m_nSimulationTick == gpGlobals->tickcount )
-	{
-		return;
-	}
-
 	if ( engine->IsPaused() )
 	{
 		// We're paused - don't add new commands
@@ -613,7 +606,7 @@ inline void NextBotPlayer< PlayerType >::PhysicsSimulate( void )
 		if ( !m_meleeButtonTimer.IsElapsed() )
 			m_inputButtons |= IN_ATTACK2;
 
-		if ( !m_specialFireButtonTimer.IsElapsed() )
+		if ( !m_specialButtonTimer.IsElapsed() )
 			m_inputButtons |= IN_ATTACK3;
 
 		if ( !m_useButtonTimer.IsElapsed() )

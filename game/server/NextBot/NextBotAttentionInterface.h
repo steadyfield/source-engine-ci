@@ -23,8 +23,8 @@ public:
 	IAttention( INextBot *bot ) : INextBotComponent( bot ) { }
 	virtual ~IAttention() { }
 
-	virtual void Reset( void )	{ }										// reset to initial state
-	virtual void Update( void ) { }										// update internal state
+	virtual void Reset( void );// {}										// reset to initial state
+	virtual void Update( void );// {}										// update internal state
 
 	enum SignificanceLevel
 	{
@@ -45,15 +45,16 @@ public:
 	virtual void Disregard( CBaseEntity *what, const char *reason = NULL );
 
 	virtual bool IsAwareOf( CBaseEntity *what ) const;								// return true if given object is in our attending set
-	virtual float GetAwareDuration( CBaseEntity *what ) const;						// return how long we've been aware of this entity
+	virtual float GetAwareDuration( CBaseEntity *what ) const { return NULL; };						// return how long we've been aware of this entity
 
-	// INextBotEventResponder ------------------------------------------------------------------
+// FORWHAT? INextBotEventResponder ------------------------------------------------------------------
+/*
 	virtual void OnInjured( const CTakeDamageInfo &info );							// when bot is damaged by something
 	virtual void OnContact( CBaseEntity *other, CGameTrace *result = NULL );		// invoked when bot touches 'other'
 	virtual void OnSight( CBaseEntity *subject );									// when subject initially enters bot's visual awareness
 	virtual void OnLostSight( CBaseEntity *subject );								// when subject leaves enters bot's visual awareness
 	virtual void OnSound( CBaseEntity *source, const CSoundParameters &params );	// when an entity emits a sound
-
+*/
 
 private:
 	IBody *m_body;							// to access head aiming

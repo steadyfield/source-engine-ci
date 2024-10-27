@@ -300,7 +300,7 @@ CBaseAnimating::~CBaseAnimating()
 
 void CBaseAnimating::Precache()
 {
-#if !defined( TF_DLL )
+#if !defined( TF_DLL ) && !defined( TF_MOD )
 	// Anything derived from this class can potentially burn - true, but do we want it to!
 	PrecacheParticleSystem( "burning_character" );
 #endif
@@ -641,6 +641,13 @@ int CBaseAnimating::SelectWeightedSequence ( Activity activity, int curSequence 
 	Assert( activity != ACT_INVALID );
 	Assert( GetModelPtr() );
 	return ::SelectWeightedSequence( GetModelPtr(), activity, curSequence );
+}
+
+int CBaseAnimating::SelectWeightedSequenceFromModifiers( Activity activity, CUtlSymbol *pActivityModifiers, int iModifierCount )
+{
+	Assert( activity != ACT_INVALID );
+	AssertMsg( GetModelPtr(), "GetModelPtr NULL. %s", STRING(GetEntityName()) ? STRING(GetEntityName()) : "" );
+	return GetModelPtr()->SelectWeightedSequenceFromModifiers( activity, pActivityModifiers, iModifierCount );
 }
 
 //=========================================================
@@ -2591,7 +2598,7 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 	int boneMask = BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT;
 
 	// TF queries these bones to position weapons when players are killed
-#if defined( TF_DLL )
+#if defined( TF_DLL ) || defined( TF_MOD )
 	boneMask |= BONE_USED_BY_BONE_MERGE;
 #endif
 	if ( pcache )
@@ -3304,6 +3311,7 @@ void CBaseAnimating::SetModelScale( float scale, float change_duration /*= 0.0f*
 		mvs->m_flModelScaleGoal = scale;
 		mvs->m_flModelScaleStartTime = gpGlobals->curtime;
 		mvs->m_flModelScaleFinishTime = mvs->m_flModelScaleStartTime + change_duration;
+		SetContextThink( &CBaseAnimating::UpdateModelScale, gpGlobals->curtime, "UpdateModelScaleThink" );
 	}
 	else
 	{
@@ -3342,6 +3350,11 @@ void CBaseAnimating::UpdateModelScale()
 	}
 
 	RefreshCollisionBounds();
+
+	if ( frac < 1.f )
+	{
+		SetContextThink( &CBaseAnimating::UpdateModelScale, gpGlobals->curtime, "UpdateModelScaleThink" );
+	}
 }
 
 void CBaseAnimating::RefreshCollisionBounds( void )

@@ -2323,6 +2323,7 @@ bool CBasePlayer::SetObserverMode(int mode )
 			break;
 
 		case OBS_MODE_CHASE :
+		case OBS_MODE_POI: // PASSTIME
 		case OBS_MODE_IN_EYE :	
 			// udpate FOV and viewmodels
 			SetObserverTarget( m_hObserverTarget );	
@@ -2473,6 +2474,7 @@ void CBasePlayer::ValidateCurrentObserverTarget( void )
 		}
 		else
 		{
+#if !defined( TF_DLL ) && !defined( TF_MOD )
 			// couldn't find new target, switch to temporary mode
 			if ( mp_forcecamera.GetInt() == OBS_ALLOW_ALL )
 			{
@@ -2480,6 +2482,7 @@ void CBasePlayer::ValidateCurrentObserverTarget( void )
 				ForceObserverMode( OBS_MODE_ROAMING );
 			}
 			else
+#endif
 			{
 				// fix player view right where it is
 				ForceObserverMode( OBS_MODE_FIXED );
@@ -3419,6 +3422,8 @@ void CBasePlayer::ForceSimulation()
 	m_nSimulationTick = -1;
 }
 
+ConVar sv_usercmd_custom_random_seed( "sv_usercmd_custom_random_seed", "1", FCVAR_CHEAT, "When enabled server will populate an additional random seed independent of the client" );
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *buf - 
@@ -3443,6 +3448,16 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 		if ( !IsUserCmdDataValid( pCmd ) )
 		{
 			pCmd->MakeInert();
+		}
+
+		if ( sv_usercmd_custom_random_seed.GetBool() )
+		{
+			float fltTimeNow = float( Plat_FloatTime() * 1000.0 );
+			pCmd->server_random_seed = *reinterpret_cast<int*>( (char*)&fltTimeNow );
+		}
+		else
+		{
+			pCmd->server_random_seed = pCmd->random_seed;
 		}
 
 		ctx->cmds.AddToTail( *pCmd );
@@ -5026,7 +5041,7 @@ void CBasePlayer::Spawn( void )
 	m_vecSmoothedVelocity = vec3_origin;
 	InitVCollision( GetAbsOrigin(), GetAbsVelocity() );
 
-#if !defined( TF_DLL )
+#if !( defined( TF_DLL ) || defined( TF_MOD ) )
 	IGameEvent *event = gameeventmanager->CreateEvent( "player_spawn" );
 	
 	if ( event )
@@ -5081,7 +5096,7 @@ void CBasePlayer::Precache( void )
 	enginesound->PrecacheSentenceGroup( "HEV" );
 
 	// These are always needed
-#ifndef TF_DLL
+#if !defined ( TF_DLL ) && !defined ( TF_MOD )
 	PrecacheParticleSystem( "slime_splash_01" );
 	PrecacheParticleSystem( "slime_splash_02" );
 	PrecacheParticleSystem( "slime_splash_03" );
@@ -8959,8 +8974,27 @@ void CBasePlayer::HandleAnimEvent( animevent_t *pEvent )
 	BaseClass::HandleAnimEvent( pEvent );
 }
 
+
 //-----------------------------------------------------------------------------
-//  CPlayerInfo functions (simple passthroughts to get around the CBasePlayer multiple inheritence limitation)
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CBasePlayer::ShouldAnnounceAchievement( void )
+{
+	m_flAchievementTimes.AddToTail( gpGlobals->curtime );
+	if ( m_flAchievementTimes.Count() > 3 )
+	{
+		m_flAchievementTimes.Remove( 0 );
+		if ( m_flAchievementTimes.Tail() - m_flAchievementTimes.Head() <= 60.0 )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+//  CPlayerInfo functions (simple pass-through to get around the CBasePlayer multiple inheritance limitation)
 //-----------------------------------------------------------------------------
 const char *CPlayerInfo::GetName()
 { 

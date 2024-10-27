@@ -68,6 +68,8 @@ public:
 	virtual bool PassesTriggerFilters(CBaseEntity *pOther);
 	virtual void StartTouch(CBaseEntity *pOther);
 	virtual void EndTouch(CBaseEntity *pOther);
+	virtual void StartTouchAll() {}
+	virtual void EndTouchAll() {}
 	bool IsTouching( CBaseEntity *pOther );
 
 	CBaseEntity *GetTouchedEntityOfType( const char *sClassName );
@@ -206,5 +208,7 @@ public:
 
 	CUtlVector<EHANDLE>	m_hurtEntities;
 };
+
+bool IsTakingTriggerHurtDamageAtPoint( const Vector &vecPoint );
 
 #endif // TRIGGERS_H

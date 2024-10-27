@@ -38,10 +38,7 @@
 #include "rumble_shared.h"
 #include "saverestoretypes.h"
 #include "nav_mesh.h"
-
-#ifdef NEXT_BOT
 #include "NextBot/NextBotManager.h"
-#endif
 
 #ifdef HL2_DLL
 #include "weapon_physcannon.h"
@@ -731,9 +728,7 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 	}
 
 	// not standing on a nav area yet
-#ifdef MEXT_BOT
 	m_lastNavArea = NULL;
-#endif
 
 	m_registeredNavTeam = TEAM_INVALID;
 
@@ -1674,11 +1669,8 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 		GetOwnerEntity()->DeathNotice( this );
 	}
 #endif
-	
-#ifdef NEXT_BOT
 	// inform bots
 	TheNextBots().OnKilled( this, info );
-#endif
 
 #ifdef GLOWS_ENABLE
 	RemoveGlowEffect();
@@ -2283,8 +2275,8 @@ CBaseCombatWeapon *CBaseCombatCharacter::Weapon_GetWpnForAmmo( int iAmmoIndex )
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 {
-	acttable_t *pTable		= pWeapon->ActivityList();
-	int			actCount	= pWeapon->ActivityListCount();
+	int	actCount = 0;
+	acttable_t *pTable = pWeapon->ActivityList( actCount );
 
 	if( actCount < 1 )
 	{
@@ -3430,7 +3422,6 @@ float CBaseCombatCharacter::GetFogObscuredRatio( float range ) const
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::UpdateLastKnownArea( void )
 {
-#ifdef NEXT_BOT
 	if ( TheNavMesh->IsGenerating() )
 	{
 		ClearLastKnownArea();
@@ -3475,7 +3466,6 @@ void CBaseCombatCharacter::UpdateLastKnownArea( void )
 
 		m_lastNavArea = area;
 	}
-#endif
 }
 
 
@@ -3484,10 +3474,7 @@ void CBaseCombatCharacter::UpdateLastKnownArea( void )
 //-----------------------------------------------------------------------------
 bool CBaseCombatCharacter::IsAreaTraversable( const CNavArea *area ) const
 {
-#ifdef NEXT_BOT
 	return area ? !area->IsBlocked( GetTeamNumber() ) : false;
-#endif
-	return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -3495,7 +3482,6 @@ bool CBaseCombatCharacter::IsAreaTraversable( const CNavArea *area ) const
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::ClearLastKnownArea( void )
 {
-#ifdef NEXT_BOT
 	OnNavAreaChanged( NULL, m_lastNavArea );
 
 	if ( m_lastNavArea )
@@ -3505,7 +3491,6 @@ void CBaseCombatCharacter::ClearLastKnownArea( void )
 		m_lastNavArea = NULL;
 		m_registeredNavTeam = TEAM_INVALID;
 	}
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3513,12 +3498,10 @@ void CBaseCombatCharacter::ClearLastKnownArea( void )
 //-----------------------------------------------------------------------------
 void CBaseCombatCharacter::OnNavAreaRemoved( CNavArea *removedArea )
 {
-#ifdef NEXT_BOT
 	if ( m_lastNavArea == removedArea )
 	{
 		ClearLastKnownArea();
 	}
-#endif
 }
 
 //-----------------------------------------------------------------------------

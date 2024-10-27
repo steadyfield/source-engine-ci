@@ -201,7 +201,7 @@ static void AdjustSubRect(CEngineSprite *pSprite, int frame, float *pfLeft, floa
 	*pw = rc.right - rc.left;
 	*ph = rc.bottom - rc.top;
 
-	f = 1.0 / (float)pSprite->GetWidth();;
+	f = 1.0 / (float)pSprite->GetWidth();
 	*pfLeft = ((float)rc.left + 0.5) * f;
 	*pfRight = ((float)rc.right - 0.5) * f;
 

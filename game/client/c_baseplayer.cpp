@@ -122,6 +122,9 @@ ConVar demo_fov_override( "demo_fov_override", "0", FCVAR_CLIENTDLL | FCVAR_DONT
 ConVar cl_meathook_neck_pivot_ingame_up( "cl_meathook_neck_pivot_ingame_up", "7.0" );
 ConVar cl_meathook_neck_pivot_ingame_fwd( "cl_meathook_neck_pivot_ingame_fwd", "3.0" );
 
+static ConVar	cl_clean_textures_on_death( "cl_clean_textures_on_death", "0", FCVAR_DEVELOPMENTONLY,  "If enabled, attempts to purge unused textures every time a freeze cam is shown" );
+
+
 void RecvProxy_LocalVelocityX( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_LocalVelocityY( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_LocalVelocityZ( const CRecvProxyData *pData, void *pStruct, void *pOut );
@@ -436,6 +439,7 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	m_bFiredWeapon = false;
 
 	m_nForceVisionFilterFlags = 0;
+	m_nLocalPlayerVisionFlags = 0;
 
 	ListenForGameEvent( "base_player_teleported" );
 }
@@ -532,29 +536,6 @@ CBaseEntity	*C_BasePlayer::GetObserverTarget() const	// returns players target o
 	}
 	else
 	{
-		if ( IsLocalPlayer() && UseVR() )
-		{
-			// In VR mode, certain views cause disorientation and nausea. So let's not.
-			switch ( m_iObserverMode )
-			{
-			case OBS_MODE_NONE:			// not in spectator mode
-			case OBS_MODE_FIXED:		// view from a fixed camera position
-			case OBS_MODE_IN_EYE:		// follow a player in first person view
-			case OBS_MODE_CHASE:		// follow a player in third person view
-			case OBS_MODE_ROAMING:		// free roaming
-				return m_hObserverTarget;
-				break;
-			case OBS_MODE_DEATHCAM:		// special mode for death cam animation
-			case OBS_MODE_FREEZECAM:	// zooms to a target, and freeze-frames on them
-				// These are both terrible - they get overriden to chase, but here we change it to "chase" your own body (which will be ragdolled).
-				return (const_cast<C_BasePlayer*>(this))->GetBaseEntity();
-				break;
-			default:
-				assert ( false );
-				break;
-			}
-		}
-
 		return m_hObserverTarget;
 	}
 }
@@ -584,15 +565,6 @@ void C_BasePlayer::SetObserverTarget( EHANDLE hObserverTarget )
 		{
 			ResetToneMapping(1.0);
 		}
-		// NVNT notify haptics of changed player
-		if ( haptics )
-			haptics->OnPlayerChanged();
-
-		if ( IsLocalPlayer() )
-		{
-			// On a change of viewing mode or target, we may want to reset both head and torso to point at the new target.
-			g_ClientVirtualReality.AlignTorsoAndViewToWeapon();
-		}
 	}
 }
 
@@ -602,11 +574,6 @@ void C_BasePlayer::SetObserverMode ( int iNewMode )
 	if ( m_iObserverMode != iNewMode )
 	{
 		m_iObserverMode = iNewMode;
-		if ( IsLocalPlayer() )
-		{
-			// On a change of viewing mode or target, we may want to reset both head and torso to point at the new target.
-			g_ClientVirtualReality.AlignTorsoAndViewToWeapon();
-		}
 	}
 }
 
@@ -625,29 +592,6 @@ int C_BasePlayer::GetObserverMode() const
 	}
 #endif
 #endif
-
-	if ( IsLocalPlayer() && UseVR() )
-	{
-		// IN VR mode, certain views cause disorientation and nausea. So let's not.
-		switch ( m_iObserverMode )
-		{
-		case OBS_MODE_NONE:			// not in spectator mode
-		case OBS_MODE_FIXED:		// view from a fixed camera position
-		case OBS_MODE_IN_EYE:		// follow a player in first person view
-		case OBS_MODE_CHASE:		// follow a player in third person view
-		case OBS_MODE_ROAMING:		// free roaming
-			return m_iObserverMode;
-			break;
-		case OBS_MODE_DEATHCAM:		// special mode for death cam animation
-		case OBS_MODE_FREEZECAM:	// zooms to a target, and freeze-frames on them
-			// These are both terrible - just do chase of your ragdoll.
-			return OBS_MODE_CHASE;
-			break;
-		default:
-			assert ( false );
-			break;
-		}
-	}
 
 	return m_iObserverMode; 
 }
@@ -712,12 +656,6 @@ void C_BasePlayer::FireGameEvent( IGameEvent *event )
 	if ( FStrEq( event->GetName(), "base_player_teleported" ) )
 	{
 		const int index = event->GetInt( "entindex" );
-		if ( index == entindex() && IsLocalPlayer() )
-		{
-			// In VR, we want to make sure our head and body
-			// are aligned after we teleport.
-			g_ClientVirtualReality.AlignTorsoAndViewToWeapon();
-		}
 	}
 
 }
@@ -837,16 +775,7 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 		if ( updateType == DATA_UPDATE_CREATED )
 		{
 			SetLocalViewAngles( angles );
-			m_flOldPlayerZ = GetLocalOrigin().z;
-			// NVNT the local player has just been created.
-			//   set in the "on_foot" navigation.
-			if ( haptics )
-			{
-				haptics->LocalPlayerReset();
-				haptics->SetNavigationClass("on_foot");
-				haptics->ProcessHapticEvent(2,"Movement","BasePlayer");
-			}
-		
+			m_flOldPlayerZ = GetLocalOrigin().z;		
 		}
 		SetLocalAngles( angles );
 
@@ -880,6 +809,10 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 			// Force the sound mixer to the freezecam mixer
 			ConVar *pVar = (ConVar *)cvar->FindVar( "snd_soundmixer" );
 			pVar->SetValue( "FreezeCam_Only" );
+
+			// When we start, give unused textures an opportunity to unload
+			if ( cl_clean_textures_on_death.GetBool() )
+				g_pMaterialSystem->UncacheUnusedMaterials( false );
 		}
 		else if ( m_bWasFreezeFraming && GetObserverMode() != OBS_MODE_FREEZECAM )
 		{
@@ -896,6 +829,14 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 
 			m_nForceVisionFilterFlags = 0;
 			CalculateVisionUsingCurrentFlags();
+		}
+		
+		// force calculate vision when the local vision flags changed
+		int nCurrentLocalPlayerVisionFlags = GetLocalPlayerVisionFilterFlags();
+		if ( m_nLocalPlayerVisionFlags != nCurrentLocalPlayerVisionFlags )
+		{
+			CalculateVisionUsingCurrentFlags();
+			m_nLocalPlayerVisionFlags = nCurrentLocalPlayerVisionFlags;
 		}
 	}
 
@@ -1469,12 +1410,6 @@ void C_BasePlayer::CalcChaseCamView(Vector& eyeOrigin, QAngle& eyeAngles, float&
 	else if ( IsLocalPlayer() )
 	{
 		engine->GetViewAngles( viewangles );
-		if ( UseVR() )
-		{
-			// Don't let people play with the pitch - they drive it into the ground or into the air and 
-			// it's distracting at best, nauseating at worst (e.g. when it clips through the ground plane).
-			viewangles[PITCH] = 20.0f;
-		}
 	}
 	else
 	{
@@ -1884,13 +1819,7 @@ void C_BasePlayer::ThirdPersonSwitch( bool bThirdperson )
 //-----------------------------------------------------------------------------
 /*static*/ bool C_BasePlayer::ShouldDrawLocalPlayer()
 {
-	if ( !UseVR() )
-	{
-		return !LocalPlayerInFirstPersonView() || cl_first_person_uses_world_model.GetBool();
-	}
-
-	static ConVarRef vr_first_person_uses_world_model( "vr_first_person_uses_world_model" );
-	return !LocalPlayerInFirstPersonView() || vr_first_person_uses_world_model.GetBool();
+	return !LocalPlayerInFirstPersonView() || cl_first_person_uses_world_model.GetBool();
 }
 
 
@@ -1928,17 +1857,9 @@ bool C_BasePlayer::ShouldDrawThisPlayer()
 	{
 		return true;
 	}
-	if ( !UseVR() && cl_first_person_uses_world_model.GetBool() )
+	if ( cl_first_person_uses_world_model.GetBool() )
 	{
 		return true;
-	}
-	if ( UseVR() )
-	{
-		static ConVarRef vr_first_person_uses_world_model( "vr_first_person_uses_world_model" );
-		if ( vr_first_person_uses_world_model.GetBool() )
-		{
-			return true;
-		}
 	}
 	return false;
 }
@@ -2078,7 +1999,7 @@ void C_BasePlayer::GetToolRecordingState( KeyValues *msg )
 	// then this code can (should!) be removed
 	if ( state.m_bThirdPerson )
 	{
-		Vector cam_ofs = g_ThirdPersonManager.GetCameraOffsetAngles();
+		const Vector& cam_ofs = g_ThirdPersonManager.GetCameraOffsetAngles();
 		
 		QAngle camAngles;
 		camAngles[ PITCH ] = cam_ofs[ PITCH ];
@@ -2594,7 +2515,7 @@ void C_BasePlayer::NotePredictionError( const Vector &vDelta )
 // offset curtime and setup bones at that time using fake interpolation
 // fake interpolation means we don't have reliable interpolation history (the local player doesn't animate locally)
 // so we just modify cycle and origin directly and use that as a fake guess
-void C_BasePlayer::ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOut, float curtimeOffset )
+bool C_BasePlayer::ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOut, float curtimeOffset )
 {
 	// we don't have any interpolation data, so fake it
 	float cycle = m_flCycle;
@@ -2609,30 +2530,37 @@ void C_BasePlayer::ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOu
 	m_flCycle = fmod( 10 + cycle + m_flPlaybackRate * curtimeOffset, 1.0f );
 	SetLocalOrigin( origin + curtimeOffset * GetLocalVelocity() );
 	// Setup bone state to extrapolate physics velocity
-	SetupBones( pBonesOut, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, gpGlobals->curtime + curtimeOffset );
+	bool bSuccess = SetupBones( pBonesOut, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, gpGlobals->curtime + curtimeOffset );
 
 	m_flCycle = cycle;
 	SetLocalOrigin( origin );
+	return bSuccess;
 }
 
-void C_BasePlayer::GetRagdollInitBoneArrays( matrix3x4_t *pDeltaBones0, matrix3x4_t *pDeltaBones1, matrix3x4_t *pCurrentBones, float boneDt )
+bool C_BasePlayer::GetRagdollInitBoneArrays( matrix3x4_t *pDeltaBones0, matrix3x4_t *pDeltaBones1, matrix3x4_t *pCurrentBones, float boneDt )
 {
 	if ( !IsLocalPlayer() )
-	{
-		BaseClass::GetRagdollInitBoneArrays(pDeltaBones0, pDeltaBones1, pCurrentBones, boneDt);
-		return;
-	}
-	ForceSetupBonesAtTimeFakeInterpolation( pDeltaBones0, -boneDt );
-	ForceSetupBonesAtTimeFakeInterpolation( pDeltaBones1, 0 );
+		return BaseClass::GetRagdollInitBoneArrays(pDeltaBones0, pDeltaBones1, pCurrentBones, boneDt);
+
+	bool bSuccess = true;
+
+	if ( !ForceSetupBonesAtTimeFakeInterpolation( pDeltaBones0, -boneDt ) )
+		bSuccess = false;
+	if ( !ForceSetupBonesAtTimeFakeInterpolation( pDeltaBones1, 0 ) )
+		bSuccess = false;
+
 	float ragdollCreateTime = PhysGetSyncCreateTime();
 	if ( ragdollCreateTime != gpGlobals->curtime )
 	{
-		ForceSetupBonesAtTimeFakeInterpolation( pCurrentBones, ragdollCreateTime - gpGlobals->curtime );
+		if ( !ForceSetupBonesAtTimeFakeInterpolation( pCurrentBones, ragdollCreateTime - gpGlobals->curtime ) )
+			bSuccess = false;
 	}
 	else
 	{
-		SetupBones( pCurrentBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
+		if ( !SetupBones( pCurrentBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, gpGlobals->curtime ) )
+			bSuccess = false;
 	}
+	return bSuccess;
 }
 
 
@@ -2891,34 +2819,14 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 	//Vector vHeadTransformUp ( -mHeadTransform[0][1], -mHeadTransform[1][1], -mHeadTransform[2][1] );
 	//Vector vHeadTransformFwd ( mHeadTransform[0][1], mHeadTransform[1][1], mHeadTransform[2][1] );
 	Vector vHeadTransformTranslation ( mHeadTransform[0][3], mHeadTransform[1][3], mHeadTransform[2][3] );
-
-
 	// Find out where the player's head (driven by the HMD) is in the world.
 	// We can't move this with animations or effects without causing nausea, so we need to move
 	// the whole body so that the animated head is in the right place to match the player-controlled head.
-	Vector vHeadUp;
-	Vector vRealPivotPoint;
-	if( UseVR() )
-	{
-		VMatrix mWorldFromMideye = g_ClientVirtualReality.GetWorldFromMidEye();
-
-		// What we do here is:
-		// * Take the required eye pos+orn - the actual pose the player is controlling with the HMD.
-		// * Go downwards in that space by cl_meathook_neck_pivot_ingame_* - this is now the neck-pivot in the game world of where the player is actually looking.
-		// * Now place the body of the animated character so that the head bone is at that position.
-		// The head bone is the neck pivot point of the in-game character.
-
-		Vector vRealMidEyePos = mWorldFromMideye.GetTranslation();
-		vRealPivotPoint = vRealMidEyePos - ( mWorldFromMideye.GetUp() * cl_meathook_neck_pivot_ingame_up.GetFloat() ) - ( mWorldFromMideye.GetForward() * cl_meathook_neck_pivot_ingame_fwd.GetFloat() );
-	}
-	else
-	{
-		// figure out where to put the body from the aim angles
-		Vector vForward, vRight, vUp;
-		AngleVectors( MainViewAngles(), &vForward, &vRight, &vUp );
+	// figure out where to put the body from the aim angles
+	Vector vForward, vRight, vUp, vRealPivotPoint;
+	AngleVectors( MainViewAngles(), &vForward, &vRight, &vUp );
 		
-		vRealPivotPoint = MainViewOrigin() - ( vUp * cl_meathook_neck_pivot_ingame_up.GetFloat() ) - ( vForward * cl_meathook_neck_pivot_ingame_fwd.GetFloat() );		
-	}
+	vRealPivotPoint = MainViewOrigin() - ( vUp * cl_meathook_neck_pivot_ingame_up.GetFloat() ) - ( vForward * cl_meathook_neck_pivot_ingame_fwd.GetFloat() );		
 
 	Vector vDeltaToAdd = vRealPivotPoint - vHeadTransformTranslation;
 

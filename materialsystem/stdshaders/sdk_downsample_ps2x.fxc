@@ -1,0 +1,56 @@
+// STATIC: "CONVERT_TO_SRGB" "0..1"	[ps20b][= g_pHardwareConfig->NeedsShaderSRGBConversion()] [PC]
+// STATIC: "CONVERT_TO_SRGB" "0..0"	[= 0] [XBOX]
+
+#define HDRTYPE HDR_TYPE_NONE
+#include "common_ps_fxc.h"
+
+sampler FBSampler	: register( s0 );
+//const HALF blurScale		: register( c0 );
+//const HALF viewamount		: register( c1 );
+
+const float offset[] = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0};
+const float weight[] = 
+{
+0.3626837833783620, 0.3626837833783620, 
+0.3137066458778873, 0.3137066458778873,
+0.2223810344533745, 0.2223810344533745,
+0.1012285362903763, 0.1012285362903763
+};
+
+#define SAMPLE_COUNT 2
+
+struct PS_INPUT
+{
+	float2 texCoord				: TEXCOORD0;
+};
+
+float4 main( PS_INPUT input ) : COLOR
+{
+	float4 fbSample = tex2D( FBSampler, input.texCoord );
+	//float4 fbSampleOld = tex2D( FBSampler, input.texCoord );
+
+    for (int i = 1; i < SAMPLE_COUNT; i++) {
+		float mult = 1;
+		float i_inv = (float)(SAMPLE_COUNT - i) / SAMPLE_COUNT;
+		float sampledist = i * mult * 0.5;
+		float2 chTexCoord1 = float2(0.012/**blurScale*/,0.012) * sampledist;
+		float2 chTexCoord2 = float2(0.012/**blurScale*/,-0.012) * sampledist;
+		float2 chTexCoord3 = float2(0/**blurScale*/,-0.012) * sampledist;
+		float2 chTexCoord4 = float2(-0.012/**blurScale*/,0) * sampledist;
+		float viewamount = 0.0333;
+    	fbSample =		tex2D(FBSampler, input.texCoord + chTexCoord1) * viewamount;
+		fbSample +=		tex2D(FBSampler, input.texCoord - chTexCoord1) * viewamount;
+    	fbSample +=		tex2D(FBSampler, input.texCoord + chTexCoord2) * viewamount;
+		fbSample +=		tex2D(FBSampler, input.texCoord - chTexCoord2) * viewamount;
+
+		fbSample +=		tex2D(FBSampler, input.texCoord - chTexCoord3) * viewamount;
+    	fbSample +=		tex2D(FBSampler, input.texCoord + chTexCoord3) * viewamount;
+		fbSample +=		tex2D(FBSampler, input.texCoord - chTexCoord4) * viewamount;
+		fbSample +=		tex2D(FBSampler, input.texCoord + chTexCoord4) * viewamount;
+    }
+
+    fbSample = smoothstep(0, 1, fbSample);
+	//fbSample = lerp(fbSample,fbSampleOld, fbSample);
+
+	return FinalOutput( float4( fbSample.rgb, 1.0f ), 0, PIXEL_FOG_TYPE_NONE, TONEMAP_SCALE_NONE );
+}

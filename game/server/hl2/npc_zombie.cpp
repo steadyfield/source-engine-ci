@@ -137,6 +137,9 @@ public:
 	void PrescheduleThink( void );
 	int SelectSchedule ( void );
 
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 	void PainSound( const CTakeDamageInfo &info );
 	void DeathSound( const CTakeDamageInfo &info );
 	void AlertSound( void );
@@ -275,7 +278,7 @@ void CZombie::Spawn( void )
 
 	m_fIsHeadless = false;
 
-#ifdef HL2_EPISODIC
+#ifndef HL2_EPISODIC
 	SetBloodColor( BLOOD_COLOR_ZOMBIE );
 #else
 	SetBloodColor( BLOOD_COLOR_GREEN );
@@ -609,6 +612,19 @@ int CZombie::SelectFailSchedule( int failedSchedule, int failedTask, AI_TaskFail
 	}
 
 	return BaseClass::SelectFailSchedule( failedSchedule, failedTask, taskFailCode );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CZombie::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 //---------------------------------------------------------

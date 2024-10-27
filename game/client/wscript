@@ -12,14 +12,7 @@ def options(opt):
 	return
 
 games = {
-	'hl2': ['client_base.vpc', 'client_hl2.vpc'],
-	'hl2mp': ['client_base.vpc', 'client_hl2mp.vpc'],
-	'hl1': ['client_base.vpc', 'client_hl1.vpc'],
-	'episodic': ['client_base.vpc', 'client_episodic.vpc'],
-	'portal': ['client_base.vpc', 'client_portal.vpc'],
-	'hl1mp': ['client_base.vpc', 'client_hl1mp.vpc'],
-	'cstrike': ['client_base.vpc', 'client_cstrike.vpc'],
-	'dod': ['client_base.vpc', 'client_dod.vpc']
+	'smodredux': ['client_base.vpc', 'client_episodic.vpc'],
 }
 
 def configure(conf):
@@ -43,7 +36,7 @@ def build(bld):
 		'../../public/tier1',
 		'../../vgui2/include',
 		'../../vgui2/controls',
-		'../shared'
+		'../shared',
 	]
 
 	libs = [
@@ -62,7 +55,8 @@ def build(bld):
 		'bitmap',
 		'vtf',
 		'RT',
-		'ZLIB'
+		'ZLIB',
+		'lua',
 	]
 
 	install_path = bld.env.PREFIX

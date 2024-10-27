@@ -23,6 +23,9 @@
 extern ConVar r_FadeProps;
 #endif
 
+ConVar ragdoll_jointFrictionScale_Min( "ragdoll_jointFrictionScale_Min", "0.300000", FCVAR_ARCHIVE | FCVAR_REPLICATED );
+ConVar ragdoll_jointFrictionScale_Max( "ragdoll_jointFrictionScale_Max", "10", FCVAR_ARCHIVE | FCVAR_REPLICATED );
+
 CRagdoll::CRagdoll()
 {
 	m_ragdoll.listCount = 0;
@@ -108,7 +111,7 @@ void CRagdoll::Init(
 	params.forceBoneIndex = forceBone;
 	params.forcePosition.Init();
 	params.pCurrentBones = pCurrentBonePosition;
-	params.jointFrictionScale = 1.0;
+	params.jointFrictionScale = random->RandomFloat( ragdoll_jointFrictionScale_Min.GetFloat(), ragdoll_jointFrictionScale_Max.GetFloat() );
 	params.allowStretch = false;
 	params.fixedConstraints = bFixedConstraints;
 	RagdollCreate( m_ragdoll, params, physenv );

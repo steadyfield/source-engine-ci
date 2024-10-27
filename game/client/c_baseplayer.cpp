@@ -57,6 +57,8 @@
 // NVNT haptics system interface
 #include "haptics/ihaptics.h"
 
+#include "COOLMOD/smod_cvars.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -87,7 +89,7 @@ extern ConVar sensitivity;
 
 static C_BasePlayer *s_pLocalPlayer = NULL;
 
-static ConVar	cl_customsounds ( "cl_customsounds", "1", 0, "Enable customized player sound playback" );
+static ConVar	cl_customsounds ( "cl_customsounds", "0", 0, "Enable customized player sound playback" );
 static ConVar	spec_track		( "spec_track", "0", 0, "Tracks an entity in spec mode" );
 static ConVar	cl_smooth		( "cl_smooth", "1", 0, "Smooth view/eye origin after prediction errors" );
 static ConVar	cl_smoothtime	( 
@@ -121,6 +123,8 @@ ConVar demo_fov_override( "demo_fov_override", "0", FCVAR_CLIENTDLL | FCVAR_DONT
 // This value is found by hand, and a good value depends more on the in-game models than on actual human shapes.
 ConVar cl_meathook_neck_pivot_ingame_up( "cl_meathook_neck_pivot_ingame_up", "7.0" );
 ConVar cl_meathook_neck_pivot_ingame_fwd( "cl_meathook_neck_pivot_ingame_fwd", "3.0" );
+
+ConVar	cl_viewbob_amount("cl_viewbob_amount", "0", 0, "Smooth view/eye origin after prediction errors");
 
 void RecvProxy_LocalVelocityX( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_LocalVelocityY( const CRecvProxyData *pData, void *pStruct, void *pOut );
@@ -469,7 +473,7 @@ void C_BasePlayer::Spawn( void )
 
 	m_iFOV	= 0;	// init field of view.
 
-    SetModel( "models/player.mdl" );
+    SetModel( cl_playermodel.GetString() );
 
 	Precache();
 
@@ -1279,6 +1283,9 @@ void C_BasePlayer::AddEntity( void )
 
 	// Add in lighting effects
 	CreateLightEffects();
+
+	// Zero out model pitch, blending takes care of all of it.
+	SetLocalAnglesDim(X_INDEX, 0);
 }
 
 extern float UTIL_WaterLevel( const Vector &position, float minz, float maxz );
@@ -1367,6 +1374,19 @@ void C_BasePlayer::CreateWaterEffects( void )
 //-----------------------------------------------------------------------------
 void C_BasePlayer::OverrideView( CViewSetup *pSetup )
 {
+	if (!this)
+		return;
+
+	float speed = GetLocalVelocity().Length2D();
+	speed = RemapValClamped(speed, 0.0f, 320.0f, 0.0f, 1.0f);
+
+	Vector attachmentOrigin;
+	QAngle vecAngle;
+	GetBonePosition(LookupBone("ValveBiped.Bip01_Head1"), attachmentOrigin, vecAngle);
+
+	Vector ViewOriginWithoutDucking = GetAbsOrigin() + VEC_VIEW_SCALED(this);
+
+	pSetup->origin += (attachmentOrigin - ViewOriginWithoutDucking) * speed * cl_viewbob_amount.GetFloat();
 }
 
 bool C_BasePlayer::ShouldInterpolate()
@@ -1398,6 +1418,7 @@ int C_BasePlayer::DrawModel( int flags )
 		return 0;
 	}
 #endif
+
 	return BaseClass::DrawModel( flags );
 }
 

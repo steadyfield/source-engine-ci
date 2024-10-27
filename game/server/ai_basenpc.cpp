@@ -107,6 +107,8 @@ extern ConVar sk_healthkit;
 #include "utlbuffer.h"
 #include "gamestats.h"
 
+#include "smod_weapon_randomize.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -130,6 +132,8 @@ bool RagdollManager_SaveImportant( CAI_BaseNPC *pNPC );
 extern bool			g_fDrawLines;
 extern short		g_sModelIndexLaser;		// holds the index for the laser beam
 extern short		g_sModelIndexLaserDot;	// holds the index for the laser beam dot
+
+extern ConVar gore_togib;
 
 // Debugging tools
 ConVar	ai_no_select_box( "ai_no_select_box", "0" );
@@ -210,6 +214,8 @@ bool AIStrongOpt( void )
 {
 	return ai_strong_optimizations.GetBool();
 }
+
+ConVar npc_speedmultiplier("npc_speedmultiplier", "1", FCVAR_ARCHIVE);
 
 //-----------------------------------------------------------------------------
 //
@@ -644,7 +650,7 @@ void CAI_BaseNPC::Ignite( float flFlameLifetime, bool bNPCOnly, float flSize, bo
 
 #ifdef HL2_EPISODIC
 	CBasePlayer *pPlayer = AI_GetSinglePlayer();
-	if ( pPlayer->IRelationType( this ) != D_LI )
+	if (pPlayer && pPlayer->IRelationType( this ) != D_LI )
 	{
 		CNPC_Alyx *alyx = CNPC_Alyx::GetAlyx();
 
@@ -1187,7 +1193,7 @@ void CAI_BaseNPC::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir
 		if( !IsPlayer() || ( IsPlayer() && g_pGameRules->IsMultiplayer() ) )
 		{
 			// NPC's always bleed. Players only bleed in multiplayer.
-			SpawnBlood( ptr->endpos, vecDir, BloodColor(), subInfo.GetDamage() );// a little surface blood.
+			SpawnBlood( ptr->endpos, -vecDir, BloodColor(), subInfo.GetDamage() );// a little surface blood.
 		}
 
 		TraceBleed( subInfo.GetDamage(), vecDir, ptr, subInfo.GetDamageType() );
@@ -1474,6 +1480,85 @@ void CBaseEntity::UpdateShotStatistics( const trace_t &tr )
 			}
 		}
 	}
+}
+
+#define MAX_BULLET_PENETRATION 64.0f //TODO: Should we allow the weapon to have it's own max penetration?
+void CBaseEntity::HandleBulletPenetration(const FireBulletsInfo_t &info,
+	const trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter, int TimesPenitrate)
+{
+	//Turn this off for now...
+#if 1 //defined( GAME_DLL )
+	if (info.m_nFlags&FIRE_BULLETS_USEPENITRATION_COUNT)
+		if (!(info.m_iPenetrationCount > 0))
+			return;
+
+	if (physprops->GetSurfaceData(tr.surface.surfaceProps)->game.material == CHAR_TEX_FLESH)
+		return;
+
+	CEffectData	data;
+
+	data.m_vNormal = tr.plane.normal;
+	data.m_vOrigin = tr.endpos;
+
+	DispatchEffect("RagdollImpact", data);
+	//surfacedata_t *psurf = physprops->GetSurfaceData(tr.surface.surfaceProps); // I have a weird naming convention...
+	bool bShouldPenetrate = false;
+	float flDeepness = 0.0f;
+	float flMatResistance = 1.0f;
+
+	Vector testPos;
+	trace_t	penetrationTrace;
+
+	while (!bShouldPenetrate && (flDeepness * flMatResistance <= info.m_flPenetrationForce) /*MAX_BULLET_PENETRATION*/)
+	{
+		flDeepness += 0.1f;
+		// Move through the glass until we're at the other side
+		testPos = tr.endpos + (vecDir * (flDeepness));
+
+		// Re-trace as if the bullet had passed right through
+		UTIL_TraceLine(testPos, tr.endpos, MASK_SHOT, pTraceFilter, &penetrationTrace);
+
+		// See if we found the surface again
+		if (penetrationTrace.startsolid || tr.fraction == 0.0f || penetrationTrace.fraction == 1.0f)
+		{
+		}
+		else
+		{
+			bShouldPenetrate = true;
+		}
+	}
+	if (!bShouldPenetrate)
+		return;
+	float flResultDeepness = (flDeepness * flMatResistance);
+
+
+	//FIXME: This is technically frustrating MultiDamage, but multiple shots hitting multiple targets in one call
+	//		 would do exactly the same anyway...
+
+	// Impact the other side (will look like an exit effect)
+	DoImpactEffect(penetrationTrace, GetAmmoDef()->DamageType(info.m_iAmmoType));
+
+	//	data.m_vNormal = penetrationTrace.plane.normal;
+	//	data.m_vOrigin = penetrationTrace.endpos;
+
+	//	DispatchEffect( "GlassImpact", data );
+
+	// Refire the round, as if starting from behind the glass
+	FireBulletsInfo_t behindGlassInfo;
+	behindGlassInfo.m_iShots = 1;
+	behindGlassInfo.m_vecSrc = penetrationTrace.endpos;
+	behindGlassInfo.m_vecDirShooting = vecDir;
+	behindGlassInfo.m_vecSpread = vec3_origin;
+	behindGlassInfo.m_flDistance = info.m_flDistance*(1.0f - tr.fraction);
+	behindGlassInfo.m_iAmmoType = info.m_iAmmoType;
+	behindGlassInfo.m_iTracerFreq = info.m_iTracerFreq;
+	behindGlassInfo.m_flDamage = info.m_flDamage;
+	behindGlassInfo.m_pAttacker = info.m_pAttacker ? info.m_pAttacker : this;
+	behindGlassInfo.m_nFlags = info.m_nFlags;
+	behindGlassInfo.m_iPenetrationCount = info.m_iPenetrationCount - 1;
+	behindGlassInfo.m_flPenetrationForce = info.m_flPenetrationForce - flResultDeepness;
+	FireBullets(behindGlassInfo);
+#endif
 }
 
 
@@ -2844,7 +2929,7 @@ void CAI_BaseNPC::PerformMovement()
 	AI_PROFILE_SCOPE(CAI_BaseNPC_PerformMovement);
 	g_AIMoveTimer.Start();
 
-	float flInterval = ( m_flTimeLastMovement != FLT_MAX ) ? gpGlobals->curtime - m_flTimeLastMovement : 0.1;
+	float flInterval = (( m_flTimeLastMovement != FLT_MAX ) ? gpGlobals->curtime - m_flTimeLastMovement : 0.1) * npc_speedmultiplier.GetFloat() * m_flRunSpeedMod;
 
 	m_pNavigator->Move( ROUND_TO_TICKS( flInterval ) );
 	m_flTimeLastMovement = gpGlobals->curtime;
@@ -2909,7 +2994,7 @@ bool CAI_BaseNPC::PreThink( void )
 	// ----------------------------------------------------------
 	if ( (CAI_BaseNPC::m_nDebugBits & bits_debugDisableAI || !g_pAINetworkManager->NetworksLoaded()) )
 	{
-		if ( gpGlobals->curtime >= g_AINextDisabledMessageTime && !IsInCommentaryMode() )
+		/*if ( gpGlobals->curtime >= g_AINextDisabledMessageTime && !IsInCommentaryMode() )
 		{
 			g_AINextDisabledMessageTime = gpGlobals->curtime + 0.5f;
 
@@ -2931,7 +3016,7 @@ bool CAI_BaseNPC::PreThink( void )
 			tTextParam.fxTime		= 0;
 			tTextParam.channel		= 1;
 			UTIL_HudMessageAll( tTextParam, "A.I. Disabled...\n" );
-		}
+		}*/
 		SetActivity( ACT_IDLE );
 		return false;
 	}
@@ -3922,6 +4007,17 @@ void CAI_BaseNPC::NPCThink( void )
 	//---------------------------------
 	bool bRanDecision = false;
 
+	if (IsActivityMovementPhased(m_Activity))
+	{
+		m_flPlaybackRate *= npc_speedmultiplier.GetFloat() * m_flRunSpeedMod;
+		//m_flGroundSpeed *= npc_speedmultiplier.GetFloat();
+	}
+	else
+	{
+		m_flPlaybackRate = 1;
+		//m_flGroundSpeed = GetSequenceGroundSpeed(m_Activity);
+	}
+
 	if ( GetEfficiency() < AIE_DORMANT && GetSleepState() == AISS_AWAKE )
 	{
 		static CFastTimer timer;
@@ -3949,9 +4045,9 @@ void CAI_BaseNPC::NPCThink( void )
 				}
 				else
 				{
-					if ( m_ScheduleState.bTaskRanAutomovement )
+					if (m_ScheduleState.bTaskRanAutomovement)
 						AutoMovement();
-					if ( m_ScheduleState.bTaskUpdatedYaw )
+					if (m_ScheduleState.bTaskUpdatedYaw)
 						GetMotor()->UpdateYaw();
 				}
 
@@ -5526,6 +5622,19 @@ CBaseEntity *CAI_BaseNPC::GetEnemyOccluder(void)
 	return m_hEnemyOccluder.Get();
 }
 
+bool CAI_BaseNPC::ShouldGib(const CTakeDamageInfo &info)
+{
+	if ( gore_togib.GetBool() )
+	{
+		if (info.GetDamageType() & DMG_NEVERGIB)
+			return false;
+
+		if ((g_pGameRules->Damage_ShouldGibCorpse(info.GetDamageType()) && m_iHealth < GIB_HEALTH_VALUE) || (info.GetDamageType() & DMG_ALWAYSGIB))
+			return true;
+	}
+
+	return false;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: part of the Condition collection process
@@ -6821,6 +6930,8 @@ void CAI_BaseNPC::NPCInit ( void )
 #ifdef HL1_DLL
 	SetDeathPose( ACT_INVALID );
 #endif
+
+	GiveRandomWeapon(this);
 
 	ClearCommandGoal();
 
@@ -11239,6 +11350,11 @@ bool CAI_BaseNPC::KeyValue( const char *szKeyName, const char *szValue )
 		}
 	}
 
+	if (FStrEq(szKeyName, "runspeedmod"))
+	{
+		m_flRunSpeedMod = atof(szValue);
+	}
+
 	return bResult;
 }
 
@@ -11307,6 +11423,8 @@ CAI_BaseNPC::CAI_BaseNPC(void)
 	m_pSchedule = NULL;
 	m_IdealSchedule = SCHED_NONE;
 
+	m_flRunSpeedMod = 1.0f;
+
 #ifdef _DEBUG
 	// necessary since in debug, we initialize vectors to NAN for debugging
 	m_vecLastPosition.Init();
@@ -11331,7 +11449,6 @@ CAI_BaseNPC::CAI_BaseNPC(void)
 	m_flHeadYaw					= 0;
 	m_flHeadPitch				= 0;
 	m_spawnEquipment			= NULL_STRING;
-	m_SquadName = NULL_STRING;
 	m_pEnemies					= new CAI_Enemies;
 	m_bIgnoreUnseenEnemies		= false;
 	m_flEyeIntegRate			= 0.95;

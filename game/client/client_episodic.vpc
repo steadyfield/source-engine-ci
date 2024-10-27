@@ -14,13 +14,34 @@ $Configuration
 {
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	".\hl2;.\hl2\elements;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;..\..\public;$BASE"
+		$AdditionalIncludeDirectories	".\smmod;.\hl2;.\hl2\elements;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\COOLMOD;$SRCDIR\game\shared\LUA;$SRCDIR\game\shared\SMMOD;$SRCDIR\game\shared\episodic;..\..\public;$BASE"
 		$PreprocessorDefinitions		"$BASE;HL2_CLIENT_DLL;HL2_EPISODIC"
 	}
 }
 
 $Project "Client (Episodic)"
 {
+	$Folder "SMOD/COOLMOD/SMMOD/LUA/OTHERCONTENT"
+	{
+		$File "fx_cs_muzzleflash.cpp"
+		$File "SubViewCam_Proxy.cpp"
+		$File "tneRenderTargets.cpp"
+		$File "tneRenderTargets.h"
+		$File "smmod/c_weapon_custom.cpp"
+		
+		$File "$SRCDIR/game/shared/COOLMOD/luamanager.cpp"
+		$File "$SRCDIR/game/shared/COOLMOD/smod_addcontents.cpp"
+		$File "$SRCDIR/game/shared/COOLMOD/smod_cvars.cpp"
+		$File "$SRCDIR/game/shared/COOLMOD/sp_animstate.cpp"
+		$File "$SRCDIR/game/shared/SMMOD/shared_convars.cpp"
+		$File "$SRCDIR/game/shared/SMMOD/shdef_customweapons.cpp"
+		
+
+		$File "hl2/c_weapon_sticklauncher.cpp"
+		$File "hl2/cs_view_scene.cpp"
+		$File "hl1/hl1_fx_gibs.cpp"
+	}
+
 	$Folder	"Source Files"
 	{
 		$File	"hud_chat.cpp"

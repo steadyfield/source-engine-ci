@@ -12,6 +12,7 @@
 #include "ai_tacticalservices.h"
 #include "npc_manhack.h"
 #include "npc_metropolice.h"
+#include "IEffects.h"
 #include "weapon_stunstick.h"
 #include "basegrenade_shared.h"
 #include "ai_route.h"
@@ -19,6 +20,7 @@
 #include "iservervehicle.h"
 #include "items.h"
 #include "hl2_gamerules.h"
+#include "te_effect_dispatch.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -460,6 +462,14 @@ void CNPC_MetroPolice::NotifyDeadFriend( CBaseEntity* pFriend )
 
 	m_Sentences.Speak( "METROPOLICE_MAN_DOWN", SENTENCE_PRIORITY_MEDIUM );
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+CNPC_MetroPolice::CNPC_MetroPolice()
+{
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2604,7 +2614,7 @@ void CNPC_MetroPolice::IdleSound( void )
 
 			if ( m_Sentences.Speak( pQuestion[bIsCriminal][nQuestionType] ) >= 0 )
 			{
-				GetSquad()->BroadcastInteraction( g_interactionMetrocopIdleChatter, (void*)(intp)(METROPOLICE_CHATTER_RESPONSE + nQuestionType), this );
+				GetSquad()->BroadcastInteraction( g_interactionMetrocopIdleChatter, (void*)(METROPOLICE_CHATTER_RESPONSE + nQuestionType), this );
 				m_nIdleChatterType = METROPOLICE_CHATTER_WAIT_FOR_RESPONSE;
 			}
 		}
@@ -3827,6 +3837,19 @@ void CNPC_MetroPolice::TraceAttack( const CTakeDamageInfo &info, const Vector &v
 			VectorAngles( vecLastHitDirection, lastHitAngles );
 			m_flLastHitYaw	= lastHitAngles.y;
 		}
+	}
+
+	if ( ptr->hitgroup == HITGROUP_HEAD )
+	{
+		EmitSound("Player.Helmet");
+		CEffectData data;
+
+		data.m_vOrigin = ptr->endpos;
+		data.m_vAngles = GetAbsAngles();
+
+		data.m_vNormal = ptr->plane.normal;
+
+		DispatchEffect("ManhackSparks", data);
 	}
 
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );

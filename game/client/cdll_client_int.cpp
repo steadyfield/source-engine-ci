@@ -171,6 +171,8 @@ extern vgui::IInputInternal *g_InputInternal;
 #include "sixense/in_sixense.h"
 #endif
 
+#include "COOLMOD/smod_addcontents.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -729,7 +731,7 @@ public:
 	void PrecacheMaterial( const char *pMaterialName );
 
 	virtual bool IsConnectedUserInfoChangeAllowed( IConVar *pCvar );
-	virtual void IN_TouchEvent( uint data, uint data2, uint data3, uint data4 );
+	virtual void IN_TouchEvent( int type, int fingerId, int x, int y );
 
 private:
 	void UncacheAllMaterials( );
@@ -1040,6 +1042,8 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 
 	if ( !IGameSystem::InitAllSystems() )
 		return false;
+
+	AddContent(filesystem);
 
 	g_pClientMode->Enable();
 
@@ -1631,6 +1635,7 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 	g_RagdollLVManager.SetLowViolence( pMapName );
 
 	gHUD.LevelInit();
+	gTouch.LevelInit();
 
 #if defined( REPLAY_ENABLED )
 	// Initialize replay ragdoll recorder
@@ -2637,24 +2642,20 @@ CSteamID GetSteamIDForPlayerIndex( int iPlayerIndex )
 #endif
 
  
-void CHLClient::IN_TouchEvent( uint data, uint data2, uint data3, uint data4 )
+void CHLClient::IN_TouchEvent( int type, int fingerId, int x, int y )
 {
 	if( enginevgui->IsGameUIVisible() )
 		return;
 
 	touch_event_t ev;
 
-	ev.type = data & 0xFFFF;
-	ev.fingerid = (data >> 16) & 0xFFFF;
-	ev.x = (double)((data2 >> 16) & 0xFFFF)  / 0xFFFF;
-	ev.y = (double)(data2 & 0xFFFF) / 0xFFFF;
+	ev.type = type;
+	ev.fingerid = fingerId;
+	memcpy( &ev.x, &x, sizeof(ev.x) );
+	memcpy( &ev.y, &y, sizeof(ev.y) );
 
-	union{uint i;float f;} ifconv;
-	ifconv.i = data3;
-	ev.dx = ifconv.f;
-
-	ifconv.i = data4;
-	ev.dy = ifconv.f;
+	if( type == IE_FingerMotion )
+		inputsystem->GetTouchAccumulators( fingerId, ev.dx, ev.dy );
 
 	gTouch.ProcessEvent( &ev );
 }

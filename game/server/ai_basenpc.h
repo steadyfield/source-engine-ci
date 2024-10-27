@@ -773,6 +773,8 @@ private:
 	static float		gm_flTimeLastSpawn;
 	static int			gm_nSpawnedThisFrame;
 
+	float				m_flRunSpeedMod;
+
 protected: // pose parameters
 	int					m_poseAim_Pitch;
 	int					m_poseAim_Yaw;
@@ -1761,7 +1763,7 @@ public:
 
 	virtual Activity	GetFlinchActivity( bool bHeavyDamage, bool bGesture );
 	
-	virtual bool		ShouldGib( const CTakeDamageInfo &info ) { return false; }	// Always ragdoll, unless specified by the leaf class
+	virtual bool		ShouldGib( const CTakeDamageInfo &info );
 	virtual bool		Event_Gibbed( const CTakeDamageInfo &info );
 	virtual void		Event_Killed( const CTakeDamageInfo &info );
 

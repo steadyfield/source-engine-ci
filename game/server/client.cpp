@@ -45,6 +45,8 @@
 #include "weapon_physcannon.h"
 #endif
 
+#include "class_override.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -789,6 +791,7 @@ CON_COMMAND( say_team, "Display player message to team" )
 //------------------------------------------------------------------------------
 CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 {
+
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if ( pPlayer 
 		&& (gpGlobals->maxClients == 1 || sv_cheats->GetBool()) 
@@ -796,6 +799,7 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 	{
 		char item_to_give[ 256 ];
 		Q_strncpy( item_to_give, args[1], sizeof( item_to_give ) );
+		Q_strncpy(item_to_give, ReplaceEntity(item_to_give), sizeof(item_to_give));
 		Q_strlower( item_to_give );
 
 		// Don't allow regular users to create point_servercommand entities for the same reason as blocking ent_fire

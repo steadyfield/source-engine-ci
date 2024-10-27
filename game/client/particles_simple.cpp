@@ -230,6 +230,7 @@ CSimpleEmitter::CSimpleEmitter( const char *pDebugName ) : CParticleEffect( pDeb
 
 CSimpleEmitter::~CSimpleEmitter()
 {
+	m_flGravity = 0.0f;
 }
 
 CSmartPtr<CSimpleEmitter> CSimpleEmitter::Create( const char *pDebugName )
@@ -330,6 +331,8 @@ void CSimpleEmitter::UpdateVelocity( SimpleParticle *pParticle, float timeDelta 
 					pParticle->m_vecVelocity[i] = vecWind[i];
 			}
 		}
+
+		pParticle->m_vecVelocity[2] -= (m_flGravity * timeDelta);
 	}
 }
 

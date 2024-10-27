@@ -981,6 +981,19 @@ void CNPC_Stalker::DoSmokeEffect( const Vector &position )
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_Stalker::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
+}
+
 //------------------------------------------------------------------------------
 // Purpose : Draw attack beam and do damage / decals
 // Input   :

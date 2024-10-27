@@ -42,6 +42,9 @@ public:
 	bool	CreateBehaviors( void );
 	int		SelectSchedule( void );
 
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 private:
 	CAI_FollowBehavior	m_FollowBehavior;
 };
@@ -112,7 +115,6 @@ void CNPC_GMan::Spawn()
 	SetImpactEnergyScale( 0.0f ); // no physics damage on the gman
 	
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_OPEN_DOORS | bits_CAP_ANIMATEDFACE | bits_CAP_TURN_HEAD );
-	CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
 	AddEFlags( EFL_NO_DISSOLVE | EFL_NO_MEGAPHYSCANNON_RAGDOLL );
 
 	NPCInit();
@@ -157,6 +159,19 @@ int CNPC_GMan::SelectSchedule( void )
 	}
 
 	return BaseClass::SelectSchedule();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_GMan::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 //-----------------------------------------------------------------------------

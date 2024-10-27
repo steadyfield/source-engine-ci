@@ -271,7 +271,7 @@ void CNPC_Antlion::Spawn( void )
 	AddSpawnFlags( SF_NPC_FADE_CORPSE );
 #endif // _XBOX
 
-#ifdef HL2_EPISODIC
+#ifndef HL2_EPISODIC
 	if ( IsWorker() )
 	{
 		SetModel( ANTLION_WORKER_MODEL );

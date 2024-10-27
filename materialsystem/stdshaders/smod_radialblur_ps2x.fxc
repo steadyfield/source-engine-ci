@@ -1,0 +1,45 @@
+// STATIC: "CONVERT_TO_SRGB" "0..1"	[ps20b][= g_pHardwareConfig->NeedsShaderSRGBConversion()] [PC]
+// STATIC: "CONVERT_TO_SRGB" "0..0"	[= 0] [XBOX]
+
+#define HDRTYPE HDR_TYPE_NONE
+#include "common_ps_fxc.h"
+
+sampler FBSampler	        : register( s0 );
+const HALF blurScale		: register( c0 );
+const HALF viewamount		: register( c1 );
+
+//const float direction[] = {0.0, 1.0};
+
+struct PS_INPUT
+{
+	float2 texCoord				: TEXCOORD0;
+};
+ 
+//(1.0, 0.0) -> horizontal blur
+//(0.0, 1.0) -> vertical blur
+//float2 hstep;
+//float2 vstep;
+
+#define SAMPLE_COUNT 8
+
+float4 main( PS_INPUT input ) : COLOR
+{
+
+	float2 dir = input.texCoord - float2(0.5,0.5); 
+
+	float4 fbSample = tex2D( FBSampler, input.texCoord );
+	
+	for (int i = 1; i < SAMPLE_COUNT; i++) {
+		float mult = 0.02;
+		float i_inv = (float)(SAMPLE_COUNT - i) / SAMPLE_COUNT;
+		float sampledist = i * mult;
+		float2 pos1 = input.texCoord + dir * sampledist * blurScale;
+    	fbSample.r +=	tex2D(FBSampler, pos1).r * i_inv / (SAMPLE_COUNT - 1) * viewamount;
+		float2 pos2 = input.texCoord + (dir + float2(0.1, 0)) * sampledist * blurScale;
+    	fbSample.g +=	tex2D(FBSampler, pos2).g * i_inv / (SAMPLE_COUNT - 1) * viewamount;
+		float2 pos3 = input.texCoord + (dir - float2(0.1, 0)) * sampledist * blurScale;
+    	fbSample.b +=	tex2D(FBSampler, pos3).b * i_inv / (SAMPLE_COUNT - 1) * viewamount;
+    }
+
+	return FinalOutput( float4(fbSample.rgb/*+ blurSample.rgb * blurSample.a * MAX_HDR_OVERBRIGHT*/, 1.0f ), 0, PIXEL_FOG_TYPE_NONE, TONEMAP_SCALE_NONE );
+}

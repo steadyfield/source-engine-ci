@@ -37,6 +37,9 @@ public:
 	Class_T Classify ( void );
 	void	HandleAnimEvent( animevent_t *pEvent );
 	int		GetSoundInterests ( void );
+
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 };
 
 LINK_ENTITY_TO_CLASS( npc_magnusson, CNPC_Magnusson );
@@ -121,6 +124,19 @@ void CNPC_Magnusson::Precache()
 	
 	BaseClass::Precache();
 }	
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_Magnusson::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
+}
 
 //-----------------------------------------------------------------------------
 // AI Schedules Specific to this NPC

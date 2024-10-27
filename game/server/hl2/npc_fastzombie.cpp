@@ -257,6 +257,9 @@ public:
 	void Event_Killed( const CTakeDamageInfo &info );
 	bool ShouldBecomeTorso( const CTakeDamageInfo &info, float flDamageThreshold );
 
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 	virtual Vector GetAutoAimCenter() { return WorldSpaceCenter() - Vector( 0, 0, 12.0f ); }
 
 	void PainSound( const CTakeDamageInfo &info );
@@ -664,7 +667,7 @@ void CFastZombie::Spawn( void )
 		m_fIsTorso = true;
 	}
 
-#ifdef HL2_EPISODIC
+#ifndef HL2_EPISODIC
 	SetBloodColor( BLOOD_COLOR_ZOMBIE );
 #else
 	SetBloodColor( BLOOD_COLOR_YELLOW );
@@ -1039,6 +1042,19 @@ int CFastZombie::RangeAttack1Conditions( float flDot, float flDist )
 	}
 
 	return COND_CAN_RANGE_ATTACK1;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CFastZombie::TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 //-----------------------------------------------------------------------------

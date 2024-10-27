@@ -82,6 +82,10 @@
 #include "weapon_physcannon.h"
 #endif
 
+#include "COOLMOD/smod_cvars.h"
+#include "effect_dispatch_data.h"
+#include "te_effect_dispatch.h"
+
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
 
@@ -182,6 +186,8 @@ ConVar	sk_player_chest( "sk_player_chest","1" );
 ConVar	sk_player_stomach( "sk_player_stomach","1" );
 ConVar	sk_player_arm( "sk_player_arm","1" );
 ConVar	sk_player_leg( "sk_player_leg","1" );
+
+ConVar smod_player_wearhelmet("smod_player_wearhelmet", "0");
 
 //ConVar	player_usercommand_timeout( "player_usercommand_timeout", "10", 0, "After this many seconds without a usercommand from a player, the client is kicked." );
 #ifdef _DEBUG
@@ -943,6 +949,23 @@ void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 			break;
 		default:
 			break;
+		}
+
+		if (ptr->hitgroup == HITGROUP_HEAD)
+		{
+			EmitSound("Player.HeadShot");
+			if (smod_player_wearhelmet.GetBool())
+			{
+				EmitSound("Player.Helmet");
+				CEffectData data;
+
+				data.m_vOrigin = ptr->endpos;
+				data.m_vAngles = GetAbsAngles();
+
+				data.m_vNormal = ptr->plane.normal;
+
+				DispatchEffect("ManhackSparks", data);
+			}
 		}
 
 #ifdef HL2_EPISODIC
@@ -1746,6 +1769,8 @@ void CBasePlayer::Event_Dying( const CTakeDamageInfo& info )
 	angles.z = 0;
 	
 	SetLocalAngles( angles );
+	CreateRagdollEntity();
+	BecomeRagdollOnClient(vec3_origin);
 
 	SetThink(&CBasePlayer::PlayerDeathThink);
 	SetNextThink( gpGlobals->curtime + 0.1f );
@@ -4511,6 +4536,16 @@ void CBasePlayer::PostThink()
 {
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
+	// Not pitch for player
+	QAngle saveAngles = GetLocalAngles();
+
+	QAngle useAngles = saveAngles;
+	useAngles[PITCH] = 0.0f;
+
+	SetLocalAngles(useAngles);
+
+	SetLocalAngles(saveAngles);
+
 	if ( !g_fGameOver && !m_iPlayerLocked )
 	{
 		if ( IsAlive() )
@@ -4995,8 +5030,9 @@ void CBasePlayer::Spawn( void )
 	enginesound->SetPlayerDSP( user, 0, false );
 
 	CreateViewModel();
+	CreateViewModel(VM_LEGS);
 
-	SetCollisionGroup( COLLISION_GROUP_PLAYER );
+	SetCollisionGroup( COLLISION_GROUP_WEAPON );
 
 	// if the player is locked, make sure he stays locked
 	if ( m_iPlayerLocked )
@@ -5078,6 +5114,10 @@ void CBasePlayer::Precache( void )
 	PrecacheScriptSound( "Player.DrownContinue" );
 	PrecacheScriptSound( "Player.Wade" );
 	PrecacheScriptSound( "Player.AmbientUnderWater" );
+
+	PrecacheScriptSound("Player.HeadShot");
+	PrecacheScriptSound("Player.Helmet");
+
 	enginesound->PrecacheSentenceGroup( "HEV" );
 
 	// These are always needed
@@ -5992,7 +6032,7 @@ static void CreateJalopy( CBasePlayer *pPlayer )
 	// Cheat to create a jeep in front of the player
 	Vector vecForward;
 	AngleVectors( pPlayer->EyeAngles(), &vecForward );
-	CBaseEntity *pJeep = (CBaseEntity *)CreateEntityByName( "prop_vehicle_jeep" );
+	CBaseEntity *pJeep = (CBaseEntity *)CreateEntityByName( "prop_vehicle_jalopy" );
 	if ( pJeep )
 	{
 		Vector vecOrigin = pPlayer->GetAbsOrigin() + vecForward * 256 + Vector(0,0,64);
@@ -6163,6 +6203,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 #ifdef HL2_EPISODIC
 		GiveAmmo( 5,	"Hopwire" );
 #endif		
+		GiveNamedItem( "item_battery" );
 		GiveNamedItem( "weapon_smg1" );
 		GiveNamedItem( "weapon_frag" );
 		GiveNamedItem( "weapon_crowbar" );
@@ -6174,6 +6215,19 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "weapon_rpg" );
 		GiveNamedItem( "weapon_357" );
 		GiveNamedItem( "weapon_crossbow" );
+		GiveNamedItem( "weapon_ak47" );
+		GiveNamedItem( "weapon_grease" );
+		GiveNamedItem( "weapon_mp5" );
+		GiveNamedItem( "weapon_kar98" );
+		GiveNamedItem( "weapon_physgun" );
+		GiveNamedItem( "weapon_alyxgun" );
+		GiveNamedItem( "weapon_flaregun" );
+		GiveNamedItem( "weapon_gauss" );
+		GiveNamedItem( "weapon_stickybomb" );
+		GiveNamedItem( "weapon_hopwire" );
+		GiveNamedItem( "weapon_hopwire_old" );
+		GiveNamedItem( "weapon_bugspawner" );
+		GiveNamedItem( "weapon_anm14" );
 #ifdef HL2_EPISODIC
 		// GiveNamedItem( "weapon_magnade" );
 #endif
@@ -6554,6 +6608,21 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		{
 			pl->DumpPerfToRecipient( this, nRecords );
 		}
+		return true;
+	}
+	else if (!Q_stricmp(args[0], "freeaimvars"))
+	{
+		freeaimX = Q_atof(args[1]);
+		freeaimY = Q_atof(args[2]);
+
+		return true;
+	}
+	else if (stricmp(cmd, "toggle_ironsight") == 0)
+	{
+		CBaseCombatWeapon *pWeapon = GetActiveWeapon();
+		if (pWeapon != NULL)
+			pWeapon->ToggleIronsights();
+
 		return true;
 	}
 
@@ -6944,7 +7013,14 @@ void CBasePlayer::GetAutoaimVector( autoaim_params_t &params )
 	if ( ( ShouldAutoaim() == false ) || ( params.m_fScale == AUTOAIM_SCALE_DIRECT_ONLY ) )
 	{
 		Vector	forward;
-		AngleVectors( EyeAngles() + m_Local.m_vecPunchAngle, &forward );
+		QAngle angles = EyeAngles();
+		if (cl_freeaim.GetInt())
+		{
+			angles.x += freeaimY;
+			angles.y -= freeaimX;
+		}
+
+		AngleVectors(angles + m_Local.m_vecPunchAngle, &forward );
 
 		params.m_vecAutoAimDir = forward;
 		params.m_hAutoAimEntity.Set(NULL);
@@ -6958,6 +7034,12 @@ void CBasePlayer::GetAutoaimVector( autoaim_params_t &params )
 	m_vecAutoAim.Init( 0.0f, 0.0f, 0.0f );
 
 	QAngle angles = AutoaimDeflection( vecSrc, params );
+
+	if (cl_freeaim.GetInt())
+	{
+		angles.x += freeaimY;
+		angles.y -= freeaimX;
+	}
 
 	// update ontarget if changed
 	if ( !g_pGameRules->AllowAutoTargetCrosshair() )

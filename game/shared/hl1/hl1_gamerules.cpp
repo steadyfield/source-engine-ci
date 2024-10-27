@@ -1,32 +1,22 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
-//
-// Purpose: The Half-Life 1 game rules, such as the relationship tables and ammo
-//			damage cvars.
-//
-// $NoKeywords: $
-//=============================================================================//
-
 #include "cbase.h"
 #include "hl1_gamerules.h"
 #include "ammodef.h"
 
-
-#ifdef CLIENT_DLL
-
-#else
-
+#ifndef CLIENT_DLL
 	#include "player.h"
 	#include "game.h"
 	#include "gamerules.h"
 	#include "teamplay_gamerules.h"
 	#include "hl1_player.h"
 	#include "voice_gamemgr.h"
-	#include "hl1mp_weapon_satchel.h"
+	#include "hl1_weapon_satchel.h"
+	#include "func_break.h"
+	#include "physobj.h"
 #endif
-
 
 REGISTER_GAMERULES_CLASS( CHalfLife1 );
 
+ConVar sv_thirdpersondeath( "sv_thirdpersondeath", "0", FCVAR_REPLICATED | FCVAR_CHEAT);
 
 ConVar sk_plr_dmg_crowbar			( "sk_plr_dmg_crowbar",			"0", FCVAR_REPLICATED );
 
@@ -76,16 +66,41 @@ ConVar sk_max_satchel				( "sk_max_satchel",				"0", FCVAR_REPLICATED );
 
 ConVar sk_npc_dmg_12mm_bullet		( "sk_npc_dmg_12mm_bullet",		"0", FCVAR_REPLICATED );
 
-ConVar sk_mp_dmg_multiplier ( "sk_mp_dmg_multiplier", "2.0" );
+ConVar sk_mp_dmg_multiplier			( "sk_mp_dmg_multiplier", "2.0" );
 
-// Damage Queries.
+//HL:S Fix Options
+ConVar hl1_mp5_recoil("hl1_mp5_recoil",	"1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables Half-Life 1 style recoil for the MP5.");
+ConVar hl1_ragdoll_gib("hl1_ragdoll_gib", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables gibbing of ragdolls.");
+ConVar hl1_bullsquid_spit("hl1_bullsquid_spit", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Should use HL1 Bullsquid spit decal.");
+ConVar hl1_bigmomma_splash("hl1_bigmomma_splash", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Should use HL1 Bigmomma splash decal.");
+ConVar hl1_movement("hl1_movement", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Use HL1 style movement.");
+ConVar hl1_move_sounds("hl1_move_sounds", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Use HL1 movement sounds.");
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
+//Crowbar Sounds
+ConVar hl1_crowbar_sound("hl1_crowbar_sound", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound.");
+ConVar hl1_crowbar_concrete("hl1_crowbar_concrete", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on concrete.");
+ConVar hl1_crowbar_metal("hl1_crowbar_metal", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on metal.");
+ConVar hl1_crowbar_dirt("hl1_crowbar_dirt", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on dirt.");
+ConVar hl1_crowbar_vent("hl1_crowbar_vent",	"1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on vent.");
+ConVar hl1_crowbar_grate("hl1_crowbar_grate", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on grate.");
+ConVar hl1_crowbar_tile("hl1_crowbar_tile", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on tile.");
+ConVar hl1_crowbar_wood("hl1_crowbar_wood",	"0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on wood.");
+ConVar hl1_crowbar_glass("hl1_crowbar_glass", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on glass.");
+ConVar hl1_crowbar_computer("hl1_crowbar_computer", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Enables HL1 crowbar sound on computer.");
+
+ConVar hl1_crowbar_concrete_vol("hl1_crowbar_concrete_vol", "4", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on concrete.");
+ConVar hl1_crowbar_metal_vol("hl1_crowbar_metal_vol", "6", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on metal.");
+ConVar hl1_crowbar_dirt_vol("hl1_crowbar_dirt_vol", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on dirt.");
+ConVar hl1_crowbar_vent_vol("hl1_crowbar_vent_vol", "3", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on vent.");
+ConVar hl1_crowbar_grate_vol("hl1_crowbar_grate_vol", "5", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on grate.");
+ConVar hl1_crowbar_tile_vol("hl1_crowbar_tile_vol", "2", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on tile.");
+ConVar hl1_crowbar_wood_vol("hl1_crowbar_wood_vol", "2", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on wood.");
+ConVar hl1_crowbar_glass_vol("hl1_crowbar_glass_vol", "2", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on glass.");
+ConVar hl1_crowbar_computer_vol("hl1_crowbar_computer_vol", "2", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Sets the crowbar clang sound on computer.");
+
 int	CHalfLife1::Damage_GetShowOnHud( void )
 {
-	int iDamage = (DMG_POISON | DMG_ACID | DMG_DISSOLVE/*DMG_FREEZE | DMG_SLOWFREEZE*/ | DMG_DROWN | DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS | DMG_RADIATION | DMG_SHOCK);
+	int iDamage = (DMG_POISON | DMG_ACID | DMG_DISSOLVE | DMG_DROWN | DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS | DMG_RADIATION | DMG_SHOCK);
 	return iDamage;
 }
 
@@ -108,29 +123,19 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 	class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
 	{
 	public:
-		virtual bool		CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker, bool &bProximity )
+		virtual bool		CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker, bool & b )
 		{
+			b = true;
 			return true;
 		}
 	};
 	CVoiceGameMgrHelper g_VoiceGameMgrHelper;
 	IVoiceGameMgrHelper *g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
 
-	//-----------------------------------------------------------------------------
-	// Purpose:
-	// Input  :
-	// Output :
-	//-----------------------------------------------------------------------------
 	CHalfLife1::CHalfLife1()
 	{
 	}
 
-	//-----------------------------------------------------------------------------
-	// Purpose: called each time a player uses a "cmd" command
-	// Input  : *pEdict - the player who issued the command
-	//			Use engine.Cmd_Argv,  engine.Cmd_Argv, and engine.Cmd_Argc to get 
-	//			pointers the character string command.
-	//-----------------------------------------------------------------------------
 	bool CHalfLife1::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 	{
 		if( BaseClass::ClientCommand( pEdict, args ) )
@@ -144,18 +149,12 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		return false;
 	}
 
-	//-----------------------------------------------------------------------------
-	// Purpose: Player has just spawned. Equip them.
-	//-----------------------------------------------------------------------------
 	void CHalfLife1::PlayerSpawn( CBasePlayer *pPlayer )
 	{
-	//	pPlayer->EquipSuit();
+
 	}
 
 
-	//-----------------------------------------------------------------------------
-	// Purpose: MULTIPLAYER BODY QUE HANDLING
-	//-----------------------------------------------------------------------------
 	class CCorpse : public CBaseAnimating
 	{
 		DECLARE_CLASS( CCorpse, CBaseAnimating );
@@ -185,7 +184,6 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		g_pBodyQueueHead = pEntity;
 		CCorpse *p = g_pBodyQueueHead;
 		
-		// Reserve 3 more slots for dead bodies
 		for ( int i = 0; i < 3; i++ )
 		{
 			CCorpse *next = ( CCorpse * )CreateEntityByName( "bodyque" );
@@ -197,10 +195,6 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		p->SetOwnerEntity( g_pBodyQueueHead );
 	}
 
-	//-----------------------------------------------------------------------------
-	// Purpose: make a body que entry for the given ent so the ent can be respawned elsewhere
-	// GLOBALS ASSUMED SET:  g_eoBodyQueueHead
-	//-----------------------------------------------------------------------------
 	void CopyToBodyQue( CBaseAnimating *pCorpse ) 
 	{
 		if ( pCorpse->IsEffectActive( EF_NODRAW ) )
@@ -222,34 +216,20 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		g_pBodyQueueHead = (CCorpse *)pHead->GetOwnerEntity();
 	}
 
-	//------------------------------------------------------------------------------
-	// Purpose : Initialize all default class relationships
-	// Input   :
-	// Output  :
-	//------------------------------------------------------------------------------
 	void CHalfLife1::InitDefaultAIRelationships( void )
 	{
 		int i, j;
 
-		//  Allocate memory for default relationships
 		CBaseCombatCharacter::AllocateDefaultRelationships();
 
-		// --------------------------------------------------------------
-		// First initialize table so we can report missing relationships
-		// --------------------------------------------------------------
 		for (i=0;i<NUM_AI_CLASSES;i++)
 		{
 			for (j=0;j<NUM_AI_CLASSES;j++)
 			{
-				// By default all relationships are neutral of priority zero
 				CBaseCombatCharacter::SetDefaultRelationship( (Class_T)i, (Class_T)j, D_NU, 0 );
 			}
 		}
 
-
-		// ------------------------------------------------------------
-		//	> CLASS_NONE
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_PLAYER,			D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_HUMAN_PASSIVE,	D_NU, 0 );		
@@ -263,11 +243,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_NONE,				CLASS_BARNACLE,			D_NU, 0 );
 		
-		
-		// ------------------------------------------------------------
-		//	> CLASS_HUMAN_PASSIVE
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_PLAYER,			D_LI, 0 );	
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_HUMAN_PASSIVE,	D_LI, 0 );
@@ -281,12 +258,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_PASSIVE,		CLASS_BARNACLE,			D_NU, 0 );
 		
-		
-
-		// ------------------------------------------------------------
-		//	> CLASS_PLAYER
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_PLAYER,			D_LI, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_HUMAN_PASSIVE,	D_LI, 0 );	
@@ -300,10 +273,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_ALIEN_BIOWEAPON,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_PLAYER_BIOWEAPON,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER,				CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_PLAYER_ALLY
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_PLAYER,			D_LI, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_HUMAN_PASSIVE,	D_LI, 0 );	
@@ -317,10 +288,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_ALLY,		CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_ALIEN_PREY
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_PLAYER,			D_HT, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_PLAYER_ALLY,		D_HT, 0 );
@@ -328,16 +297,14 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_ALIEN_PREY,		D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_ALIEN_MILITARY,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_ALIEN_MONSTER,	D_NU, 0 );
-		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_ALIEN_PREDATOR,	D_FR, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_ALIEN_PREDATOR,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_HUMAN_MILITARY,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_MACHINE,			D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREY,			CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_ALIEN_MILITARY
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_PLAYER,			D_HT, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_PLAYER_ALLY,		D_HT, 0 );
@@ -351,10 +318,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MILITARY,		CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_ALIEN_MONSTER
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_PLAYER,			D_HT, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_PLAYER_ALLY,		D_HT, 0 );
@@ -368,10 +333,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_MONSTER,		CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_ALIEN_PREDATOR
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_PLAYER,			D_HT, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_PLAYER_ALLY,		D_HT, 0 );
@@ -385,10 +348,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_PREDATOR,		CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_HUMAN_MILITARY
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_NONE,				D_NU, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_PLAYER,			D_HT, 0 );			
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_PLAYER_ALLY,		D_HT, 0 );
@@ -402,10 +363,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_HUMAN_MILITARY,		CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_MACHINE
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_NONE,				D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_MACHINE,			D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_PLAYER,			D_HT, 0 );			
@@ -419,10 +378,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_ALIEN_BIOWEAPON,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_PLAYER_BIOWEAPON,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_MACHINE,			CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_ALIEN_BIOWEAPON
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_NONE,				D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_MACHINE,			D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_PLAYER,			D_HT, 0 );			
@@ -436,10 +393,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_PLAYER_BIOWEAPON,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_ALIEN_BIOWEAPON,	CLASS_BARNACLE,			D_NU, 0 );
 
-		// ------------------------------------------------------------
-		//	> CLASS_PLAYER_BIOWEAPON
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_NONE,				D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_MACHINE,			D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_PLAYER,			D_HT, 0 );			
@@ -453,11 +408,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_ALIEN_BIOWEAPON,	D_HT, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_PLAYER_BIOWEAPON,	CLASS_BARNACLE,			D_NU, 0 );
 		
-		
-		// ------------------------------------------------------------
-		//	> CLASS_INSECT
-		// ------------------------------------------------------------
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_NONE,				D_FR, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_MACHINE,			D_FR, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_PLAYER,			D_FR, 0 );			
@@ -471,13 +423,24 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_PLAYER_BIOWEAPON,	D_NU, 0 );
 		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_INSECT,				CLASS_BARNACLE,			D_NU, 0 );
+
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_NONE,				D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_MACHINE,			D_HT, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_PLAYER,			D_HT, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_HUMAN_PASSIVE,	D_HT, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_HUMAN_MILITARY,	D_HT, 0	);
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_ALIEN_MILITARY,	D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_ALIEN_MONSTER,	D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_ALIEN_PREY,		D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_ALIEN_PREDATOR,	D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_PLAYER_ALLY,		D_HT, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_ALIEN_BIOWEAPON,	D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_PLAYER_BIOWEAPON, D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_INSECT,			D_NU, 0 );
+		CBaseCombatCharacter::SetDefaultRelationship( CLASS_BARNACLE,			CLASS_BARNACLE,			D_NU, 0 );
 	}
 
-	//------------------------------------------------------------------------------
-	// Purpose : Return classify text for classify type
-	// Input   :
-	// Output  :
-	//------------------------------------------------------------------------------
 	const char* CHalfLife1::AIClassText(int classType)
 	{
 		switch (classType)
@@ -494,6 +457,7 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 			case CLASS_MACHINE:			return "CLASS_MACHINE";
 			case CLASS_ALIEN_BIOWEAPON:	return "CLASS_ALIEN_BIOWEAPON";
 			case CLASS_PLAYER_BIOWEAPON: return "CLASS_PLAYER_BIOWEAPON";
+			case CLASS_BARNACLE:		return "CLASS_BARNACLE";
 		
 			default:					return "MISSING CLASS in ClassifyText()";
 		}
@@ -525,18 +489,17 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 		
 	float CHalfLife1::FlPlayerFallDamage( CBasePlayer *pPlayer )
 	{
-		CBaseEntity *pGroundEntity = pPlayer->GetGroundEntity();
-
-		if( pGroundEntity && pGroundEntity->ClassMatches( "func_breakable" ) )
-		{		
-			// FIXME touchtrace will be wrong.
-			pGroundEntity->Touch( pPlayer );
-
-			if( pGroundEntity->m_iHealth <= 0 )
-			{
-				// The breakable broke when we hit it, don't take falling damage
+		if (FClassnameIs(pPlayer->GetGroundEntity(), "func_breakable"))
+		{
+			CBreakable* breakable = static_cast<CBreakable*>(pPlayer->GetGroundEntity());
+			if (breakable->GetSpawnFlags() & SF_BREAK_TOUCH || breakable->GetHealth() == 0)
 				return 0;
-			}
+		}
+		else if (FClassnameIs(pPlayer->GetGroundEntity(), "func_physbox"))
+		{
+			CPhysBox* physbox = static_cast<CPhysBox*>(pPlayer->GetGroundEntity());
+			if (physbox->GetSpawnFlags() & SF_BREAK_TOUCH || physbox->GetSpawnFlags() & SF_BREAK_PRESSURE || physbox->GetHealth() == 0)
+				return 0;
 		}
 
 		return BaseClass::FlPlayerFallDamage( pPlayer );
@@ -546,7 +509,6 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 	class CTraceFilterHitAllExcept : public CTraceFilter
 	{
 	public:
-		// It does have a base, but we'll never network anything below here..
 		DECLARE_CLASS_NOBASE( CTraceFilterHitAllExcept );
 
 		CTraceFilterHitAllExcept( const IHandleEntity *passedict )
@@ -584,41 +546,35 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 
 		int bInWater = (UTIL_PointContents ( vecSrc ) & MASK_WATER) ? true : false;
 		
-		vecSrc.z += 1;// in case grenade is lying on the ground
+		vecSrc.z += 1;
 
-		// iterate on all entities in the vicinity.
 		for ( CEntitySphereQuery sphere( vecSrc, flRadius ); ( pEntity = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
 		{
 			if ( pEntity->m_takedamage != DAMAGE_NO )
 			{
-				// UNDONE: this should check a damage mask, not an ignore
 				if ( iClassIgnore != CLASS_NONE && pEntity->Classify() == iClassIgnore )
-				{// houndeyes don't hurt other houndeyes with their attack
+				{
 					continue;
 				}
 
-				// blast's don't tavel into or out of water
 				if (bInWater && pEntity->GetWaterLevel() == 0)
 					continue;
 				if (!bInWater && pEntity->GetWaterLevel() == 3)
 					continue;
 
-				// radius damage can only be blocked by the world
 				vecSpot = pEntity->BodyTarget( vecSrc );
 
 				CTraceFilterHitAllExcept traceFilter( info.GetInflictor() );
   				UTIL_TraceLine( vecSrc, vecSpot, CONTENTS_SOLID, &traceFilter, &tr );
 				
 				if ( tr.fraction == 1.0 || tr.m_pEnt == pEntity )
-				{// the explosion can 'see' this entity, so hurt them!
+				{
 					if (tr.startsolid)
 					{
-						// if we're stuck inside them, fixup the position and distance
 						tr.endpos = vecSrc;
 						tr.fraction = 0.0;
 					}
 					
-					// decrease damage for an ent that's farther from the bomb.
 					flAdjustedDamage = ( vecSrc - tr.endpos ).Length() * falloff;
 					flAdjustedDamage = info.GetDamage() - flAdjustedDamage;
 				
@@ -630,14 +586,12 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 	 					Vector vecDir = vecSpot - vecSrc;
 	 					VectorNormalize( vecDir );
 
-						// If we don't have a damage force, manufacture one
 						if ( adjustedInfo.GetDamagePosition() == vec3_origin || adjustedInfo.GetDamageForce() == vec3_origin )
 						{
 							CalculateExplosiveDamageForce( &adjustedInfo, vecDir, vecSrc );
 						}
 						else
 						{
-							// Assume the force passed in is the maximum force. Decay it based on falloff.
 							float flForce = adjustedInfo.GetDamageForce().Length() * falloff;
 							adjustedInfo.SetDamageForce( vecDir * flForce );
 							adjustedInfo.SetDamagePosition( vecSrc );
@@ -655,7 +609,7 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 						{
 							pEntity->TakeDamage( adjustedInfo );
 						}
-						// Now hit all triggers along the way that respond to damage... 
+
 						Vector dir = tr.endpos - vecSrc;
 						pEntity->TraceAttackToTriggers( adjustedInfo, vecSrc, tr.endpos, dir );
 					}
@@ -665,15 +619,8 @@ int	CHalfLife1::Damage_GetShowOnHud( void )
 	}
 #endif
 
-
-
-// ------------------------------------------------------------------------------------- //
-// CHalfLife1 shared implementation.
-// ------------------------------------------------------------------------------------- //
-
 bool CHalfLife1::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 {
-	// HL2 treats movement and tracing against players the same, so just remap here
 	if ( collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT )
 	{
 		collisionGroup0 = COLLISION_GROUP_PLAYER;
@@ -686,7 +633,6 @@ bool CHalfLife1::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 
 	if ( collisionGroup0 > collisionGroup1 )
 	{
-		// swap so that lowest is always first
 		int tmp = collisionGroup0;
 		collisionGroup0 = collisionGroup1;
 		collisionGroup1 = tmp;
@@ -695,19 +641,11 @@ bool CHalfLife1::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 ); 
 }
 
-// ------------------------------------------------------------------------------------- //
-// Global functions.
-// ------------------------------------------------------------------------------------- //
-
-// shared ammo definition
-// JAY: Trying to make a more physical bullet response
 #define BULLET_MASS_GRAINS_TO_LB(grains)	(0.002285*(grains)/16.0f)
 #define BULLET_MASS_GRAINS_TO_KG(grains)	lbs2kg(BULLET_MASS_GRAINS_TO_LB(grains))
 
-// exaggerate all of the forces, but use real numbers to keep them consistent
 #define BULLET_IMPULSE_EXAGGERATION			3
 
-// convert a velocity in ft/sec and a mass in grains to an impulse in kg in/s
 #define BULLET_IMPULSE(grains, ftpersec)	((ftpersec)*12*BULLET_MASS_GRAINS_TO_KG(grains)*BULLET_IMPULSE_EXAGGERATION)
 
 CAmmoDef *GetAmmoDef()

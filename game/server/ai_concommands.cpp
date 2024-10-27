@@ -286,6 +286,18 @@ CON_COMMAND(ai_show_node, "Highlight the specified node")
 	}
 }
 
+CON_COMMAND(ai_show_nodes, "Highlight all ai nodes")
+{
+	for(int node = 0; node < g_pBigAINet->NumNodes(); node++)
+	{
+		CAI_Node* pAINode = g_pBigAINet->GetNode(node, false);
+		if (pAINode)
+		{
+			NDebugOverlay::Cross3D(pAINode->GetOrigin(), 1024, 255, 255, 255, true, 5.0);
+		}
+	}
+}
+
 //------------------------------------------------------------------------------
 // Purpose: Show visibility from selected node to all other nodes
 //------------------------------------------------------------------------------

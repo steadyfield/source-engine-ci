@@ -18,9 +18,9 @@
 
 extern const char* g_pModelNameLaser;
 
-ConVar    sk_plr_dmg_tripmine		( "sk_plr_dmg_tripmine","150"); // commented values in hl2/skill.cfg
-ConVar    sk_npc_dmg_tripmine		( "sk_npc_dmg_tripmine","125");
-ConVar    sk_tripmine_radius		( "sk_tripmine_radius","200");
+ConVar    sk_plr_dmg_tripmine		( "sk_plr_dmg_tripmine","0");
+ConVar    sk_npc_dmg_tripmine		( "sk_npc_dmg_tripmine","0");
+ConVar    sk_tripmine_radius		( "sk_tripmine_radius","0");
 
 LINK_ENTITY_TO_CLASS( npc_tripmine, CTripmineGrenade );
 
@@ -65,6 +65,9 @@ void CTripmineGrenade::Spawn( void )
 
 	SetCycle( 0.0f );
 	m_nBody			= 3;
+	m_flDamage		= sk_plr_dmg_tripmine.GetFloat();
+	m_DmgRadius		= sk_tripmine_radius.GetFloat();
+
 	ResetSequenceInfo( );
 	m_flPlaybackRate	= 0;
 
@@ -80,8 +83,7 @@ void CTripmineGrenade::Spawn( void )
 	m_iHealth = 1;
 
 	EmitSound( "TripmineGrenade.Place" );
-	SetDamage( sk_plr_dmg_tripmine.GetFloat() );
-	SetDamageRadius( sk_tripmine_radius.GetFloat() );
+	SetDamage ( 200 );
 
 	// Tripmine sits at 90 on wall so rotate back to get m_vecDir
 	QAngle angles = GetAbsAngles();
@@ -266,7 +268,7 @@ void CTripmineGrenade::DelayDeathThink( void )
 	UTIL_TraceLine ( GetAbsOrigin() + m_vecDir * 8, GetAbsOrigin() - m_vecDir * 64,  MASK_SOLID, this, COLLISION_GROUP_NONE, & tr);
 	UTIL_ScreenShake( GetAbsOrigin(), 25.0, 150.0, 1.0, 750, SHAKE_START );
 
-	ExplosionCreate( GetAbsOrigin() + m_vecDir * 8, GetAbsAngles(), m_hOwner, GetDamage(), GetDamageRadius(), 
+	ExplosionCreate( GetAbsOrigin() + m_vecDir * 8, GetAbsAngles(), m_hOwner, GetDamage(), 200, 
 		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 
 	UTIL_Remove( this );

@@ -41,9 +41,10 @@ public:
 	// utility function
 	static void DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy, float maxVerticleKickAngle, float fireDurationTime, float slideLimitTime );
 
-protected:
+	// made public
+	int	m_nShotsFired;	// Number of consecutive shots fired 
 
-	int	m_nShotsFired;	// Number of consecutive shots fired
+protected:
 
 	float	m_flNextSoundTime;	// real-time clock of when to make next sound
 };

@@ -12,8 +12,39 @@
 #include "in_buttons.h"
 #include "collisionutils.h"
 
+#include "fmtstr.h"
+#include "clientmode_shared.h"
+#include "materialsystem/imaterialvar.h"
+#include "materialsystem/imaterialsystem.h"
+
+#include "COOLMOD/smod_cvars.h"
+#include "materialsystem/imaterialsystemhardwareconfig.h"
+
+#include "ScreenSpaceEffects.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+//-----------------------------------------------------------------------------
+// Purpose: Called when the player toggles nightvision
+// Input  : *pData - the int value of the nightvision state
+//			*pStruct - the player
+//			*pOut - 
+//-----------------------------------------------------------------------------
+void RecvProxy_NightVision(const CRecvProxyData *pData, void *pStruct, void *pOut)
+{
+	C_BaseHLPlayer *pPlayerData = (C_BaseHLPlayer *)pStruct;
+
+	bool bNightVisionOn = (pData->m_Value.m_Int > 0);
+
+	if (pPlayerData->m_bNightVisionOn != bNightVisionOn)
+	{
+		if (bNightVisionOn)
+			pPlayerData->m_flNightVisionAlpha = 1;
+	}
+
+	pPlayerData->m_bNightVisionOn = bNightVisionOn;
+}
 
 // How fast to avoid collisions with center of other object, in units per second
 #define AVOID_SPEED 2000.0f
@@ -28,15 +59,254 @@ extern ConVar sensitivity;
 ConVar cl_npc_speedmod_intime( "cl_npc_speedmod_intime", "0.25", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 ConVar cl_npc_speedmod_outtime( "cl_npc_speedmod_outtime", "1.5", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 
+ConVar r_radialblur_scale("r_screenblur_amount", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+ConVar r_ironsightblur_scale("r_ironsightblur_amount", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+extern ConVar mat_distanceblur_scale;
+
+//C_BaseHLRagdoll
+
+IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseHLRagdoll, DT_HL2Ragdoll, CHL2Ragdoll)
+RecvPropVector(RECVINFO(m_vecRagdollOrigin)),
+RecvPropEHandle(RECVINFO(m_hPlayer)),
+RecvPropInt(RECVINFO(m_nModelIndex)),
+RecvPropInt(RECVINFO(m_nForceBone)),
+RecvPropVector(RECVINFO(m_vecForce)),
+RecvPropVector(RECVINFO(m_vecRagdollVelocity))
+END_RECV_TABLE()
+
+C_BaseHLRagdoll::C_BaseHLRagdoll()
+{
+}
+
+C_BaseHLRagdoll::~C_BaseHLRagdoll()
+{
+	PhysCleanupFrictionSounds(this);
+
+	if (m_hPlayer)
+	{
+		m_hPlayer->CreateModelInstance();
+	}
+}
+
+void C_BaseHLRagdoll::Interp_Copy(C_BaseAnimatingOverlay *pSourceEntity)
+{
+	if (!pSourceEntity)
+		return;
+
+	VarMapping_t *pSrc = pSourceEntity->GetVarMapping();
+	VarMapping_t *pDest = GetVarMapping();
+
+	// Find all the VarMapEntry_t's that represent the same variable.
+	for (int i = 0; i < pDest->m_Entries.Count(); i++)
+	{
+		VarMapEntry_t *pDestEntry = &pDest->m_Entries[i];
+		const char *pszName = pDestEntry->watcher->GetDebugName();
+		for (int j = 0; j < pSrc->m_Entries.Count(); j++)
+		{
+			VarMapEntry_t *pSrcEntry = &pSrc->m_Entries[j];
+			if (!Q_strcmp(pSrcEntry->watcher->GetDebugName(), pszName))
+			{
+				pDestEntry->watcher->Copy(pSrcEntry->watcher);
+				break;
+			}
+		}
+	}
+}
+
+void C_BaseHLRagdoll::ImpactTrace(trace_t *pTrace, int iDamageType, char *pCustomImpactName)
+{
+	IPhysicsObject *pPhysicsObject = VPhysicsGetObject();
+
+	if (!pPhysicsObject)
+		return;
+
+	Vector dir = pTrace->endpos - pTrace->startpos;
+
+	if (iDamageType == DMG_BLAST)
+	{
+		dir *= 4000;  // Adjust impact strength
+
+		// Apply force at object mass center
+		pPhysicsObject->ApplyForceCenter(dir);
+	}
+	else
+	{
+		Vector hitpos;
+
+		VectorMA(pTrace->startpos, pTrace->fraction, dir, hitpos);
+		VectorNormalize(dir);
+
+		dir *= 4000;  // Adjust impact strength
+
+		// Apply force where we hit it
+		pPhysicsObject->ApplyForceOffset(dir, hitpos);
+
+		// Blood spray!
+		//FX_CS_BloodSpray( hitpos, dir, 10 );
+	}
+
+	m_pRagdoll->ResetRagdollSleepAfterTime();
+}
+
+void C_BaseHLRagdoll::CreateHL2Ragdoll(void)
+{
+	// First, initialize all our data. If we have the player's entity on our client,
+	// then we can make ourselves start exactly where the player is.
+	C_BasePlayer *pPlayer = dynamic_cast<C_BasePlayer *>(m_hPlayer.Get());
+
+	if (pPlayer && !pPlayer->IsDormant())
+	{
+		// Move my current model instance to the ragdoll's so decals are preserved.
+		pPlayer->SnatchModelInstance(this);
+
+		VarMapping_t *varMap = GetVarMapping();
+
+		// Copy all the interpolated vars from the player entity.
+		// The entity uses the interpolated history to get bone velocity.
+		bool bRemotePlayer = (pPlayer != C_BasePlayer::GetLocalPlayer());
+		if (bRemotePlayer)
+		{
+			Interp_Copy(pPlayer);
+
+			SetAbsAngles(pPlayer->GetRenderAngles());
+			GetRotationInterpolator().Reset();
+
+			m_flAnimTime = pPlayer->m_flAnimTime;
+			SetSequence(pPlayer->GetSequence());
+			m_flPlaybackRate = pPlayer->GetPlaybackRate();
+		}
+		else
+		{
+			// This is the local player, so set them in a default
+			// pose and slam their velocity, angles and origin
+			SetAbsOrigin(m_vecRagdollOrigin);
+
+			SetAbsAngles(pPlayer->GetRenderAngles());
+
+			SetAbsVelocity(m_vecRagdollVelocity);
+
+			int iSeq = pPlayer->GetSequence();
+			if (iSeq == -1)
+			{
+				Assert(false);	// missing walk_lower?
+				iSeq = 0;
+			}
+
+			SetSequence(iSeq);	// walk_lower, basic pose
+			SetCycle(0.0);
+
+			Interp_Reset(varMap);
+		}
+	}
+	else
+	{
+		// Overwrite network origin so later interpolation will
+		// use this position
+		SetNetworkOrigin(m_vecRagdollOrigin);
+
+		SetAbsOrigin(m_vecRagdollOrigin);
+		SetAbsVelocity(m_vecRagdollVelocity);
+
+		Interp_Reset(GetVarMapping());
+
+	}
+
+	SetModelIndex(m_nModelIndex);
+
+	// Make us a ragdoll...
+	m_nRenderFX = kRenderFxRagdoll;
+
+	matrix3x4_t boneDelta0[MAXSTUDIOBONES];
+	matrix3x4_t boneDelta1[MAXSTUDIOBONES];
+	matrix3x4_t currentBones[MAXSTUDIOBONES];
+	const float boneDt = 0.05f;
+
+	if (pPlayer && !pPlayer->IsDormant())
+	{
+		pPlayer->GetRagdollInitBoneArrays(boneDelta0, boneDelta1, currentBones, boneDt);
+	}
+	else
+	{
+		GetRagdollInitBoneArrays(boneDelta0, boneDelta1, currentBones, boneDt);
+	}
+
+	InitAsClientRagdoll(boneDelta0, boneDelta1, currentBones, boneDt);
+}
+
+void C_BaseHLRagdoll::OnDataChanged(DataUpdateType_t type)
+{
+	BaseClass::OnDataChanged(type);
+
+	if (type == DATA_UPDATE_CREATED)
+	{
+		CreateHL2Ragdoll();
+	}
+}
+
+IRagdoll *C_BaseHLRagdoll::GetIRagdoll() const
+{
+	return m_pRagdoll;
+}
+
+void C_BaseHLRagdoll::UpdateOnRemove(void)
+{
+	VPhysicsSetObject(NULL);
+
+	BaseClass::UpdateOnRemove();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Clear out any face/eye values stored in the material system
+//-----------------------------------------------------------------------------
+void C_BaseHLRagdoll::SetupWeights(const matrix3x4_t *pBoneToWorld, int nFlexWeightCount, float *pFlexWeights, float *pFlexDelayedWeights)
+{
+	BaseClass::SetupWeights(pBoneToWorld, nFlexWeightCount, pFlexWeights, pFlexDelayedWeights);
+
+	static float destweight[128];
+	static bool bIsInited = false;
+
+	CStudioHdr *hdr = GetModelPtr();
+	if (!hdr)
+		return;
+
+	int nFlexDescCount = hdr->numflexdesc();
+	if (nFlexDescCount)
+	{
+		Assert(!pFlexDelayedWeights);
+		memset(pFlexWeights, 0, nFlexWeightCount * sizeof(float));
+	}
+
+	if (m_iEyeAttachment > 0)
+	{
+		matrix3x4_t attToWorld;
+		if (GetAttachment(m_iEyeAttachment, attToWorld))
+		{
+			Vector local, tmp;
+			local.Init(1000.0f, 0.0f, 0.0f);
+			VectorTransform(local, attToWorld, tmp);
+			modelrender->SetViewTarget(GetModelPtr(), GetBody(), tmp);
+		}
+	}
+}
+
 IMPLEMENT_CLIENTCLASS_DT(C_BaseHLPlayer, DT_HL2_Player, CHL2_Player)
 	RecvPropDataTable( RECVINFO_DT(m_HL2Local),0, &REFERENCE_RECV_TABLE(DT_HL2Local) ),
 	RecvPropBool( RECVINFO( m_fIsSprinting ) ),
+	RecvPropEHandle(RECVINFO(m_hRagdoll)),
+	RecvPropFloat(RECVINFO(m_flBlastEffectTime)),
+	RecvPropFloat(RECVINFO(m_flBlurTime)),
+	RecvPropFloat(RECVINFO(m_flIronsightBlurTime)),
+	RecvPropFloat(RECVINFO(m_flFPBlur)),
+	RecvPropInt(RECVINFO(m_bNightVisionOn), 0, RecvProxy_NightVision),
+	RecvPropInt(RECVINFO(m_iShotsFired)),
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_BaseHLPlayer )
 	DEFINE_PRED_TYPEDESCRIPTION( m_HL2Local, C_HL2PlayerLocalData ),
 	DEFINE_PRED_FIELD( m_fIsSprinting, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
+
+extern IScreenSpaceEffectManager *g_pScreenSpaceEffects;
 
 //-----------------------------------------------------------------------------
 // Purpose: Drops player's primary weapon
@@ -61,11 +331,27 @@ C_BaseHLPlayer::C_BaseHLPlayer()
 	AddVar( &m_Local.m_vecPunchAngle, &m_Local.m_iv_vecPunchAngle, LATCH_SIMULATION_VAR );
 	AddVar( &m_Local.m_vecPunchAngleVel, &m_Local.m_iv_vecPunchAngleVel, LATCH_SIMULATION_VAR );
 
+	// Here we create and init the player animation state.
+	m_pPlayerAnimState = CreatePlayerAnimationState(this);
+
 	m_flZoomStart		= 0.0f;
 	m_flZoomEnd			= 0.0f;
 	m_flZoomRate		= 0.0f;
 	m_flZoomStartTime	= 0.0f;
 	m_flSpeedMod		= cl_forwardspeed.GetFloat();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BaseHLPlayer::AddEntity(void)
+{
+	BaseClass::AddEntity();
+
+	m_pPlayerAnimState->Update();
+
+	// Zero out model pitch, blending takes care of all of it.
+	SetLocalAnglesDim(X_INDEX, 0);
 }
 
 //-----------------------------------------------------------------------------
@@ -81,6 +367,95 @@ void C_BaseHLPlayer::OnDataChanged( DataUpdateType_t updateType )
 	}
 
 	BaseClass::OnDataChanged( updateType );
+}
+
+void C_BaseHLPlayer::SetIronsightBlurTime(float amount)
+{
+	m_flIronsightBlurTime = amount;
+}
+
+void C_BaseHLPlayer::SetBlastEffectTime()
+{
+	m_flBlastEffectTime = 2;
+}
+
+void C_BaseHLPlayer::SetBlurTime()
+{
+	m_flBlurTime = 2;
+	m_bBlastEffectBlur = true;
+}
+
+void C_BaseHLPlayer::SetFirstPersonBlurVar(float amount)
+{
+	m_flFPBlur = amount;
+}
+
+void C_BaseHLPlayer::ClientThink()
+{
+	if (cl_freeaim.GetInt())
+	{
+		float mouseX, mouseY;
+		ClientModeShared *mode = (ClientModeShared *)GetClientModeNormal();
+		mode->GetMouseXAndY(mouseX, mouseY);
+		engine->ServerCmd(CFmtStr("freeaimvars %f %f", mouseX, mouseY));
+	}
+
+	if (m_bBlastEffectBlur)
+	{
+		// Create a keyvalue block to set these params
+		KeyValues *pKeys = new KeyValues("keys");
+		if (pKeys == NULL)
+			return;
+
+		// Set our keys
+		pKeys->SetFloat("duration", 2.0f);
+		pKeys->SetInt("fadeout", 1);
+
+		g_pScreenSpaceEffects->SetScreenSpaceEffectParams("smod_blur", pKeys);
+		g_pScreenSpaceEffects->EnableScreenSpaceEffect("smod_blur");
+		m_bBlastEffectBlur = false;
+	}
+
+	float amtRadialGoal = 0;
+
+	if (m_flBlastEffectTime != amtRadialGoal)
+		m_flBlastEffectTime = Approach(amtRadialGoal, m_flBlastEffectTime, gpGlobals->frametime * 2);
+
+	float amtBlurGoal = 0;
+
+	if (m_flBlurTime != amtBlurGoal)
+		m_flBlurTime = Approach(amtBlurGoal, m_flBlurTime, gpGlobals->frametime * 5);
+
+	IMaterial *pMaterial;
+	bool foundVar;
+	pMaterial = materials->FindMaterial("shaders/radialblur", TEXTURE_GROUP_OTHER, true);
+	IMaterialVar *RadialBlurScale = pMaterial->FindVar("$blurscale", &foundVar, false);
+	RadialBlurScale->SetFloatValue(-m_flBlastEffectTime * 5);
+	IMaterialVar *RadialAmount = pMaterial->FindVar("$viewamount", &foundVar, false);
+	RadialAmount->SetFloatValue(0.25f);
+
+	IMaterial *pBlurMaterial;
+	pBlurMaterial = materials->FindMaterial("shaders/blur", TEXTURE_GROUP_OTHER, true);
+	IMaterialVar *BlurScale = pBlurMaterial->FindVar("$blurscale", &foundVar, false);
+	BlurScale->SetFloatValue(m_flBlurTime / 4 * r_radialblur_scale.GetFloat());
+	IMaterialVar *BlurAmount = pBlurMaterial->FindVar("$viewamount", &foundVar, false);
+	BlurAmount->SetFloatValue(0.125f);
+
+	IMaterial *pIronSightBlurMaterial;
+	pIronSightBlurMaterial = materials->FindMaterial("shaders/ironsight_blur", TEXTURE_GROUP_OTHER, true);
+	IMaterialVar *IronsightBlurScale = pIronSightBlurMaterial->FindVar("$blurscale", &foundVar, false);
+	IronsightBlurScale->SetFloatValue(m_flIronsightBlurTime / 4 * r_ironsightblur_scale.GetFloat());
+	IMaterialVar *IronsightBlurAmount = pIronSightBlurMaterial->FindVar("$viewamount", &foundVar, false);
+	IronsightBlurAmount->SetFloatValue(0.25f);
+
+	IMaterial *pFPBlurMaterial;
+	pFPBlurMaterial = materials->FindMaterial("shaders/firstpersonblur", TEXTURE_GROUP_OTHER, true);
+	IMaterialVar *FPBlurScale = pFPBlurMaterial->FindVar("$blurscale", &foundVar, false);
+	FPBlurScale->SetFloatValue(m_flFPBlur * mat_distanceblur_scale.GetFloat());
+	IMaterialVar *FPBlurAmount = pBlurMaterial->FindVar("$viewamount", &foundVar, false);
+	FPBlurAmount->SetFloatValue(0.125f);
+
+	BaseClass::ClientThink();
 }
 
 //-----------------------------------------------------------------------------
@@ -161,9 +536,9 @@ int C_BaseHLPlayer::DrawModel( int flags )
 
 	SetLocalAngles( useAngles );
 
-	int iret = BaseClass::DrawModel( flags );
+	SetLocalAngles(saveAngles);
 
-	SetLocalAngles( saveAngles );
+	int iret = BaseClass::DrawModel( flags );
 
 	return iret;
 }
@@ -234,6 +609,27 @@ bool C_BaseHLPlayer::TestMove( const Vector &pos, float fVertDist, float radius,
 		return false;
 
 	return true;
+}
+
+void C_BaseHLPlayer::CalcDeathCamView(Vector &eyeOrigin, QAngle &eyeAngles, float &fov)
+{
+	// The player's ragdoll has been created.
+	if (m_hRagdoll.Get())
+	{
+		// We get the location of the model's eyes.
+		C_BaseHLRagdoll *pRagdoll = dynamic_cast<C_BaseHLRagdoll *>(m_hRagdoll.Get());
+		pRagdoll->GetAttachment(pRagdoll->LookupAttachment("eyes"), eyeOrigin, eyeAngles);
+
+		// We adjust the camera in the eyes of the model.
+		Vector vForward;
+		AngleVectors(eyeAngles, &vForward);
+
+		trace_t tr;
+		UTIL_TraceLine(eyeOrigin, eyeOrigin + (vForward * 10000), MASK_ALL, pRagdoll, COLLISION_GROUP_NONE, &tr);
+
+		if ((!(tr.fraction < 1) || (tr.endpos.DistTo(eyeOrigin) > 25)))
+			return;
+	}
 }
 
 //-----------------------------------------------------------------------------

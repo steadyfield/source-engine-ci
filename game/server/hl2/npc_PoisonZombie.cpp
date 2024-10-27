@@ -166,6 +166,9 @@ public:
 
 	virtual bool ShouldPlayIdleSound( void );
 
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 	//
 	// CBaseAnimating implementation.
 	//
@@ -287,7 +290,7 @@ void CNPC_PoisonZombie::Spawn( void )
 
 	m_fIsTorso = m_fIsHeadless = false;
 
-#ifdef HL2_EPISODIC
+#ifndef HL2_EPISODIC
 	SetBloodColor( BLOOD_COLOR_ZOMBIE );
 #else
 	SetBloodColor( BLOOD_COLOR_YELLOW );
@@ -817,6 +820,18 @@ void CNPC_PoisonZombie::EvacuateNest( bool bExplosion, float flDamage, CBaseEnti
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_PoisonZombie::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

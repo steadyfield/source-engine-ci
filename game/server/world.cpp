@@ -32,6 +32,8 @@
 #include "particle_parse.h"
 #include "globalstate.h"
 
+#include "map_parser.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -530,6 +532,8 @@ void CWorld::Spawn( void )
 	Precache( );
 	GlobalEntity_Add( "is_console", STRING(gpGlobals->mapname), ( IsConsole() ) ? GLOBAL_ON : GLOBAL_OFF );
 	GlobalEntity_Add( "is_pc", STRING(gpGlobals->mapname), ( !IsConsole() ) ? GLOBAL_ON : GLOBAL_OFF );
+
+	GetMapScriptParser()->SetRestored(false);
 }
 
 static const char *g_DefaultLightstyles[] =
@@ -695,6 +699,8 @@ void CWorld::Precache( void )
 	}
 
 	g_iszFuncBrushClassname = AllocPooledString("func_brush");
+
+	W_Precache();		// get weapon precaches
 }
 
 //-----------------------------------------------------------------------------

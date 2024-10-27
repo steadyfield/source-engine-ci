@@ -203,7 +203,7 @@ void CNPC_Zombine::Spawn( void )
 	m_fIsTorso = false;
 	m_fIsHeadless = false;
 	
-#ifdef HL2_EPISODIC
+#ifndef HL2_EPISODIC
 	SetBloodColor( BLOOD_COLOR_ZOMBIE );
 #else
 	SetBloodColor( BLOOD_COLOR_GREEN );
@@ -512,9 +512,16 @@ void CNPC_Zombine::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDi
 {
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 
+	/*
 	//Only knock grenades off their hands if it's a player doing the damage.
 	if ( info.GetAttacker() && info.GetAttacker()->IsNPC() )
 		return;
+	*/
+
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
 
 	if ( info.GetDamageType() & ( DMG_BULLET | DMG_CLUB ) )
 	{

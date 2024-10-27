@@ -440,6 +440,9 @@ public:
 
 	void EmitSoundByHandle( IRecipientFilter& filter, int entindex, const EmitSound_t & ep, HSOUNDSCRIPTHANDLE& handle )
 	{
+
+		ConVar* timescale = cvar->FindVar("host_timescale");
+
 		// Pull data from parameters
 		CSoundParameters params;
 
@@ -479,7 +482,7 @@ public:
 		// handle SND_CHANGEPITCH/SND_CHANGEVOL and other sound flags.etc.
 		if( ep.m_nFlags & SND_CHANGE_PITCH )
 		{
-			params.pitch = ep.m_nPitch;
+			params.pitch = ep.m_nPitch * timescale->GetFloat();
 		}
 
 
@@ -495,7 +498,7 @@ public:
 			params.soundlevel, 
 			params.volume, 
 			ep.m_nFlags, 
-			params.pitch, 
+			params.pitch * timescale->GetFloat(),
 			ep.m_pOrigin, 
 			ep.m_flSoundTime,
 			ep.m_UtlVecSoundOrigin );
@@ -525,7 +528,7 @@ public:
 			params.volume,
 			(soundlevel_t)params.soundlevel,
 			ep.m_nFlags,
-			params.pitch,
+			params.pitch * timescale->GetFloat(),
 			ep.m_nSpecialDSP,
 			ep.m_pOrigin,
 			NULL,
@@ -555,6 +558,9 @@ public:
 
 	void EmitSound( IRecipientFilter& filter, int entindex, const EmitSound_t & ep )
 	{
+
+		ConVar* timescale = cvar->FindVar("host_timescale");
+
 		VPROF( "CSoundEmitterSystem::EmitSound (calls engine)" );
 
 #ifdef STAGING_ONLY
@@ -576,7 +582,7 @@ public:
 				ep.m_SoundLevel, 
 				ep.m_flVolume, 
 				ep.m_nFlags, 
-				ep.m_nPitch, 
+				ep.m_nPitch * timescale->GetFloat(),
 				ep.m_pOrigin, 
 				ep.m_flSoundTime,
 				ep.m_UtlVecSoundOrigin );
@@ -604,7 +610,7 @@ public:
 				ep.m_flVolume, 
 				ep.m_SoundLevel, 
 				ep.m_nFlags, 
-				ep.m_nPitch, 
+				ep.m_nPitch * timescale->GetFloat(),
 				ep.m_nSpecialDSP,
 				ep.m_pOrigin,
 				NULL, 
@@ -801,6 +807,9 @@ public:
 
 	void EmitAmbientSound( int entindex, const Vector& origin, const char *soundname, float flVolume, int iFlags, int iPitch, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 	{
+
+		ConVar* timescale = cvar->FindVar("host_timescale");
+
 		// Pull data from parameters
 		CSoundParameters params;
 
@@ -818,7 +827,7 @@ public:
 
 		if( iFlags & SND_CHANGE_PITCH )
 		{
-			params.pitch = iPitch;
+			params.pitch = iPitch * timescale->GetFloat();
 		}
 
 		if( iFlags & SND_CHANGE_VOL )
@@ -827,9 +836,9 @@ public:
 		}
 
 #if defined( CLIENT_DLL )
-		enginesound->EmitAmbientSound( params.soundname, params.volume, params.pitch, iFlags, soundtime );
+		enginesound->EmitAmbientSound(params.soundname, params.volume, params.pitch * timescale->GetFloat(), iFlags, soundtime);
 #else
-		engine->EmitAmbientSound(entindex, origin, params.soundname, params.volume, params.soundlevel, iFlags, params.pitch, soundtime );
+		engine->EmitAmbientSound(entindex, origin, params.soundname, params.volume, params.soundlevel, iFlags, params.pitch * timescale->GetFloat(), soundtime);
 #endif
 
 		bool needsCC = !( iFlags & ( SND_STOP | SND_CHANGE_VOL | SND_CHANGE_PITCH ) );
@@ -926,6 +935,9 @@ public:
 
 	void EmitAmbientSound( int entindex, const Vector &origin, const char *pSample, float volume, soundlevel_t soundlevel, int flags, int pitch, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 	{
+
+		ConVar* timescale = cvar->FindVar("host_timescale");
+
 #ifdef STAGING_ONLY
 		if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( pSample, sv_snd_filter.GetString() ))
 		{
@@ -944,7 +956,7 @@ public:
 							soundlevel, 
 							volume, 
 							flags, 
-							pitch, 
+			pitch * timescale->GetFloat(),
 							&origin, 
 							soundtime,
 							dummyorigins );
@@ -955,9 +967,9 @@ public:
 		if ( pSample && ( Q_stristr( pSample, ".wav" ) || Q_stristr( pSample, ".mp3" )) )
 		{
 #if defined( CLIENT_DLL )
-			enginesound->EmitAmbientSound( pSample, volume, pitch, flags, soundtime );
+			enginesound->EmitAmbientSound(pSample, volume, pitch * timescale->GetFloat(), flags, soundtime);
 #else
-			engine->EmitAmbientSound( entindex, origin, pSample, volume, soundlevel, flags, pitch, soundtime );
+			engine->EmitAmbientSound(entindex, origin, pSample, volume, soundlevel, flags, pitch * timescale->GetFloat(), soundtime);
 #endif
 
 			if ( duration )
@@ -970,7 +982,7 @@ public:
 		}
 		else
 		{
-			EmitAmbientSound( entindex, origin, pSample, volume, flags, pitch, soundtime, duration );
+			EmitAmbientSound(entindex, origin, pSample, volume, flags, pitch * timescale->GetFloat(), soundtime, duration);
 		}
 	}
 };
@@ -1368,6 +1380,9 @@ int SENTENCEG_Lookup(const char *sample)
 
 void UTIL_EmitAmbientSound( int entindex, const Vector &vecOrigin, const char *samp, float vol, soundlevel_t soundlevel, int fFlags, int pitch, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
+
+	ConVar* timescale = cvar->FindVar("host_timescale");
+
 #ifdef STAGING_ONLY
 	if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( samp, sv_snd_filter.GetString() ))
 	{
@@ -1383,9 +1398,9 @@ void UTIL_EmitAmbientSound( int entindex, const Vector &vecOrigin, const char *s
 			char name[32];
 			Q_snprintf( name, sizeof(name), "!%d", sentenceIndex );
 #if !defined( CLIENT_DLL )
-			engine->EmitAmbientSound( entindex, vecOrigin, name, vol, soundlevel, fFlags, pitch, soundtime );
+			engine->EmitAmbientSound(entindex, vecOrigin, name, vol, soundlevel, fFlags, pitch * timescale->GetFloat(), soundtime);
 #else
-			enginesound->EmitAmbientSound( name, vol, pitch, fFlags, soundtime );
+			enginesound->EmitAmbientSound(name, vol, pitch * timescale->GetFloat(), fFlags, soundtime);
 #endif
 			if ( duration )
 			{
@@ -1398,7 +1413,7 @@ void UTIL_EmitAmbientSound( int entindex, const Vector &vecOrigin, const char *s
 	}
 	else
 	{
-		g_SoundEmitterSystem.EmitAmbientSound( entindex, vecOrigin, samp, vol, soundlevel, fFlags, pitch, soundtime, duration );
+		g_SoundEmitterSystem.EmitAmbientSound(entindex, vecOrigin, samp, vol, soundlevel, fFlags, pitch * timescale->GetFloat(), soundtime, duration);
 	}
 }
 

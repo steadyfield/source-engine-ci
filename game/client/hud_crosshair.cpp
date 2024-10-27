@@ -9,6 +9,7 @@
 #include "hud.h"
 #include "hud_crosshair.h"
 #include "iclientmode.h"
+#include "clientmode_shared.h"
 #include "view.h"
 #include "vgui_controls/Controls.h"
 #include "vgui/ISurface.h"
@@ -26,11 +27,17 @@
 #include "c_portal_player.h"
 #endif // PORTAL
 
+#include "c_basehlplayer.h"
+#include "COOLMOD/smod_cvars.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 ConVar crosshair( "crosshair", "1", FCVAR_ARCHIVE );
 ConVar cl_observercrosshair( "cl_observercrosshair", "1", FCVAR_ARCHIVE );
+
+ConVar cl_freeaim_crosshair_autocorrect("smod_ro_aimmode_crosshair_autocorrect", "1", FCVAR_ARCHIVE);
+ConVar cl_freeaim_crosshair_posmult("smod_ro_aimmode_crosshaircorrection_posmult", "1", FCVAR_ARCHIVE);
 
 using namespace vgui;
 
@@ -155,9 +162,16 @@ void CHudCrosshair::GetDrawPosition ( float *pX, float *pY, bool *pbBehindCamera
 	float x = screenWidth / 2;
 	float y = screenHeight / 2;
 
+	float mousex, mousey;
+	ClientModeShared *mode = (ClientModeShared *)GetClientModeNormal();
+	mode->GetMouseXAndY(mousex, mousey);
+
+	x += mousex * 9 * cl_freeaim_crosshair_posmult.GetFloat();
+	y += mousey * 9 * cl_freeaim_crosshair_posmult.GetFloat();
+
 	bool bBehindCamera = false;
 
-	C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
+	C_BaseHLPlayer* pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( ( pPlayer != NULL ) && ( pPlayer->GetObserverMode()==OBS_MODE_NONE ) )
 	{
 		bool bUseOffset = false;
@@ -190,6 +204,19 @@ void CHudCrosshair::GetDrawPosition ( float *pX, float *pY, bool *pbBehindCamera
 			bUseOffset = true;
 		}
 #endif
+		if (cl_freeaim_crosshair_autocorrect.GetBool() && cl_freeaim.GetBool())
+		{
+			// These are the correct values to use, but they lag the high-speed view data...
+			vecStart = pPlayer->Weapon_ShootPosition();
+			QAngle angAimDir = pPlayer->EyeAngles();
+			angAimDir.x += mousey;
+			angAimDir.y -= mousex;
+			Vector vecAimDirection;
+			AngleVectors(angAimDir, &vecAimDirection);
+			vecEnd = vecStart + vecAimDirection * MAX_TRACE_LENGTH;
+
+			bUseOffset = true;
+		}
 
 		if ( bUseOffset )
 		{

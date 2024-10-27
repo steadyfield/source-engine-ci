@@ -99,14 +99,14 @@ enum Class_T
 	CLASS_ANTLION,
 	CLASS_BARNACLE,
 	CLASS_BULLSEYE,
-	//CLASS_BULLSQUID,	
+	CLASS_BULLSQUID,	
 	CLASS_CITIZEN_PASSIVE,	
 	CLASS_CITIZEN_REBEL,
 	CLASS_COMBINE,
 	CLASS_COMBINE_GUNSHIP,
 	CLASS_CONSCRIPT,
 	CLASS_HEADCRAB,
-	//CLASS_HOUNDEYE,
+	CLASS_HOUNDEYE,
 	CLASS_MANHACK,
 	CLASS_METROPOLICE,		
 	CLASS_MILITARY,		
@@ -120,6 +120,18 @@ enum Class_T
 	CLASS_EARTH_FAUNA,
 	CLASS_HACKED_ROLLERMINE,
 	CLASS_COMBINE_HUNTER,
+
+	//SMOD: HL1 Classes
+	CLASS_MACHINE,			//
+	CLASS_HUMAN_PASSIVE,
+	CLASS_HUMAN_MILITARY,
+	CLASS_ALIEN_MILITARY,
+	CLASS_ALIEN_MONSTER,
+	CLASS_ALIEN_PREY,
+	CLASS_ALIEN_PREDATOR,
+	CLASS_INSECT,
+	CLASS_PLAYER_BIOWEAPON,
+	CLASS_ALIEN_BIOWEAPON,
 
 	NUM_AI_CLASSES
 };
@@ -1415,7 +1427,7 @@ public:
 	virtual bool IsDeflectable() { return false; }
 	virtual void Deflected( CBaseEntity *pDeflectedBy, Vector &vecDir ) {}
 
-//	void Relink() {}
+	void Relink() {}
 
 public:
 
@@ -1606,6 +1618,9 @@ private:
 
 	// Handle shot entering water
 	void HandleShotImpactingGlass( const FireBulletsInfo_t &info, const trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter );
+
+	// Should we go through stuff?
+	void HandleBulletPenetration(const FireBulletsInfo_t &info, const trace_t &tr, const Vector &vecDir, ITraceFilter *pTraceFilter, int TimesPenitrate = 1);
 
 	// Should we draw bubbles underwater?
 	bool ShouldDrawUnderwaterBulletBubbles();

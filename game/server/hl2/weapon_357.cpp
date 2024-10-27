@@ -19,9 +19,15 @@
 #include "engine/IEngineSound.h"
 #include "te_effect_dispatch.h"
 #include "gamestats.h"
+#include "hl2_player.h"
+#include "bullet_357mm.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+extern ConVar bullettimesim;
+
+extern ConVar disable_bullettime;
 
 //-----------------------------------------------------------------------------
 // CWeapon357
@@ -37,10 +43,13 @@ public:
 	void	PrimaryAttack( void );
 	void	Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
 
+	void    Fire9MMBullet( void );
+
 	float	WeaponAutoAimScale()	{ return 0.6f; }
 
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
+	DECLARE_ACTTABLE();
 };
 
 LINK_ENTITY_TO_CLASS( weapon_357, CWeapon357 );
@@ -52,6 +61,20 @@ END_SEND_TABLE()
 
 BEGIN_DATADESC( CWeapon357 )
 END_DATADESC()
+
+acttable_t CWeapon357::m_acttable[] =
+{
+	{ ACT_HL2MP_IDLE, ACT_HL2MP_IDLE_PISTOL, false },
+	{ ACT_HL2MP_RUN, ACT_HL2MP_RUN_PISTOL, false },
+	{ ACT_HL2MP_IDLE_CROUCH, ACT_HL2MP_IDLE_CROUCH_PISTOL, false },
+	{ ACT_HL2MP_WALK_CROUCH, ACT_HL2MP_WALK_CROUCH_PISTOL, false },
+	{ ACT_HL2MP_GESTURE_RANGE_ATTACK, ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL, false },
+	{ ACT_HL2MP_GESTURE_RELOAD, ACT_HL2MP_GESTURE_RELOAD_PISTOL, false },
+	{ ACT_HL2MP_JUMP, ACT_HL2MP_JUMP_PISTOL, false },
+	{ ACT_RANGE_ATTACK1, ACT_RANGE_ATTACK_PISTOL, false },
+};
+
+IMPLEMENT_ACTTABLE(CWeapon357);
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -95,6 +118,89 @@ void CWeapon357::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatChara
 //-----------------------------------------------------------------------------
 void CWeapon357::PrimaryAttack( void )
 {
+	CHL2_Player *pPlayer = dynamic_cast < CHL2_Player* >(UTIL_PlayerByIndex(1));
+
+	if (!pPlayer->m_HL2Local.m_bInSlowMo && disable_bullettime.GetInt() == 0)
+	{
+		// Only the player fires this way so we can cast
+		CBasePlayer *pPlayer = ToBasePlayer(GetOwner());
+
+		if (!pPlayer)
+		{
+			return;
+		}
+
+		if (m_iClip1 <= 0)
+		{
+			if (!m_bFireOnEmpty)
+			{
+				Reload();
+			}
+			else
+			{
+				WeaponSound(EMPTY);
+				m_flNextPrimaryAttack = 0.15;
+			}
+
+			return;
+		}
+
+		m_iPrimaryAttacks++;
+		gamestats->Event_WeaponFired(pPlayer, true, GetClassname());
+
+		WeaponSound(SINGLE);
+		pPlayer->DoMuzzleFlash();
+
+		SendWeaponAnim(ACT_VM_PRIMARYATTACK);
+		pPlayer->SetAnimation(PLAYER_ATTACK1);
+
+		m_flNextPrimaryAttack = gpGlobals->curtime + 0.75;
+		m_flNextSecondaryAttack = gpGlobals->curtime + 0.75;
+
+		m_iClip1--;
+
+		Vector vecSrc = pPlayer->Weapon_ShootPosition();
+		Vector vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
+
+		pPlayer->FireBullets(1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0);
+
+		pPlayer->SetMuzzleFlashTime(gpGlobals->curtime + 0.5);
+
+		//Disorient the player
+		QAngle angles = pPlayer->GetLocalAngles();
+
+		angles.x += random->RandomInt(-1, 1);
+		angles.y += random->RandomInt(-1, 1);
+		angles.z = 0;
+
+		pPlayer->SnapEyeAngles(angles);
+
+		pPlayer->ViewPunch(QAngle(-8, random->RandomFloat(-2, 2), 0));
+
+		CSoundEnt::InsertSound(SOUND_COMBAT, GetAbsOrigin(), 600, 0.2, GetOwner());
+
+		if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+		{
+			// HEV suit - indicate out of ammo condition
+			pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
+		}
+	}
+	else if (pPlayer->m_HL2Local.m_bInSlowMo && disable_bullettime.GetInt() == 0)
+	{
+		Fire9MMBullet();
+	}
+
+	if (bullettimesim.GetInt() == 1 && disable_bullettime.GetInt() == 1)
+	{
+		Fire9MMBullet();
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CWeapon357::Fire9MMBullet( void )
+{
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
@@ -132,10 +238,28 @@ void CWeapon357::PrimaryAttack( void )
 
 	m_iClip1--;
 
-	Vector vecSrc		= pPlayer->Weapon_ShootPosition();
-	Vector vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );	
+	// Vector vecSrc		= pPlayer->Weapon_ShootPosition();
+	// Vector vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );	
 
-	pPlayer->FireBullets( 1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
+	Vector vecAiming;
+	vecAiming = pPlayer->GetAutoaimVector(0);
+	Vector vecSrc = pPlayer->Weapon_ShootPosition();
+
+	QAngle angAiming;
+	VectorAngles(vecAiming, angAiming);
+
+	CBullet357MM *pBullet = CBullet357MM::BulletCreate(vecSrc, angAiming, pPlayer);
+
+	if (pPlayer->GetWaterLevel() == 3)
+	{
+		pBullet->SetAbsVelocity(vecAiming * 1400);
+	}
+	else
+	{
+		pBullet->SetAbsVelocity(vecAiming * 1500);
+	}
+
+	// pPlayer->FireBullets( 1, vecSrc, vecAiming, vec3_origin, MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );
 
 	pPlayer->SetMuzzleFlashTime( gpGlobals->curtime + 0.5 );
 

@@ -47,6 +47,8 @@
 #include "filters.h"
 #include "tier0/icommandline.h"
 
+#include "rumble_shared.h"
+
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
 #endif
@@ -55,11 +57,15 @@
 #include "portal_player.h"
 #endif // PORTAL
 
+#include "COOLMOD/smod_cvars.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 extern ConVar weapon_showproficiency;
 extern ConVar autoaim_max_dist;
+
+extern bool g_bAIDisabledByUser;
 
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
@@ -90,9 +96,9 @@ ConVar hl2_darkness_flashlight_factor ( "hl2_darkness_flashlight_factor", "1" );
 	#define	HL2_NORM_SPEED 190
 	#define	HL2_SPRINT_SPEED 320
 #else
-	#define	HL2_WALK_SPEED hl2_walkspeed.GetFloat()
-	#define	HL2_NORM_SPEED hl2_normspeed.GetFloat()
-	#define	HL2_SPRINT_SPEED hl2_sprintspeed.GetFloat()
+	#define	HL2_WALK_SPEED hl2_walkspeed.GetFloat()// * (GetActiveWeapon() ? GetActiveWeapon()->IsIronsighted() ? weapon_ironsightwalkspeed.GetFloat() : 1 : 1)
+	#define	HL2_NORM_SPEED hl2_normspeed.GetFloat()// * (GetActiveWeapon() ? GetActiveWeapon()->IsIronsighted() ? weapon_ironsightwalkspeed.GetFloat() : 1 : 1)
+	#define	HL2_SPRINT_SPEED hl2_sprintspeed.GetFloat()// * (GetActiveWeapon() ? GetActiveWeapon()->IsIronsighted() ? weapon_ironsightwalkspeed.GetFloat() : 1 : 1)
 #endif
 
 ConVar player_showpredictedposition( "player_showpredictedposition", "0" );
@@ -107,8 +113,31 @@ ConVar autoaim_unlock_target( "autoaim_unlock_target", "0.8666" );
 
 ConVar sv_stickysprint("sv_stickysprint", "0", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX);
 
+ConVar mod_slowmo_timescale("bullettimesim_timescale", "0.5", FCVAR_ARCHIVE);
+ConVar mod_slowmo_phys_timescale("bullettimesim_phystimescale", "0.5", FCVAR_ARCHIVE);
+
+ConVar kick_time_adjust("kick_time_adjust", "0", FCVAR_ARCHIVE);
+ConVar kick_range("kick_range", "100", FCVAR_ARCHIVE);
+ConVar smod_player_legmodel("smod_player_legmodel", "models/weapons/v_kick.mdl", FCVAR_ARCHIVE);
+ConVar smod_player_woosh_sound("kick_wooshsound", "1", FCVAR_ARCHIVE);
+ConVar bullettimesim_drainrate("bullettimesim_drainrate", "1.666", FCVAR_ARCHIVE);
+ConVar bullettimesim_disable_flash("bullettimesim_disable_flash","0", FCVAR_ARCHIVE);
+ConVar disable_bullettime("disable_bullettime","0", FCVAR_ARCHIVE);
+ConVar disable_kick("disable_kick", "0", FCVAR_ARCHIVE);
+ConVar weapon_kickback_powerscale("weapon_kickback_powerscale", "1", FCVAR_ARCHIVE);
+ConVar weapon_kickback_style("weapon_kickback_style", "1", FCVAR_ARCHIVE);
+
+ConVar *pHostTimescale;
+ConVar *pPhysTimescale;
+
 #define	FLASH_DRAIN_TIME	 1.1111	// 100 units / 90 secs
 #define	FLASH_CHARGE_TIME	 50.0f	// 100 units / 2 secs
+
+#define BLUDGEON_HULL_DIM		16
+#define KICK_RANGE kick_range.GetFloat()
+
+static const Vector g_bludgeonMins(-BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM, -BLUDGEON_HULL_DIM);
+static const Vector g_bludgeonMaxs(BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM, BLUDGEON_HULL_DIM);
 
 
 //==============================================================================================
@@ -160,6 +189,7 @@ bool g_bCacheLegacyFlashlightStatus = true;
 bool g_bUseLegacyFlashlight;
 bool Flashlight_UseLegacyVersion( void )
 {
+	/*
 	// If this is the first run through, cache off what the answer should be (cannot change during a session)
 	if ( g_bCacheLegacyFlashlightStatus )
 	{
@@ -176,6 +206,9 @@ bool Flashlight_UseLegacyVersion( void )
 
 	// Return the results
 	return g_bUseLegacyFlashlight;
+	*/
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -323,6 +356,11 @@ BEGIN_DATADESC( CHL2_Player )
 	DEFINE_FIELD( m_fIsSprinting, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_fIsWalking, FIELD_BOOLEAN ),
 
+	DEFINE_FIELD(m_flBlastEffectTime, FIELD_FLOAT),
+	DEFINE_FIELD(m_flBlurTime, FIELD_FLOAT),
+	DEFINE_FIELD(m_flIronsightBlurTime, FIELD_FLOAT),
+	DEFINE_FIELD(m_flFPBlur, FIELD_FLOAT),
+
 	/*
 	// These are initialized every time the player calls Activate()
 	DEFINE_FIELD( m_bIsAutoSprinting, FIELD_BOOLEAN ),
@@ -383,18 +421,41 @@ BEGIN_DATADESC( CHL2_Player )
 
 	DEFINE_FIELD( m_flTimeNextLadderHint, FIELD_TIME ),
 
+	DEFINE_FIELD( m_hRagdoll, FIELD_EHANDLE ),
+
 	//DEFINE_FIELD( m_hPlayerProxy, FIELD_EHANDLE ), //Shut up class check!
 
 END_DATADESC()
 
+// -------------------------------------------------------------------------------- //
+// Ragdoll entities.
+// -------------------------------------------------------------------------------- //
+LINK_ENTITY_TO_CLASS( hl2_ragdoll, CHL2Ragdoll );
+
+IMPLEMENT_SERVERCLASS_ST_NOBASE( CHL2Ragdoll, DT_HL2Ragdoll )
+	SendPropVector( SENDINFO( m_vecRagdollOrigin ), -1,  SPROP_COORD ),
+	SendPropEHandle( SENDINFO( m_hPlayer ) ),
+	SendPropModelIndex( SENDINFO( m_nModelIndex ) ),
+	SendPropInt		( SENDINFO( m_nForceBone ), 8, 0 ),
+	SendPropVector	( SENDINFO( m_vecForce ), -1, SPROP_NOSCALE ),
+	SendPropVector( SENDINFO( m_vecRagdollVelocity ) )
+END_SEND_TABLE()
+
 CHL2_Player::CHL2_Player()
 {
+	// Here we create and init the player animation state.
+	m_pPlayerAnimState = CreatePlayerAnimationState(this);
+	m_angEyeAngles.Init();
+
 	m_nNumMissPositions	= 0;
 	m_pPlayerAISquad = 0;
 	m_bSprintEnabled = true;
 
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
+
+	m_flNextHealthRegen = 0.0f;
+	m_flNextGivenHealth = 0.0f;
 }
 
 //
@@ -415,10 +476,19 @@ CHL2_Player::CHL2_Player()
 #endif
 CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 units in 15 seconds (plus three padded seconds)
 
+CSuitPowerDevice SuitDeviceBullettime(bits_SUIT_DEVICE_BULLETTIME, 10.0f);		// 100 units in 60 seconds
+CSuitPowerDevice SuitDeviceNightVision(bits_SUIT_DEVICE_NIGHTVISION, 9.0f);		
+
 
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
+	SendPropEHandle(SENDINFO(m_hRagdoll)),
+	SendPropFloat(SENDINFO(m_flBlastEffectTime)),
+	SendPropFloat(SENDINFO(m_flBlurTime)),
+	SendPropFloat(SENDINFO(m_flIronsightBlurTime)),
+	SendPropFloat(SENDINFO(m_flFPBlur)),
+	SendPropBool(SENDINFO(m_bNightVisionOn)),	//send as int so we can use a RecvProxy on the client
 END_SEND_TABLE()
 
 
@@ -426,6 +496,9 @@ void CHL2_Player::Precache( void )
 {
 	BaseClass::Precache();
 
+	PrecacheModel(smod_player_legmodel.GetString()); //SMOD KICK STUFF!
+	PrecacheModel(cl_playermodel.GetString());
+	
 	PrecacheScriptSound( "HL2Player.SprintNoPower" );
 	PrecacheScriptSound( "HL2Player.SprintStart" );
 	PrecacheScriptSound( "HL2Player.UseDeny" );
@@ -435,6 +508,15 @@ void CHL2_Player::Precache( void )
 	PrecacheScriptSound( "HL2Player.TrainUse" );
 	PrecacheScriptSound( "HL2Player.Use" );
 	PrecacheScriptSound( "HL2Player.BurnPain" );
+	
+	PrecacheScriptSound("HL2Player.bullettimeoff_bt");
+	PrecacheScriptSound("HL2Player.bullettimeon_bt");          
+	PrecacheScriptSound("HL2Player.heartbeatloop_bt");
+
+	PrecacheScriptSound("Player.nvon");
+	PrecacheScriptSound("Player.nvoff");
+
+	PrecacheScriptSound("Player.Splat");
 }
 
 //-----------------------------------------------------------------------------
@@ -561,6 +643,26 @@ void CHL2_Player::HandleArmorReduction( void )
 //-----------------------------------------------------------------------------
 void CHL2_Player::PreThink(void)
 {
+	if (bullettimesim_disable_ai.GetBool() && m_HL2Local.m_bInSlowMo)
+	{
+		CAI_BaseNPC::m_nDebugBits |= bits_debugDisableAI;
+		g_bAIDisabledByUser = true;
+	}
+	else
+	{
+		CAI_BaseNPC::m_nDebugBits &= ~bits_debugDisableAI;
+	}
+
+	if (m_HL2Local.m_flSuitPower < 10 && m_HL2Local.m_bInSlowMo)
+	{
+		SwitchSlowMo();
+	}
+
+	if (disable_bullettime.GetBool() && m_HL2Local.m_bInSlowMo)
+	{
+		SwitchSlowMo();
+	}
+
 	if ( player_showpredictedposition.GetBool() )
 	{
 		Vector	predPos;
@@ -894,14 +996,408 @@ void CHL2_Player::PreThink(void)
 	}
 }
 
+// GOOSEMAN : Kick the view..
+void CHL2_Player::KickBack(float up_base, float lateral_base, float up_modifier, float lateral_modifier, float up_max, float lateral_max, int direction_change)
+{
+	float flKickUp;
+	float flKickLateral;
+
+	if (m_iShotsFired == 1) // This is the first round fired
+	{
+		flKickUp = up_base;
+		flKickLateral = lateral_base;
+	}
+	else
+	{
+		flKickUp = up_base + m_iShotsFired * up_modifier;
+		flKickLateral = lateral_base + m_iShotsFired * lateral_modifier;
+	}
+
+
+	QAngle angle = GetPunchAngle();
+
+	angle.x -= flKickUp;
+	if (angle.x < -1 * up_max)
+		angle.x = -1 * up_max;
+
+	if (m_iDirection == 1)
+	{
+		angle.y += flKickLateral;
+		if (angle.y > lateral_max)
+			angle.y = lateral_max;
+	}
+	else
+	{
+		angle.y -= flKickLateral;
+		if (angle.y < -1 * lateral_max)
+			angle.y = -1 * lateral_max;
+	}
+
+	if (!SharedRandomInt("KickBack", 0, direction_change))
+		m_iDirection = 1 - m_iDirection;
+
+	if(weapon_kickback_style.GetInt() == 1)
+	SetPunchAngle(angle * weapon_kickback_powerscale.GetFloat() * 0.5f);
+	else if (weapon_kickback_style.GetInt() == 2 )
+		ViewPunch(angle * weapon_kickback_powerscale.GetFloat() * 0.5f);
+	else
+		ViewPunch(angle * weapon_kickback_powerscale.GetFloat() * 0.5f);
+}
+
+
+//Dear lord, why must you make me do this the wrong way?
+ConVar kick_meleedamageforce("kick_meleedamageforce", "2", FCVAR_ARCHIVE, "The default throw force of kick without player velocity.");
+ConVar kick_powerscale("kick_powerscale", "1", FCVAR_ARCHIVE, "The default damage of kick without player velocity.");
+
+void CHL2_Player::Hit(trace_t &traceHit, Activity nHitActivity, bool bIsSecondary)
+{
+	CBasePlayer *pPlayer = this;
+
+	//Make sound for the AI
+	CSoundEnt::InsertSound(SOUND_BULLET_IMPACT, traceHit.endpos, 400, 0.2f, pPlayer);
+
+	// This isn't great, but it's something for when the crowbar hits.
+	pPlayer->RumbleEffect(RUMBLE_AR2, 0, RUMBLE_FLAG_RESTART);
+
+	CBaseEntity	*pHitEntity = traceHit.m_pEnt;
+
+	//Apply damage to a hit target
+	if (pHitEntity != NULL)
+	{
+		Vector hitDirection;
+		pPlayer->EyeVectors(&hitDirection, NULL, NULL);
+		VectorNormalize(hitDirection);
+
+		CTakeDamageInfo info(pPlayer, pPlayer, 20 * kick_powerscale.GetFloat(), DMG_CLUB);
+
+		if (pPlayer && pHitEntity->IsNPC())
+		{
+			// If bonking an NPC, adjust damage.
+			info.AdjustPlayerDamageInflictedForSkillLevel();
+		}
+
+		CalculateMeleeDamageForce(&info, hitDirection, traceHit.endpos);
+		info.SetDamageForce(info.GetDamageForce() * kick_meleedamageforce.GetFloat());
+
+		pHitEntity->DispatchTraceAttack(info, hitDirection, &traceHit);
+		ApplyMultiDamage();
+
+		// Now hit all triggers along the ray that... 
+		TraceAttackToTriggers(info, traceHit.startpos, traceHit.endpos, hitDirection);
+
+		if (ToBaseCombatCharacter(pHitEntity))
+		{
+			gamestats->Event_WeaponHit(pPlayer, !bIsSecondary, GetClassname(), info);
+		}
+	}
+
+	// Apply an impact effect
+	//ImpactEffect(traceHit);
+}
+
+float GetRange() { return 64.0f; }
+
+void CHL2_Player::SetBlastEffectTime()
+{
+	m_flBlastEffectTime = 2;
+}
+
+void CHL2_Player::SetBlurTime()
+{
+	m_flBlurTime = 2;
+}
+
+void CHL2_Player::SetIronsightBlurTime(float amount)
+{
+	m_flIronsightBlurTime = amount;
+}
+
+void CHL2_Player::SetFirstPersonBlurVar(float amount)
+{
+	m_flFPBlur = amount;
+}
+
+void CHL2_Player::SetKickTime()
+{
+	CBaseViewModel *vm = GetViewModel(VM_LEGS);
+
+	KickTime = (vm->SequenceDuration() / 2) / 2 + gpGlobals->curtime + kick_time_adjust.GetFloat();
+}
+
+void CHL2_Player::KickAttack(void)
+{
+	MDLCACHE_CRITICAL_SECTION();
+
+	trace_t traceHit;
+	Vector vecDirection;
+	//int kick_maxrange = 120;
+	AngleVectors(QAngle(EyeAngles().x, EyeAngles().y, EyeAngles().z), &vecDirection);
+
+	//vm->SendViewModelMatchingSequence(idealSequence);
+
+	// Try a ray
+	CBasePlayer *pOwner = this;
+	if (!pOwner)
+		return;
+
+	pOwner->RumbleEffect(RUMBLE_CROWBAR_SWING, 0, RUMBLE_FLAG_RESTART);
+
+	Vector swingStart = pOwner->Weapon_ShootPosition();
+	Vector forward;
+
+	forward = pOwner->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT, GetRange());
+
+	Vector swingEnd = swingStart + forward * GetRange();
+	UTIL_TraceLine(swingStart, swingEnd, MASK_SHOT_HULL, pOwner, COLLISION_GROUP_NONE, &traceHit);
+	//Activity nHitActivity = ACT_VM_PRIMARYATTACK;
+
+	// Like bullets, bludgeon traces have to trace against triggers.
+	CTakeDamageInfo triggerInfo(this, this, 20 * kick_powerscale.GetFloat(), DMG_CLUB);
+	triggerInfo.SetDamagePosition(traceHit.startpos);
+	triggerInfo.SetDamageForce(triggerInfo.GetDamageForce() * kick_meleedamageforce.GetFloat());
+	TraceAttackToTriggers(triggerInfo, traceHit.startpos, traceHit.endpos, forward);
+
+	if (traceHit.fraction == 1.0)
+	{
+		float bludgeonHullRadius = 1.732f * BLUDGEON_HULL_DIM;  // hull is +/- 16, so use cuberoot of 2 to determine how big the hull is from center to the corner point
+
+																// Back off by hull "radius"
+		swingEnd -= forward * bludgeonHullRadius;
+
+		UTIL_TraceHull(swingStart, swingEnd, g_bludgeonMins, g_bludgeonMaxs, MASK_SHOT_HULL, pOwner, COLLISION_GROUP_NONE, &traceHit);
+		if (traceHit.fraction < 1.0 && traceHit.m_pEnt)
+		{
+			Vector vecToTarget = traceHit.m_pEnt->GetAbsOrigin() - swingStart;
+			VectorNormalize(vecToTarget);
+
+			float dot = vecToTarget.Dot(forward);
+
+			// YWB:  Make sure they are sort of facing the guy at least...
+			if (dot < 0.70721f)
+			{
+				// Force amiss
+				traceHit.fraction = 1.0f;
+			}
+			else
+			{
+				//nHitActivity = ACT_VM_PRIMARYATTACK;
+			}
+		}
+	}
+
+	if (traceHit.DidHit())
+	{
+		EmitSound("HL2Player.kick_wall");
+		UTIL_ScreenShake(GetAbsOrigin(), 4.0f, 10.0f, 1.0f, 1000, SHAKE_START, false);
+
+		if (kick_launchplayer.GetBool())
+		{
+			if (!(GetFlags() & FL_ONGROUND))
+			{
+				Vector vecLaunchDirection;
+				AngleVectors(QAngle(EyeAngles().x, EyeAngles().y, EyeAngles().z), &vecLaunchDirection);
+				SetAbsVelocity(GetAbsVelocity() + (-vecLaunchDirection * (1 / traceHit.fraction) * kick_launchplayer_force.GetFloat()));
+			}
+		}
+	}
+	else
+	{
+		if (smod_player_woosh_sound.GetInt())
+			EmitSound("HL2Player.kick_fire");
+	}
+
+	QAngle	recoil = QAngle(random->RandomFloat(-1.0f, -2.0f), 0, random->RandomFloat(-2.0f, 2.0f));
+	this->ViewPunch(recoil);
+
+	gamestats->Event_WeaponFired(pOwner, false, GetClassname());
+
+	// -------------------------
+	//	Miss
+	// -------------------------
+	if (traceHit.fraction == 1.0f)
+	{
+		//nHitActivity =  ACT_VM_PRIMARYATTACK;
+
+		// We want to test the first swing again
+		//Vector testEnd = swingStart + forward * GetRange();
+
+		// See if we happened to hit water
+		//ImpactWater(swingStart, testEnd);
+	}
+	else
+	{
+		Hit(traceHit, ACT_VM_PRIMARYATTACK, false);
+	}
+}
+
+void CHL2_Player::SwitchSlowMo(void)
+{
+	if (disable_bullettime.GetBool())
+		return;
+
+	color32 lightWhite = { 255, 255, 255, 100 };
+
+	pHostTimescale = cvar->FindVar("host_timescale");
+	pPhysTimescale = cvar->FindVar("phys_timescale");
+
+	if (!m_HL2Local.m_bInSlowMo)
+	{
+		if (m_HL2Local.m_flSuitPower < 10)
+		{
+			EmitSound("HL2Player.SprintNoPower");
+			return;
+		}
+
+		SuitPower_AddDevice(SuitDeviceBullettime);
+
+		if(!bullettimesim_disable_flash.GetBool())
+			UTIL_ScreenFade(this, lightWhite, 0.3f, 0, (FFADE_IN | FFADE_PURGE));
+
+		EmitSound("HL2Player.bullettimeon_bt");
+		EmitSound("HL2Player.heartbeatloop_bt");
+		pHostTimescale->SetValue(mod_slowmo_timescale.GetFloat());
+		pPhysTimescale->SetValue(mod_slowmo_phys_timescale.GetFloat());
+		m_HL2Local.m_bInSlowMo = true;
+	}
+	else
+	{
+		SuitPower_RemoveDevice(SuitDeviceBullettime);
+		pHostTimescale->SetValue("1");
+		pPhysTimescale->SetValue("1");
+		EmitSound("HL2Player.bullettimeoff_bt");
+		StopSound("HL2Player.heartbeatloop_bt");
+
+		if (!bullettimesim_disable_flash.GetBool())
+			UTIL_ScreenFade(this, lightWhite, 0.6f, 0, (FFADE_IN | FFADE_PURGE));
+
+		m_HL2Local.m_bInSlowMo = false;
+	}
+
+	return;
+}
+
+bool CHL2_Player::ShouldHealthRegen()
+{
+	return m_flNextHealthRegen < gpGlobals->curtime && smod_cod_healthregen.GetBool();
+}
+
 void CHL2_Player::PostThink( void )
 {
+
 	BaseClass::PostThink();
+
+	if (m_flNextShotsClear < gpGlobals->curtime)
+		m_iShotsFired = 0;
+
+	float flPlaybackrate = 1.0f;
+	float flSpeed;
+	flSpeed = GetAbsVelocity().Length2D();
+	//if (GetActivity() == ACT_WALK)
+	{
+		float flGroundSpeed = GetSequenceGroundSpeed(GetSequence());
+
+		if (flGroundSpeed > 0.0f)
+		{
+			flPlaybackrate = flSpeed / flGroundSpeed;
+
+			flPlaybackrate = MIN(1.5f, flPlaybackrate);
+		}
+	}
+	SetPlaybackRate(flPlaybackrate);
+
+	if (ShouldHealthRegen())
+	{
+		if (m_flNextGivenHealth < gpGlobals->curtime && GetHealth() < GetMaxHealth())
+		{
+			SetHealth(GetHealth() + 1);
+			m_flNextGivenHealth = gpGlobals->curtime + (1.0f * smod_cod_healthregen_rate.GetFloat());
+		}
+	}
+
+	CBaseViewModel *vm = GetViewModel(VM_LEGS);
+	CBaseCombatWeapon *pWeapon = GetActiveWeapon();
 
 	if ( !g_fGameOver && !IsPlayerLockedInPlace() && IsAlive() )
 	{
 		 HandleAdmireGlovesAnimation();
 	}
+
+	if (m_afButtonReleased & IN_KICK && m_flNextKickAttack / 2.0f < gpGlobals->curtime && !disable_kick.GetBool())
+	{
+
+		if (vm)
+		{
+			int	idealSequence = vm->SelectWeightedSequence(ACT_VM_PRIMARYATTACK);
+
+			if (idealSequence >= 0)
+			{
+				vm->SendViewModelMatchingSequence(idealSequence);
+				m_flNextKickAttack = gpGlobals->curtime + vm->SequenceDuration(idealSequence) - 0.5f;
+			}
+		}
+
+		QAngle	recoil = QAngle(random->RandomFloat(1.0f, 2.0f), 0, 0);
+		this->ViewPunch(recoil);
+
+		SetKickTime();
+		m_bIsKicking = true;
+	}
+
+	if (KickTime < gpGlobals->curtime && m_bIsKicking && !disable_kick.GetBool())
+	{
+		KickAttack();
+		m_bIsKicking = false;
+	}
+
+	float amtRadialGoal = 0;
+
+	if (m_flBlastEffectTime != amtRadialGoal)
+		m_flBlastEffectTime = Approach(amtRadialGoal, m_flBlastEffectTime, gpGlobals->frametime);
+
+	float amtBlurGoal = 0;
+
+	if (m_flBlurTime != amtBlurGoal)
+		m_flBlurTime = Approach(amtBlurGoal, m_flBlurTime, gpGlobals->frametime);
+
+	if (pWeapon && pWeapon->IsIronsighted())
+	{
+		SetIronsightBlurTime(1);
+		SetFirstPersonBlurVar(0);
+	}
+	else
+	{
+		SetIronsightBlurTime(0);
+		SetFirstPersonBlurVar(1);
+	}
+
+	if (m_flNextKickAttack < gpGlobals->curtime)
+	{
+		CBaseViewModel *vm = GetViewModel(VM_LEGS);
+
+		if (vm)
+		{
+			int	idealSequence = vm->SelectWeightedSequence(ACT_VM_IDLE);
+
+			if (idealSequence >= 0)
+			{
+				vm->SendViewModelMatchingSequence(idealSequence);
+			}
+		}
+	}
+
+	if (m_afButtonPressed & IN_SLOWMO)
+	{
+		SwitchSlowMo();
+		//m_bInSlowMo = true;
+	}
+
+	m_angEyeAngles = EyeAngles();
+
+	QAngle angles = GetLocalAngles();
+	angles[PITCH] = 0;
+	SetLocalAngles(angles);
+
+	m_pPlayerAnimState->Update();
 }
 
 void CHL2_Player::StartAdmireGlovesAnimation( void )
@@ -946,6 +1442,182 @@ void CHL2_Player::HandleAdmireGlovesAnimation( void )
 	}
 	else
 		m_flAdmireGlovesAnimTime = 0.0f;
+}
+
+// Set the activity based on an event or current state
+void CHL2_Player::SetAnimation(PLAYER_ANIM playerAnim)
+{
+	int animDesired;
+
+	float speed;
+
+	speed = GetAbsVelocity().Length2D();
+
+	if (GetFlags() & (FL_FROZEN | FL_ATCONTROLS))
+	{
+		speed = 0;
+		playerAnim = PLAYER_IDLE;
+	}
+
+	Activity idealActivity = ACT_HL2MP_RUN;
+
+	if (playerAnim == PLAYER_JUMP)
+	{
+		if (HasWeapons())
+			idealActivity = ACT_HL2MP_JUMP;
+		else
+			idealActivity = ACT_JUMP;
+	}
+	else if (playerAnim == PLAYER_DIE)
+	{
+		if (m_lifeState == LIFE_ALIVE)
+		{
+			return;
+		}
+	}
+	else if (playerAnim == PLAYER_ATTACK1)
+	{
+		if (GetActivity() == ACT_HOVER ||
+			GetActivity() == ACT_SWIM ||
+			GetActivity() == ACT_HOP ||
+			GetActivity() == ACT_LEAP ||
+			GetActivity() == ACT_DIESIMPLE)
+		{
+			idealActivity = GetActivity();
+		}
+		else
+		{
+			idealActivity = ACT_HL2MP_GESTURE_RANGE_ATTACK;
+		}
+	}
+	else if (playerAnim == PLAYER_RELOAD)
+	{
+		idealActivity = ACT_HL2MP_GESTURE_RELOAD;
+	}
+	else if (playerAnim == PLAYER_IDLE || playerAnim == PLAYER_WALK)
+	{
+		if (!(GetFlags() & FL_ONGROUND) && (GetActivity() == ACT_HL2MP_JUMP || GetActivity() == ACT_JUMP))    // Still jumping
+		{
+			idealActivity = GetActivity();
+		}
+		else if (GetWaterLevel() > 1)
+		{
+			if (speed == 0)
+			{
+				if (HasWeapons())
+					idealActivity = ACT_HL2MP_IDLE;
+				else
+					idealActivity = ACT_IDLE;
+			}
+			else
+			{
+				if (HasWeapons())
+					idealActivity = ACT_HL2MP_RUN;
+				else
+					idealActivity = ACT_RUN;
+			}
+		}
+		else
+		{
+			if (GetFlags() & FL_DUCKING)
+			{
+				if (speed > 0)
+				{
+					if (HasWeapons())
+						idealActivity = ACT_HL2MP_WALK_CROUCH;
+					else
+						idealActivity = ACT_WALK_CROUCH;
+				}
+				else
+				{
+					if (HasWeapons())
+						idealActivity = ACT_HL2MP_IDLE_CROUCH;
+					else
+						idealActivity = ACT_COVER_LOW;
+				}
+			}
+			else
+			{
+				if (speed > 0)
+				{
+					{
+						if (HasWeapons())
+							idealActivity = ACT_HL2MP_RUN;
+						else
+						{
+							if (speed > HL2_WALK_SPEED + 20.0f)
+								idealActivity = ACT_RUN;
+							else
+								idealActivity = ACT_WALK;
+						}
+					}
+				}
+				else
+				{
+					if (HasWeapons())
+						idealActivity = ACT_HL2MP_IDLE;
+					else
+						idealActivity = ACT_IDLE;
+				}
+			}
+		}
+
+		//idealActivity = TranslateTeamActivity( idealActivity );
+	}
+
+	if (IsInAVehicle())
+	{
+		idealActivity = ACT_COVER_LOW;
+	}
+
+	if (idealActivity == ACT_HL2MP_GESTURE_RANGE_ATTACK)
+	{
+		RestartGesture(Weapon_TranslateActivity(idealActivity));
+
+		// FIXME: this seems a bit wacked
+		Weapon_SetActivity(Weapon_TranslateActivity(ACT_RANGE_ATTACK1), 0);
+
+		return;
+	}
+	else if (idealActivity == ACT_HL2MP_GESTURE_RELOAD)
+	{
+		RestartGesture(Weapon_TranslateActivity(idealActivity));
+		return;
+	}
+	else
+	{
+		SetActivity(idealActivity);
+
+		animDesired = SelectWeightedSequence(Weapon_TranslateActivity(idealActivity));
+
+		if (animDesired == -1)
+		{
+			animDesired = SelectWeightedSequence(idealActivity);
+
+			if (animDesired == -1)
+			{
+				animDesired = 0;
+			}
+		}
+
+		// Already using the desired animation?
+		if (GetSequence() == animDesired)
+			return;
+
+		m_flPlaybackRate = 1.0;
+		ResetSequence(animDesired);
+		SetCycle(0);
+		return;
+	}
+
+	// Already using the desired animation?
+	if (GetSequence() == animDesired)
+		return;
+
+	//Msg( "Set animation to %d\n", animDesired );
+	// Reset to first frame of desired animation
+	ResetSequence(animDesired);
+	SetCycle(0);
 }
 
 #define HL2PLAYER_RELOADGAME_ATTACK_DELAY 1.0f
@@ -1111,11 +1783,18 @@ void CHL2_Player::Spawn(void)
 
 #ifndef HL2MP
 #ifndef PORTAL
-	SetModel( "models/player.mdl" );
+	SetModel(cl_playermodel.GetString());
 #endif
 #endif
 
 	BaseClass::Spawn();
+
+	DevMsg( "SMOD REDUX VERSION 8 STEAMPIPE 2013.\nMOD BY AULOV NIKOLAY GEORGIEVICH.\nBORN ON JANUARY 3, 1991, MOSCOW, RUSSIA.\nCOPYRIGHT (C) AULOV NIKOLAY GEORGIEVICH.\nMOD IS IN WORK IN PROGRESS STAGE.\nGOOGLE MAIL: SMODHALFLIFESOURCE@GMAIL.COM.\nALSO, I LOVE MY SISTER NINA AULOVA.\nHERE IS HER VK.COM:\nhttps://vk.com/id529104\nMY SISTER KNOWS CHINESE AND ENGLISH PROFESSIONALLY.\nIF YOU WANT TO KNOW CHINESE AND ENGLISH PERFECTLY, WRITE HER A MESSAGE - https://vk.com/id529104\nALSO, SHE IS REALLY KIND PERSON.\nTHANK YOU.\n" );
+	DevWarning( "SMOD REDUX VERSION 8 STEAMPIPE 2013.\nMOD BY AULOV NIKOLAY GEORGIEVICH.\nBORN ON JANUARY 3, 1991, MOSCOW, RUSSIA.\nCOPYRIGHT (C) AULOV NIKOLAY GEORGIEVICH.\nMOD IS IN WORK IN PROGRESS STAGE.\nGOOGLE MAIL: SMODHALFLIFESOURCE@GMAIL.COM.\nALSO, I LOVE MY SISTER NINA AULOVA.\nHERE IS HER VK.COM:\nhttps://vk.com/id529104\nMY SISTER KNOWS CHINESE AND ENGLISH PROFESSIONALLY.\nIF YOU WANT TO KNOW CHINESE AND ENGLISH PERFECTLY, WRITE HER A MESSAGE - https://vk.com/id529104\nALSO, SHE IS REALLY KIND PERSON.\nTHANK YOU.\n" );
+	DevMsg( "MOD BY AULOV NIKOLAY GEORGIEVICH.\nIF YOU WOULD LIKE TO USE MY MOD AS A BASE OF YOUR MOD, PLEASE GIVE A CREDITS.\nOTHERWISE, IT WILL BE COPYRIGHT INFRINGEMENT.\nCOPYRIGHT (C) AULOV NIKOLAY GEORGIEVICH.\nGOOGLE MAIL: SMODHALFLIFESOURCE@GMAIL.COM.\nTHANK YOU.\n" );
+	DevWarning( "MOD BY AULOV NIKOLAY GEORGIEVICH.\nIF YOU WOULD LIKE TO USE MY MOD AS A BASE OF YOUR MOD, PLEASE GIVE A CREDITS.\nOTHERWISE, IT WILL BE COPYRIGHT INFRINGEMENT.\nCOPYRIGHT (C) AULOV NIKOLAY GEORGIEVICH.\nGOOGLE MAIL: SMODHALFLIFESOURCE@GMAIL.COM.\nTHANK YOU.\n" );
+	DevMsg("SMOD REDUX VERSION 8 STEAMPIPE 2013 IS A MOD, THAT DEVELOPED BY AULOV NIKOLAY GEORGIEVICH.\nTHE MAIN PURPOSE OF THIS MODIFICATION IS TO RECREATE ORIGINAL SMOD REDUX, BASED ON SOURCE SDK 2006, ON THE LATEST SOURCE SDK 2013.\nWHICH MEANS, THAT ALL FEATURES THAT WAS IN ORIGINAL SMOD REDUX WILL BE RECREATED ON MORE NEW SOURCE SDK 2013 VERSION.\nCOPYRIGHT (C) AULOV NIKOLAY GEORGIEVICH.\nGOOGLE MAIL: SMODHALFLIFESOURCE@GMAIL.COM.\nTHANK YOU.\n");
+	DevWarning("SMOD REDUX VERSION 8 STEAMPIPE 2013 IS A MOD, THAT DEVELOPED BY AULOV NIKOLAY GEORGIEVICH.\nTHE MAIN PURPOSE OF THIS MODIFICATION IS TO RECREATE ORIGINAL SMOD REDUX, BASED ON SOURCE SDK 2006, ON THE LATEST SOURCE SDK 2013.\nWHICH MEANS, THAT ALL FEATURES THAT WAS IN ORIGINAL SMOD REDUX WILL BE RECREATED ON MORE NEW SOURCE SDK 2013 VERSION.\nCOPYRIGHT (C) AULOV NIKOLAY GEORGIEVICH.\nGOOGLE MAIL: SMODHALFLIFESOURCE@GMAIL.COM.\nTHANK YOU.\n");
 
 	//
 	// Our player movement speed is set once here. This will override the cl_xxxx
@@ -1140,6 +1819,14 @@ void CHL2_Player::Spawn(void)
 #endif 
 
 	GetPlayerProxy();
+
+	CBaseViewModel *Leg = GetViewModel(VM_LEGS);
+	Leg->SetWeaponModel(smod_player_legmodel.GetString(), NULL); //TODO: Make it adjustable via console commands without crashing! DONE.
+
+	// CSSPORT
+	m_iShotsFired = 0;
+	m_iDirection = 0;
+	m_flNextShotsClear = 0;
 
 	SetFlashlightPowerDrainScale( 1.0f );
 }
@@ -1217,6 +1904,12 @@ void CHL2_Player::StartSprinting( void )
 
 	SetMaxSpeed( HL2_SPRINT_SPEED );
 	m_fIsSprinting = true;
+
+	if (GetActiveWeapon())
+		GetActiveWeapon()->EnableLower();
+
+	if (GetActiveWeapon())
+		GetActiveWeapon()->DisableIronsights();
 }
 
 
@@ -1231,7 +1924,7 @@ void CHL2_Player::StopSprinting( void )
 
 	if( IsSuitEquipped() )
 	{
-		SetMaxSpeed( HL2_NORM_SPEED );
+		SetMaxSpeed( HL2_NORM_SPEED);
 	}
 	else
 	{
@@ -1245,6 +1938,9 @@ void CHL2_Player::StopSprinting( void )
 		m_bIsAutoSprinting = false;
 		m_fAutoSprintMinTime = 0.0f;
 	}
+
+	if (GetActiveWeapon())
+		GetActiveWeapon()->DisableLower();
 }
 
 
@@ -1305,6 +2001,64 @@ void CHL2_Player::ToggleZoom(void)
 	{
 		StartZooming();
 	}
+}
+
+void CHL2_Player::CheckLean()
+{
+	if (IsSuitEquipped())
+	{
+		if (m_afButtonPressed & IN_LEANLEFT)
+			StartLeaning();
+		else if (m_afButtonPressed & IN_LEANRIGHT)
+			StartLeaning();
+		else if (m_afButtonReleased & IN_LEANLEFT)
+			StopLeaning();
+		else if (m_afButtonReleased & IN_LEANRIGHT)
+			StopLeaning();
+	}
+	else
+		return;
+}
+
+void CHL2_Player::StartLeaning()
+{
+	if (IsSprinting())
+		StopSprinting();
+
+	if (IsZooming())
+		StopZooming();
+
+	//Create new vectors
+	Vector lean, currentoffset, newoffset;
+	currentoffset = GetViewOffset();
+	AngleVectors(EyeAngles(), NULL, &lean, NULL);
+	newoffset = currentoffset;
+	if (m_nButtons & IN_LEANLEFT)
+	{
+		lean *= -25;
+		newoffset.x = clamp(lean.x, -40, 40);
+		newoffset.y = clamp(lean.y, -40, 40);
+		SetViewOffset(newoffset);
+	}
+	else if (m_nButtons & IN_LEANRIGHT)
+	{
+		lean *= 25;
+		newoffset.x = clamp(lean.x, -40, 40);
+		newoffset.y = clamp(lean.y, -40, 40);
+		SetViewOffset(newoffset);
+	}
+	m_bIsLeaning = true;
+}
+
+void CHL2_Player::StopLeaning()
+{
+	if (IsDucking())
+		SetViewOffset(VEC_DUCK_VIEW);
+
+	else
+		SetViewOffset(VEC_VIEW);
+
+	m_bIsLeaning = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1381,6 +2135,12 @@ void CHL2_Player::InitVCollision( const Vector &vecAbsOrigin, const Vector &vecA
 
 CHL2_Player::~CHL2_Player( void )
 {
+	// Clears the animation state.
+	if (m_pPlayerAnimState != NULL)
+	{
+		m_pPlayerAnimState->Release();
+		m_pPlayerAnimState = NULL;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1710,6 +2470,33 @@ void CHL2_Player::CheatImpulseCommands( int iImpulse )
 		break;
 	}
 
+	case 110:
+	{
+		SwitchSlowMo();
+		break;
+	}
+
+	case 111:
+	{
+		if ( IsSuitEquipped() )
+		{
+			if (m_bNightVisionOn)
+			{
+				CPASAttenuationFilter filter(this);
+				EmitSound(filter, entindex(), "Player.nvoff");
+				SuitPower_RemoveDevice(SuitDeviceNightVision);
+			}
+			else
+			{
+				CPASAttenuationFilter filter(this);
+				EmitSound(filter, entindex(), "Player.nvon");
+				SuitPower_AddDevice(SuitDeviceNightVision);
+			}
+
+			m_bNightVisionOn = !m_bNightVisionOn;
+		}
+	}
+
 	case 51:
 	{
 		// Cheat to create a dynamic resupply item
@@ -1820,6 +2607,14 @@ void CHL2_Player::SuitPower_Update( void )
 			if( IsSprinting() )
 			{
 				StopSprinting();
+			}
+
+			if ( m_bNightVisionOn )
+			{
+				CPASAttenuationFilter filter(this);
+				EmitSound(filter, entindex(), "Player.nvoff");
+				SuitPower_RemoveDevice(SuitDeviceNightVision);
+				m_bNightVisionOn = false;
 			}
 
 			if ( Flashlight_UseLegacyVersion() )
@@ -2290,6 +3085,8 @@ int	CHL2_Player::OnTakeDamage( const CTakeDamageInfo &info )
 	if ( GlobalEntity_GetState( "gordon_invulnerable" ) == GLOBAL_ON )
 		return 0;
 
+	m_flNextHealthRegen = gpGlobals->curtime + 5.0f;
+
 	// ignore fall damage if instructed to do so by input
 	if ( ( info.GetDamageType() & DMG_FALL ) && m_flTimeIgnoreFallDamage > gpGlobals->curtime )
 	{
@@ -2394,6 +3191,39 @@ int CHL2_Player::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	return BaseClass::OnTakeDamage_Alive( info );
 }
 
+//=========================================================
+// Create a ragdoll
+//=========================================================
+void CHL2_Player::CreateRagdollEntity()
+{
+	// There is already a ragdoll.
+	if (m_hRagdoll)
+	{
+		// Remove it.
+		UTIL_RemoveImmediate(m_hRagdoll);
+		m_hRagdoll = NULL;
+	}
+
+	// We get the corpse.
+	CHL2Ragdoll *pRagdoll = dynamic_cast<CHL2Ragdoll *>(m_hRagdoll.Get());
+
+	// Apparently there is none, create it.
+	if (!pRagdoll)
+		pRagdoll = dynamic_cast<CHL2Ragdoll *>(CreateEntityByName("hl2_ragdoll"));
+
+	if (pRagdoll)
+	{
+		pRagdoll->m_hPlayer = this;
+		pRagdoll->m_vecRagdollOrigin = GetAbsOrigin();
+		pRagdoll->m_vecRagdollVelocity = GetAbsVelocity();
+		pRagdoll->m_nModelIndex = m_nModelIndex;
+		pRagdoll->m_nForceBone = m_nForceBone;
+		pRagdoll->SetAbsOrigin(GetAbsOrigin());
+	}
+
+	m_hRagdoll = pRagdoll;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::OnDamagedByExplosion( const CTakeDamageInfo &info )
@@ -2462,6 +3292,11 @@ void CHL2_Player::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo
 void CHL2_Player::Event_Killed( const CTakeDamageInfo &info )
 {
 	BaseClass::Event_Killed( info );
+
+	if (m_HL2Local.m_bInSlowMo)
+		SwitchSlowMo();
+
+	m_bNightVisionOn = false;
 
 	FirePlayerProxyOutput( "PlayerDied", variant_t(), this, this );
 	NotifyScriptsOfDeath();
@@ -2754,16 +3589,43 @@ bool CHL2_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 //-----------------------------------------------------------------------------
 bool CHL2_Player::ClientCommand( const CCommand &args )
 {
-#if	HL2_SINGLE_PRIMARY_WEAPON_MODE
+//#if	HL2_SINGLE_PRIMARY_WEAPON_MODE
 
 	//Drop primary weapon
 	if ( !Q_stricmp( args[0], "DropPrimary" ) )
 	{
-		Weapon_DropSlot( WEAPON_PRIMARY_SLOT );
+		CBaseCombatWeapon* pWeapon = GetActiveWeapon();
+		Weapon_Drop(pWeapon, NULL, NULL);
 		return true;
 	}
 
-#endif
+	if (!Q_strcmp(args[0], "attack_kick"))
+	{
+		if (disable_kick.GetBool())
+			return true;
+
+		CBaseViewModel *vm = GetViewModel(VM_LEGS);
+
+		if (vm)
+		{
+			int	idealSequence = vm->SelectWeightedSequence(ACT_VM_PRIMARYATTACK);
+
+			if (idealSequence >= 0)
+			{
+				vm->SendViewModelMatchingSequence(idealSequence);
+				m_flNextKickAttack = gpGlobals->curtime + vm->SequenceDuration(idealSequence) - 0.5f;
+			}
+		}
+
+		QAngle	recoil = QAngle(random->RandomFloat(1.0f, 2.0f), 0, 0);
+		this->ViewPunch(recoil);
+
+		SetKickTime();
+		m_bIsKicking = true;
+		return true;
+	}
+
+//#endif
 
 	if ( !Q_stricmp( args[0], "emit" ) )
 	{
@@ -3595,6 +4457,11 @@ void CHL2_Player::ItemPostFrame()
 		m_bPlayUseDenySound = false;
 		EmitSound( "HL2Player.UseDeny" );
 	}
+
+	CheckLean();
+
+	if ( IsLeaning() )
+		Weapon_Lower();
 }
 
 

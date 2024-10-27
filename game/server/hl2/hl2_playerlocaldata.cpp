@@ -17,6 +17,7 @@
 BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropFloat( SENDINFO(m_flSuitPower), 10, SPROP_UNSIGNED | SPROP_ROUNDUP, 0.0, 100.0 ),
 	SendPropInt( SENDINFO(m_bZooming), 1, SPROP_UNSIGNED ),
+	SendPropInt(SENDINFO(m_bInSlowMo), 1, SPROP_UNSIGNED),
 	SendPropInt( SENDINFO(m_bitsActiveDevices), MAX_SUIT_DEVICES, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_iSquadMemberCount) ),
 	SendPropInt( SENDINFO(m_iSquadMedicCount) ),
@@ -37,6 +38,7 @@ END_SEND_TABLE()
 BEGIN_SIMPLE_DATADESC( CHL2PlayerLocalData )
 	DEFINE_FIELD( m_flSuitPower, FIELD_FLOAT ),
 	DEFINE_FIELD( m_bZooming, FIELD_BOOLEAN ),
+	DEFINE_FIELD(m_bInSlowMo, FIELD_BOOLEAN),
 	DEFINE_FIELD( m_bitsActiveDevices, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iSquadMemberCount, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iSquadMedicCount, FIELD_INTEGER ),

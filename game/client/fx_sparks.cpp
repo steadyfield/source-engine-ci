@@ -19,6 +19,8 @@
 #include "c_pixel_visibility.h"
 #include "particles_ez.h"
 
+#include "COOLMOD/smod_cvars.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -27,6 +29,7 @@ CLIENTEFFECT_REGISTER_BEGIN( PrecacheEffectSparks )
 CLIENTEFFECT_MATERIAL( "effects/spark" )
 CLIENTEFFECT_MATERIAL( "effects/energysplash" )
 CLIENTEFFECT_MATERIAL( "effects/energyball" )
+CLIENTEFFECT_MATERIAL( "effects/fire_embers1" )
 CLIENTEFFECT_MATERIAL( "sprites/rico1" )
 CLIENTEFFECT_MATERIAL( "sprites/rico1_noz" )
 CLIENTEFFECT_MATERIAL( "sprites/blueflare1" )
@@ -34,9 +37,11 @@ CLIENTEFFECT_MATERIAL( "effects/yellowflare" )
 CLIENTEFFECT_MATERIAL( "effects/combinemuzzle1_nocull" )
 CLIENTEFFECT_MATERIAL( "effects/combinemuzzle2_nocull" )
 CLIENTEFFECT_MATERIAL( "effects/yellowflare_noz" )
+CLIENTEFFECT_MATERIAL( "particle/particle_noisesphere" )
 CLIENTEFFECT_REGISTER_END()
 
 PMaterialHandle g_Material_Spark = NULL;
+PMaterialHandle g_Material_FireEmber = NULL;
 
 static ConVar fx_drawmetalspark( "fx_drawmetalspark", "1", FCVAR_DEVELOPMENTONLY, "Draw metal spark effects." );
 
@@ -297,6 +302,34 @@ void CTrailParticles::SimulateParticles( CParticleSimulateIterator *pIterator )
 #define	SPARK_ELECTRIC_GRAVITY	800.0f
 #define	SPARK_ELECTRIC_DAMPEN	0.3f
 
+#define	METAL_SCRAPE_MINSPEED	128.0f
+#define METAL_SCRAPE_MAXSPEED	512.0f
+#define METAL_SCRAPE_SPREAD		0.3f
+#define METAL_SCRAPE_GRAVITY	800.0f
+#define METAL_SCRAPE_DAMPEN		0.4f
+
+//-----------------------------------------------------------------------------
+// Purpose: Ricochet spark on metal
+// Input  : &position - origin of effect
+//			&normal - normal of the surface struck
+//-----------------------------------------------------------------------------
+#define	METAL_SPARK_SPREAD_REDUX		0.65f
+#define	METAL_SPARK_MINSPEED_REDUX	    256.0f
+#define	METAL_SPARK_MAXSPEED_REDUX	    768.0f
+#define	METAL_SPARK_GRAVITY_REDUX		440.0f
+#define	METAL_SPARK_DAMPEN_REDUX		0.35f
+
+//-----------------------------------------------------------------------------
+// Purpose: Ember effect on metal
+// Input  : &position - origin of effect
+//			&normal - normal of the surface struck
+//-----------------------------------------------------------------------------
+#define	METAL_EMBER_SPREAD		0.5f
+#define	METAL_EMBER_MINSPEED	400.0f
+#define	METAL_EMBER_MAXSPEED	400.0f
+#define	METAL_EMBER_GRAVITY		430.0f
+#define	METAL_EMBER_DAMPEN		0.35f
+
 void FX_ElectricSpark( const Vector &pos, int nMagnitude, int nTrailLength, const Vector *vecDir )
 {
 	VPROF_BUDGET( "FX_ElectricSpark", VPROF_BUDGETGROUP_PARTICLE_RENDERING );
@@ -541,11 +574,13 @@ void FX_ElectricSpark( const Vector &pos, int nMagnitude, int nTrailLength, cons
 //			&normal - direction of spark travel
 //-----------------------------------------------------------------------------
 
+/*
 #define	METAL_SCRAPE_MINSPEED	128.0f
 #define METAL_SCRAPE_MAXSPEED	512.0f
 #define METAL_SCRAPE_SPREAD		0.3f
 #define METAL_SCRAPE_GRAVITY	800.0f
 #define METAL_SCRAPE_DAMPEN		0.4f
+*/
 
 void FX_MetalScrape( Vector &position, Vector &normal )
 {
@@ -617,78 +652,196 @@ void FX_MetalScrape( Vector &position, Vector &normal )
 #define	METAL_SPARK_GRAVITY		400.0f
 #define	METAL_SPARK_DAMPEN		0.25f
 
-void FX_MetalSpark( const Vector &position, const Vector &direction, const Vector &surfaceNormal, int iScale )
-{
-	VPROF_BUDGET( "FX_MetalSpark", VPROF_BUDGETGROUP_PARTICLE_RENDERING );
+/*
+//-----------------------------------------------------------------------------
+// Purpose: Ricochet spark on metal
+// Input  : &position - origin of effect
+//			&normal - normal of the surface struck
+//-----------------------------------------------------------------------------
+#define	METAL_SPARK_SPREAD_REDUX		0.65f
+#define	METAL_SPARK_MINSPEED_REDUX	    256.0f
+#define	METAL_SPARK_MAXSPEED_REDUX	    768.0f
+#define	METAL_SPARK_GRAVITY_REDUX		440.0f
+#define	METAL_SPARK_DAMPEN_REDUX		0.35f
 
-	if ( !fx_drawmetalspark.GetBool() )
+//-----------------------------------------------------------------------------
+// Purpose: Ember effect on metal
+// Input  : &position - origin of effect
+//			&normal - normal of the surface struck
+//-----------------------------------------------------------------------------
+#define	METAL_EMBER_SPREAD		0.5f
+#define	METAL_EMBER_MINSPEED	300.0f
+#define	METAL_EMBER_MAXSPEED	550.0f
+#define	METAL_EMBER_GRAVITY		430.0f
+#define	METAL_EMBER_DAMPEN		0.35f
+*/
+
+void FX_MetalSpark(const Vector &position, const Vector &direction, const Vector &surfaceNormal, int iScale)
+{
+	VPROF_BUDGET("FX_MetalSpark", VPROF_BUDGETGROUP_PARTICLE_RENDERING);
+
+	if (!fx_drawmetalspark.GetBool())
 		return;
 
 	//
 	// Emitted particles
 	//
 
-	Vector offset = position + ( surfaceNormal * 1.0f );
+	Vector offset = position + (surfaceNormal * 1.0f);
 
-	CSmartPtr<CTrailParticles> sparkEmitter = CTrailParticles::Create( "FX_MetalSpark 1" );
+	CSmartPtr<CTrailParticles> sparkEmitterRedux = CTrailParticles::Create("FX_MetalSpark 1");
 
-	if ( sparkEmitter == NULL )
+	if (sparkEmitterRedux == NULL)
 		return;
 
 	//Setup our information
-	sparkEmitter->SetSortOrigin( offset );
-	sparkEmitter->SetFlag( bitsPARTICLE_TRAIL_VELOCITY_DAMPEN );
-	sparkEmitter->SetVelocityDampen( 8.0f );
-	sparkEmitter->SetGravity( METAL_SPARK_GRAVITY );
-	sparkEmitter->SetCollisionDamped( METAL_SPARK_DAMPEN );
-	sparkEmitter->GetBinding().SetBBox( offset - Vector( 32, 32, 32 ), offset + Vector( 32, 32, 32 ) );
+	sparkEmitterRedux->SetSortOrigin(offset);
+	sparkEmitterRedux->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+	sparkEmitterRedux->SetVelocityDampen(9.0f);
+	sparkEmitterRedux->SetGravity(METAL_SPARK_GRAVITY_REDUX);
+	sparkEmitterRedux->SetCollisionDamped(METAL_SPARK_DAMPEN_REDUX);
+	sparkEmitterRedux->GetBinding().SetBBox(offset - Vector(32, 32, 32), offset + Vector(32, 32, 32));
 
-	int	numSparks = random->RandomInt( 4, 8 ) * ( iScale * 2 );
-	numSparks = (int)( 0.5f + (float)numSparks * g_pParticleSystemMgr->ParticleThrottleScaling() );
-	
-	if ( g_Material_Spark == NULL )
+	int	numSparks = random->RandomInt(4, 6) * (iScale * 3);
+
+	if (g_Material_Spark == NULL)
 	{
-		g_Material_Spark = sparkEmitter->GetPMaterial( "effects/spark" );
+		g_Material_Spark = sparkEmitterRedux->GetPMaterial("effects/spark");
 	}
 
 	TrailParticle	*pParticle;
 	Vector	dir;
-	float	length	= 0.1f;
+	float	length = 0.1f;
 
 	//Dump out sparks
-	for ( int i = 0; i < numSparks; i++ )
+	for (int i = 0; i < numSparks; i++)
 	{
-		pParticle = (TrailParticle *) sparkEmitter->AddParticle( sizeof(TrailParticle), g_Material_Spark, offset );
+		pParticle = (TrailParticle *)sparkEmitterRedux->AddParticle(sizeof(TrailParticle), g_Material_Spark, offset);
 
-		if ( pParticle == NULL )
+		if (pParticle == NULL)
 			return;
 
-		pParticle->m_flLifetime	= 0.0f;
-		
-		if( iScale > 1 && i%3 == 0 )
+		pParticle->m_flLifetime = 0.0f;
+
+		if (iScale > 1 && i % 3 == 0)
 		{
 			// Every third spark goes flying far if we're having a big batch of sparks.
-			pParticle->m_flDieTime	= random->RandomFloat( 0.15f, 0.25f );
+			pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.75f);
 		}
 		else
 		{
-			pParticle->m_flDieTime	= random->RandomFloat( 0.05f, 0.1f );
+			pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.75f);
 		}
 
-		float	spreadOfs = random->RandomFloat( 0.0f, 2.0f );
+		float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
 
-		dir[0] = direction[0] + random->RandomFloat( -(METAL_SPARK_SPREAD*spreadOfs), (METAL_SPARK_SPREAD*spreadOfs) );
-		dir[1] = direction[1] + random->RandomFloat( -(METAL_SPARK_SPREAD*spreadOfs), (METAL_SPARK_SPREAD*spreadOfs) );
-		dir[2] = direction[2] + random->RandomFloat( -(METAL_SPARK_SPREAD*spreadOfs), (METAL_SPARK_SPREAD*spreadOfs) );
-	
-		VectorNormalize( dir );
+		dir[0] = direction[0] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+		dir[1] = direction[1] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+		dir[2] = direction[2] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
 
-		pParticle->m_flWidth		= random->RandomFloat( 1.0f, 4.0f );
-		pParticle->m_flLength		= random->RandomFloat( length*0.25f, length );
-		
-		pParticle->m_vecVelocity	= dir * random->RandomFloat( (METAL_SPARK_MINSPEED*(2.0f-spreadOfs)), (METAL_SPARK_MAXSPEED*(2.0f-spreadOfs)) );
-		
-		Color32Init( pParticle->m_color, 255, 255, 255, 255 );
+		VectorNormalize(dir);
+
+		pParticle->m_flWidth = random->RandomFloat(1.0f, 4.0f);
+		pParticle->m_flLength = random->RandomFloat(length*0.25f, length);
+
+		pParticle->m_vecVelocity = dir * random->RandomFloat((METAL_SPARK_MINSPEED_REDUX*(2.0f - spreadOfs)), (METAL_SPARK_MAXSPEED_REDUX*(2.0f - spreadOfs)));
+
+		Color32Init(pParticle->m_color, 255, 255, 255, 255);
+	}
+
+	CSmartPtr<CTrailParticles> emberEmitter = CTrailParticles::Create("FX_FireEmber 1");
+
+	if (emberEmitter == NULL)
+		return;
+
+	//Setup our information
+	emberEmitter->SetSortOrigin(offset);
+	emberEmitter->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+	emberEmitter->SetVelocityDampen(10.0f);
+	emberEmitter->SetGravity(METAL_EMBER_GRAVITY);
+	emberEmitter->SetCollisionDamped(METAL_EMBER_DAMPEN);
+	emberEmitter->GetBinding().SetBBox(offset - Vector(64, 64, 64), offset + Vector(64, 64, 64));
+
+	int	numEmberSparks = random->RandomInt(8, 12) * (iScale * 3);
+
+	if (g_Material_FireEmber == NULL)
+	{
+		g_Material_FireEmber = emberEmitter->GetPMaterial("effects/fire_embers1");
+	}
+
+	TrailParticle	*pEmberParticle;
+	Vector	vecDir;
+	float	particlelength = 0.1f;
+
+	//Dump out sparks
+	for (int i = 0; i < numEmberSparks; i++)
+	{
+		pEmberParticle = (TrailParticle *)emberEmitter->AddParticle(sizeof(TrailParticle), g_Material_FireEmber, offset);
+
+		if (pEmberParticle == NULL)
+			return;
+
+		pEmberParticle->m_flLifetime = 0.0f;
+
+		if (iScale > 1 && i % 3 == 0)
+		{
+			// Every third spark goes flying far if we're having a big batch of sparks.
+			pEmberParticle->m_flDieTime = random->RandomFloat(1.5f, 2.0f);
+		}
+		else
+		{
+			pEmberParticle->m_flDieTime = random->RandomFloat(1.5f, 2.0f);
+		}
+
+		float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+		vecDir[0] = direction[0] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+		vecDir[1] = direction[1] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+		vecDir[2] = direction[2] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+
+		VectorNormalize(vecDir);
+
+		pEmberParticle->m_flWidth = random->RandomFloat(100.0f, 100.0f);
+		pEmberParticle->m_flLength = random->RandomFloat(particlelength*0.25f, particlelength);
+
+		pEmberParticle->m_vecVelocity = vecDir * random->RandomFloat((METAL_EMBER_MINSPEED*(2.0f - spreadOfs)), (METAL_EMBER_MAXSPEED*(2.0f - spreadOfs)));
+
+		Color32Init(pEmberParticle->m_color, 255, 255, 255, 255);
+	}
+
+	CSmartPtr<CTrailParticles> pSimpleCloud = CTrailParticles::Create("FX_MetalSpark 3");
+	pSimpleCloud->SetSortOrigin(offset);
+	pSimpleCloud->SetGravity(0.0f);
+
+	SimpleParticle *pCloudParticle;
+
+	for (int i = 0; i < 2; i++)
+	{
+		// Originate from within a circle '2 * scale' inches in diameter.
+		offset = position + RandomVector(-0.1f, 0.1f);
+
+		pCloudParticle = (SimpleParticle *)pSimpleCloud->AddParticle(sizeof(SimpleParticle), pSimpleCloud->GetPMaterial("particle/particle_noisesphere"), offset);
+
+		if (pCloudParticle != NULL)
+		{
+			pCloudParticle->m_flLifetime = 0.0f;
+			pCloudParticle->m_flDieTime = random->RandomFloat(0.5f, 0.8f) * 20;
+
+			float spread = 0.5f;
+			pCloudParticle->m_vecVelocity.Random(-spread, spread);
+			pCloudParticle->m_vecVelocity += RandomVector(-5.0f, 5.0f);
+
+			pCloudParticle->m_uchColor[0] = pCloudParticle->m_uchColor[1] = pCloudParticle->m_uchColor[2] = 128.0f;
+
+			pCloudParticle->m_uchStartSize = 1 * RandomFloat(1.0f, 4.0f);
+			pCloudParticle->m_uchEndSize = pCloudParticle->m_uchStartSize * 60;
+
+			pCloudParticle->m_uchStartAlpha = 16.0f;
+			pCloudParticle->m_uchEndAlpha = 0;
+
+			pCloudParticle->m_flRoll = random->RandomInt(0, 360);
+			pCloudParticle->m_flRollDelta = 0.0f;
+		}
 	}
 
 	//
@@ -697,18 +850,857 @@ void FX_MetalSpark( const Vector &position, const Vector &direction, const Vecto
 
 	FXQuadData_t data;
 
-	data.SetMaterial( "effects/yellowflare" );
-	data.SetColor( 1.0f, 1.0f, 1.0f );
-	data.SetOrigin( offset );
-	data.SetNormal( surfaceNormal );
-	data.SetAlpha( 1.0f, 0.0f );
-	data.SetLifeTime( 0.1f );
-	data.SetYaw( random->RandomInt( 0, 360 ) );
-	
-	int scale = random->RandomInt( 24, 28 );
-	data.SetScale( scale, 0 );
+	data.SetMaterial("effects/yellowflare");
+	data.SetColor(1.0f, 1.0f, 1.0f);
+	data.SetOrigin(offset);
+	data.SetNormal(surfaceNormal);
+	data.SetAlpha(1.0f, 0.0f);
+	data.SetLifeTime(0.1f);
+	data.SetYaw(random->RandomInt(0, 360));
 
-	FX_AddQuad( data );
+	int scale = random->RandomInt(24, 28);
+	data.SetScale(scale, 0);
+
+	FX_AddQuad(data);
+
+	/*
+	VPROF_BUDGET("FX_MetalSpark", VPROF_BUDGETGROUP_PARTICLE_RENDERING);
+
+	if (!fx_drawmetalspark.GetBool())
+		return;
+
+	bool bInceasedEffect = r_increaseparticles.GetInt() >= 0;
+	bool bInceasedEffect1 = r_increaseparticles.GetInt() >= 1;
+	bool bInceasedEffect2 = r_increaseparticles.GetInt() >= 2;
+	bool bInceasedEffect3 = r_increaseparticles.GetInt() >= 3;
+	bool bInceasedEffect4 = r_increaseparticles.GetInt() >= 4;
+
+	PMaterialHandle m_Material_Embers[2];
+	m_Material_Embers[0] = NULL;
+	m_Material_Embers[1] = NULL;
+
+	//
+	// Emitted particles
+	//
+
+	if (bInceasedEffect)
+	{
+		//
+		// Emitted particles
+		//
+
+		Vector offset = position + (surfaceNormal * 1.0f);
+
+		CSmartPtr<CTrailParticles> sparkEmitter = CTrailParticles::Create("FX_MetalSpark 1");
+
+		if (sparkEmitter == NULL)
+			return;
+
+		//Setup our information
+		sparkEmitter->SetSortOrigin(offset);
+		sparkEmitter->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		sparkEmitter->SetVelocityDampen(8.0f);
+		sparkEmitter->SetGravity(METAL_SPARK_GRAVITY);
+		sparkEmitter->SetCollisionDamped(METAL_SPARK_DAMPEN);
+		sparkEmitter->GetBinding().SetBBox(offset - Vector(32, 32, 32), offset + Vector(32, 32, 32));
+
+		int	numSparks = random->RandomInt(4, 8) * (iScale * 2);
+		numSparks = (int)(0.5f + (float)numSparks * g_pParticleSystemMgr->ParticleThrottleScaling());
+
+		if (g_Material_Spark == NULL)
+		{
+			g_Material_Spark = sparkEmitter->GetPMaterial("effects/spark");
+		}
+
+		TrailParticle	*pParticle;
+		Vector	dir;
+		float	length = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numSparks; i++)
+		{
+			pParticle = (TrailParticle *)sparkEmitter->AddParticle(sizeof(TrailParticle), g_Material_Spark, offset);
+
+			if (pParticle == NULL)
+				return;
+
+			pParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pParticle->m_flDieTime = random->RandomFloat(0.15f, 0.25f);
+			}
+			else
+			{
+				pParticle->m_flDieTime = random->RandomFloat(0.05f, 0.1f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			dir[0] = direction[0] + random->RandomFloat(-(METAL_SPARK_SPREAD*spreadOfs), (METAL_SPARK_SPREAD*spreadOfs));
+			dir[1] = direction[1] + random->RandomFloat(-(METAL_SPARK_SPREAD*spreadOfs), (METAL_SPARK_SPREAD*spreadOfs));
+			dir[2] = direction[2] + random->RandomFloat(-(METAL_SPARK_SPREAD*spreadOfs), (METAL_SPARK_SPREAD*spreadOfs));
+
+			VectorNormalize(dir);
+
+			pParticle->m_flWidth = random->RandomFloat(1.0f, 4.0f);
+			pParticle->m_flLength = random->RandomFloat(length*0.25f, length);
+
+			pParticle->m_vecVelocity = dir * random->RandomFloat((METAL_SPARK_MINSPEED*(2.0f - spreadOfs)), (METAL_SPARK_MAXSPEED*(2.0f - spreadOfs)));
+
+			Color32Init(pParticle->m_color, 255, 255, 255, 255);
+		}
+
+		//
+		// Impact point glow
+		//
+
+		FXQuadData_t data;
+
+		data.SetMaterial("effects/yellowflare");
+		data.SetColor(1.0f, 1.0f, 1.0f);
+		data.SetOrigin(offset);
+		data.SetNormal(surfaceNormal);
+		data.SetAlpha(1.0f, 0.0f);
+		data.SetLifeTime(0.1f);
+		data.SetYaw(random->RandomInt(0, 360));
+
+		int scale = random->RandomInt(24, 28);
+		data.SetScale(scale, 0);
+
+		FX_AddQuad(data);
+	}
+
+	if (bInceasedEffect1)
+	{
+		//
+		// Emitted particles
+		//
+
+		Vector offset = position + (surfaceNormal * 1.0f);
+
+		CSmartPtr<CTrailParticles> sparkEmitterRedux = CTrailParticles::Create("FX_MetalSpark 1");
+
+		if (sparkEmitterRedux == NULL)
+			return;
+
+		//Setup our information
+		sparkEmitterRedux->SetSortOrigin(offset);
+		sparkEmitterRedux->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		sparkEmitterRedux->SetVelocityDampen(9.0f);
+		sparkEmitterRedux->SetGravity(METAL_SPARK_GRAVITY_REDUX);
+		sparkEmitterRedux->SetCollisionDamped(METAL_SPARK_DAMPEN_REDUX);
+		sparkEmitterRedux->GetBinding().SetBBox(offset - Vector(32, 32, 32), offset + Vector(32, 32, 32));
+
+		int	numSparks = random->RandomInt(5, 10) * (iScale * 3);
+
+		if (g_Material_Spark == NULL)
+		{
+			g_Material_Spark = sparkEmitterRedux->GetPMaterial("effects/spark");
+		}
+
+		TrailParticle	*pParticle;
+		Vector	dir;
+		float	length = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numSparks; i++)
+		{
+			pParticle = (TrailParticle *)sparkEmitterRedux->AddParticle(sizeof(TrailParticle), g_Material_Spark, offset);
+
+			if (pParticle == NULL)
+				return;
+
+			pParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+			else
+			{
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			dir[0] = direction[0] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[1] = direction[1] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[2] = direction[2] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+
+			VectorNormalize(dir);
+
+			pParticle->m_flWidth = random->RandomFloat(1.0f, 4.0f);
+			pParticle->m_flLength = random->RandomFloat(length*0.25f, length);
+
+			pParticle->m_vecVelocity = dir * random->RandomFloat((METAL_SPARK_MINSPEED_REDUX*(2.0f - spreadOfs)), (METAL_SPARK_MAXSPEED_REDUX*(2.0f - spreadOfs)));
+
+			Color32Init(pParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CTrailParticles> emberEmitter = CTrailParticles::Create("FX_FireEmber 1");
+
+		if (emberEmitter == NULL)
+			return;
+
+		//Setup our information
+		emberEmitter->SetSortOrigin(offset);
+		emberEmitter->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		emberEmitter->SetVelocityDampen(9.0f);
+		emberEmitter->SetGravity(METAL_EMBER_GRAVITY);
+		emberEmitter->SetCollisionDamped(METAL_EMBER_DAMPEN);
+		emberEmitter->GetBinding().SetBBox(offset - Vector(64, 64, 64), offset + Vector(64, 64, 64));
+
+		int	numEmberSparks = random->RandomInt(8, 12) * (iScale * 3);
+
+		if (g_Material_FireEmber == NULL)
+		{
+			g_Material_FireEmber = emberEmitter->GetPMaterial("effects/fire_embers1");
+		}
+
+		TrailParticle	*pEmberParticle;
+		Vector	vecDir;
+		float	particlelength = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numEmberSparks; i++)
+		{
+			pEmberParticle = (TrailParticle *)emberEmitter->AddParticle(sizeof(TrailParticle), g_Material_FireEmber, offset);
+
+			if (pEmberParticle == NULL)
+				return;
+
+			pEmberParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+			else
+			{
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			vecDir[0] = direction[0] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[1] = direction[1] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[2] = direction[2] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+
+			VectorNormalize(vecDir);
+
+			pEmberParticle->m_flWidth = random->RandomFloat(45.0f, 60.0f);
+			pEmberParticle->m_flLength = random->RandomFloat(particlelength*0.25f, particlelength);
+
+			pEmberParticle->m_vecVelocity = vecDir * random->RandomFloat((METAL_EMBER_MINSPEED*(2.0f - spreadOfs)), (METAL_EMBER_MAXSPEED*(2.0f - spreadOfs)));
+
+			Color32Init(pEmberParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CSimpleEmitter> pSimpleCloud = CSimpleEmitter::Create("FX_MetalSpark 3");
+		pSimpleCloud->SetSortOrigin(offset);
+		pSimpleCloud->SetGravity(0.0f);
+
+		SimpleParticle *pCloudParticle;
+
+		for (int i = 0; i < 2; i++)
+		{
+			// Originate from within a circle '2 * scale' inches in diameter.
+			offset = position + RandomVector(-0.1f, 0.1f);
+
+			pCloudParticle = (SimpleParticle *)pSimpleCloud->AddParticle(sizeof(SimpleParticle), pSimpleCloud->GetPMaterial("particle/particle_noisesphere"), offset);
+
+			if (pCloudParticle != NULL)
+			{
+				pCloudParticle->m_flLifetime = 0.0f;
+				pCloudParticle->m_flDieTime = random->RandomFloat(0.5f, 0.8f) * 20;
+
+				float spread = 0.5f;
+				pCloudParticle->m_vecVelocity.Random(-spread, spread);
+				pCloudParticle->m_vecVelocity += RandomVector(-5.0f, 5.0f);
+
+				pCloudParticle->m_uchColor[0] = pCloudParticle->m_uchColor[1] = pCloudParticle->m_uchColor[2] = 128.0f;
+
+				pCloudParticle->m_uchStartSize = 1 * RandomFloat(1.0f, 4.0f);
+				pCloudParticle->m_uchEndSize = pCloudParticle->m_uchStartSize * 60;
+
+				pCloudParticle->m_uchStartAlpha = 16.0f;
+				pCloudParticle->m_uchEndAlpha = 0;
+
+				pCloudParticle->m_flRoll = random->RandomInt(0, 360);
+				pCloudParticle->m_flRollDelta = 0.0f;
+			}
+		}
+
+		//
+		// Impact point glow
+		//
+
+		FXQuadData_t data;
+
+		data.SetMaterial("effects/yellowflare");
+		data.SetColor(1.0f, 1.0f, 1.0f);
+		data.SetOrigin(offset);
+		data.SetNormal(surfaceNormal);
+		data.SetAlpha(1.0f, 0.0f);
+		data.SetLifeTime(0.1f);
+		data.SetYaw(random->RandomInt(0, 360));
+
+		int scale = random->RandomInt(24, 28);
+		data.SetScale(scale, 0);
+
+		FX_AddQuad(data);
+	}
+	if (bInceasedEffect2)
+	{
+		//
+		// Emitted particles
+		//
+
+		Vector offset = position + (surfaceNormal * 1.0f);
+
+		CSmartPtr<CTrailParticles> sparkEmitterRedux = CTrailParticles::Create("FX_MetalSpark 1");
+
+		if (sparkEmitterRedux == NULL)
+			return;
+
+		//Setup our information
+		sparkEmitterRedux->SetSortOrigin(offset);
+		sparkEmitterRedux->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		sparkEmitterRedux->SetVelocityDampen(9.0f);
+		sparkEmitterRedux->SetGravity(METAL_SPARK_GRAVITY_REDUX);
+		sparkEmitterRedux->SetCollisionDamped(METAL_SPARK_DAMPEN_REDUX);
+		sparkEmitterRedux->GetBinding().SetBBox(offset - Vector(32, 32, 32), offset + Vector(32, 32, 32));
+
+		int	numSparks = random->RandomInt(5, 10) * (iScale * 3);
+
+		if (g_Material_Spark == NULL)
+		{
+			g_Material_Spark = sparkEmitterRedux->GetPMaterial("effects/spark");
+		}
+
+		TrailParticle	*pParticle;
+		Vector	dir;
+		float	length = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numSparks; i++)
+		{
+			pParticle = (TrailParticle *)sparkEmitterRedux->AddParticle(sizeof(TrailParticle), g_Material_Spark, offset);
+
+			if (pParticle == NULL)
+				return;
+
+			pParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+			else
+			{
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			dir[0] = direction[0] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[1] = direction[1] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[2] = direction[2] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+
+			VectorNormalize(dir);
+
+			pParticle->m_flWidth = random->RandomFloat(1.0f, 4.0f);
+			pParticle->m_flLength = random->RandomFloat(length*0.25f, length);
+
+			pParticle->m_vecVelocity = dir * random->RandomFloat((METAL_SPARK_MINSPEED_REDUX*(2.0f - spreadOfs)), (METAL_SPARK_MAXSPEED_REDUX*(2.0f - spreadOfs)));
+
+			Color32Init(pParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CTrailParticles> emberEmitter = CTrailParticles::Create("FX_FireEmber 1");
+
+		if (emberEmitter == NULL)
+			return;
+
+		//Setup our information
+		emberEmitter->SetSortOrigin(offset);
+		emberEmitter->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		emberEmitter->SetVelocityDampen(9.0f);
+		emberEmitter->SetGravity(METAL_EMBER_GRAVITY);
+		emberEmitter->SetCollisionDamped(METAL_EMBER_DAMPEN);
+		emberEmitter->GetBinding().SetBBox(offset - Vector(64, 64, 64), offset + Vector(64, 64, 64));
+
+		int	numEmberSparks = random->RandomInt(8, 12) * (iScale * 3);
+
+		if (g_Material_FireEmber == NULL)
+		{
+			g_Material_FireEmber = emberEmitter->GetPMaterial("effects/fire_embers1");
+		}
+
+		TrailParticle	*pEmberParticle;
+		Vector	vecDir;
+		float	particlelength = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numEmberSparks; i++)
+		{
+			pEmberParticle = (TrailParticle *)emberEmitter->AddParticle(sizeof(TrailParticle), g_Material_FireEmber, offset);
+
+			if (pEmberParticle == NULL)
+				return;
+
+			pEmberParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+			else
+			{
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			vecDir[0] = direction[0] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[1] = direction[1] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[2] = direction[2] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+
+			VectorNormalize(vecDir);
+
+			pEmberParticle->m_flWidth = random->RandomFloat(45.0f, 60.0f);
+			pEmberParticle->m_flLength = random->RandomFloat(particlelength*0.25f, particlelength);
+
+			pEmberParticle->m_vecVelocity = vecDir * random->RandomFloat((METAL_EMBER_MINSPEED*(2.0f - spreadOfs)), (METAL_EMBER_MAXSPEED*(2.0f - spreadOfs)));
+
+			Color32Init(pEmberParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CSimpleEmitter> pSimpleCloud = CSimpleEmitter::Create("FX_MetalSpark 3");
+		pSimpleCloud->SetSortOrigin(offset);
+		pSimpleCloud->SetGravity(0.0f);
+
+		SimpleParticle *pCloudParticle;
+
+		for (int i = 0; i < 2; i++)
+		{
+			// Originate from within a circle '2 * scale' inches in diameter.
+			offset = position + RandomVector(-0.1f, 0.1f);
+
+			pCloudParticle = (SimpleParticle *)pSimpleCloud->AddParticle(sizeof(SimpleParticle), pSimpleCloud->GetPMaterial("particle/particle_noisesphere"), offset);
+
+			if (pCloudParticle != NULL)
+			{
+				pCloudParticle->m_flLifetime = 0.0f;
+				pCloudParticle->m_flDieTime = random->RandomFloat(0.5f, 0.8f) * 20;
+
+				float spread = 0.5f;
+				pCloudParticle->m_vecVelocity.Random(-spread, spread);
+				pCloudParticle->m_vecVelocity += RandomVector(-5.0f, 5.0f);
+
+				pCloudParticle->m_uchColor[0] = pCloudParticle->m_uchColor[1] = pCloudParticle->m_uchColor[2] = 128.0f;
+
+				pCloudParticle->m_uchStartSize = 1 * RandomFloat(1.0f, 4.0f);
+				pCloudParticle->m_uchEndSize = pCloudParticle->m_uchStartSize * 60;
+
+				pCloudParticle->m_uchStartAlpha = 16.0f;
+				pCloudParticle->m_uchEndAlpha = 0;
+
+				pCloudParticle->m_flRoll = random->RandomInt(0, 360);
+				pCloudParticle->m_flRollDelta = 0.0f;
+			}
+		}
+
+		//
+		// Impact point glow
+		//
+
+		FXQuadData_t data;
+
+		data.SetMaterial("effects/yellowflare");
+		data.SetColor(1.0f, 1.0f, 1.0f);
+		data.SetOrigin(offset);
+		data.SetNormal(surfaceNormal);
+		data.SetAlpha(1.0f, 0.0f);
+		data.SetLifeTime(0.1f);
+		data.SetYaw(random->RandomInt(0, 360));
+
+		int scale = random->RandomInt(24, 28);
+		data.SetScale(scale, 0);
+
+		FX_AddQuad(data);
+	}
+	if (bInceasedEffect3)
+	{
+		//
+		// Emitted particles
+		//
+
+		Vector offset = position + (surfaceNormal * 1.0f);
+
+		CSmartPtr<CTrailParticles> sparkEmitterRedux = CTrailParticles::Create("FX_MetalSpark 1");
+
+		if (sparkEmitterRedux == NULL)
+			return;
+
+		//Setup our information
+		sparkEmitterRedux->SetSortOrigin(offset);
+		sparkEmitterRedux->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		sparkEmitterRedux->SetVelocityDampen(9.0f);
+		sparkEmitterRedux->SetGravity(METAL_SPARK_GRAVITY_REDUX);
+		sparkEmitterRedux->SetCollisionDamped(METAL_SPARK_DAMPEN_REDUX);
+		sparkEmitterRedux->GetBinding().SetBBox(offset - Vector(32, 32, 32), offset + Vector(32, 32, 32));
+
+		int	numSparks = random->RandomInt(5, 10) * (iScale * 3);
+
+		if (g_Material_Spark == NULL)
+		{
+			g_Material_Spark = sparkEmitterRedux->GetPMaterial("effects/spark");
+		}
+
+		TrailParticle	*pParticle;
+		Vector	dir;
+		float	length = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numSparks; i++)
+		{
+			pParticle = (TrailParticle *)sparkEmitterRedux->AddParticle(sizeof(TrailParticle), g_Material_Spark, offset);
+
+			if (pParticle == NULL)
+				return;
+
+			pParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+			else
+			{
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			dir[0] = direction[0] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[1] = direction[1] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[2] = direction[2] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+
+			VectorNormalize(dir);
+
+			pParticle->m_flWidth = random->RandomFloat(1.0f, 4.0f);
+			pParticle->m_flLength = random->RandomFloat(length*0.25f, length);
+
+			pParticle->m_vecVelocity = dir * random->RandomFloat((METAL_SPARK_MINSPEED_REDUX*(2.0f - spreadOfs)), (METAL_SPARK_MAXSPEED_REDUX*(2.0f - spreadOfs)));
+
+			Color32Init(pParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CTrailParticles> emberEmitter = CTrailParticles::Create("FX_FireEmber 1");
+
+		if (emberEmitter == NULL)
+			return;
+
+		//Setup our information
+		emberEmitter->SetSortOrigin(offset);
+		emberEmitter->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		emberEmitter->SetVelocityDampen(9.0f);
+		emberEmitter->SetGravity(METAL_EMBER_GRAVITY);
+		emberEmitter->SetCollisionDamped(METAL_EMBER_DAMPEN);
+		emberEmitter->GetBinding().SetBBox(offset - Vector(64, 64, 64), offset + Vector(64, 64, 64));
+
+		int	numEmberSparks = random->RandomInt(8, 12) * (iScale * 3);
+
+		if (g_Material_FireEmber == NULL)
+		{
+			g_Material_FireEmber = emberEmitter->GetPMaterial("effects/fire_embers1");
+		}
+
+		TrailParticle	*pEmberParticle;
+		Vector	vecDir;
+		float	particlelength = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numEmberSparks; i++)
+		{
+			pEmberParticle = (TrailParticle *)emberEmitter->AddParticle(sizeof(TrailParticle), g_Material_FireEmber, offset);
+
+			if (pEmberParticle == NULL)
+				return;
+
+			pEmberParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+			else
+			{
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			vecDir[0] = direction[0] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[1] = direction[1] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[2] = direction[2] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+
+			VectorNormalize(vecDir);
+
+			pEmberParticle->m_flWidth = random->RandomFloat(45.0f, 60.0f);
+			pEmberParticle->m_flLength = random->RandomFloat(particlelength*0.25f, particlelength);
+
+			pEmberParticle->m_vecVelocity = vecDir * random->RandomFloat((METAL_EMBER_MINSPEED*(2.0f - spreadOfs)), (METAL_EMBER_MAXSPEED*(2.0f - spreadOfs)));
+
+			Color32Init(pEmberParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CSimpleEmitter> pSimpleCloud = CSimpleEmitter::Create("FX_MetalSpark 3");
+		pSimpleCloud->SetSortOrigin(offset);
+		pSimpleCloud->SetGravity(0.0f);
+
+		SimpleParticle *pCloudParticle;
+
+		for (int i = 0; i < 2; i++)
+		{
+			// Originate from within a circle '2 * scale' inches in diameter.
+			offset = position + RandomVector(-0.1f, 0.1f);
+
+			pCloudParticle = (SimpleParticle *)pSimpleCloud->AddParticle(sizeof(SimpleParticle), pSimpleCloud->GetPMaterial("particle/particle_noisesphere"), offset);
+
+			if (pCloudParticle != NULL)
+			{
+				pCloudParticle->m_flLifetime = 0.0f;
+				pCloudParticle->m_flDieTime = random->RandomFloat(0.5f, 0.8f) * 20;
+
+				float spread = 0.5f;
+				pCloudParticle->m_vecVelocity.Random(-spread, spread);
+				pCloudParticle->m_vecVelocity += RandomVector(-5.0f, 5.0f);
+
+				pCloudParticle->m_uchColor[0] = pCloudParticle->m_uchColor[1] = pCloudParticle->m_uchColor[2] = 128.0f;
+
+				pCloudParticle->m_uchStartSize = 1 * RandomFloat(1.0f, 4.0f);
+				pCloudParticle->m_uchEndSize = pCloudParticle->m_uchStartSize * 60;
+
+				pCloudParticle->m_uchStartAlpha = 16.0f;
+				pCloudParticle->m_uchEndAlpha = 0;
+
+				pCloudParticle->m_flRoll = random->RandomInt(0, 360);
+				pCloudParticle->m_flRollDelta = 0.0f;
+			}
+		}
+
+		//
+		// Impact point glow
+		//
+
+		FXQuadData_t data;
+
+		data.SetMaterial("effects/yellowflare");
+		data.SetColor(1.0f, 1.0f, 1.0f);
+		data.SetOrigin(offset);
+		data.SetNormal(surfaceNormal);
+		data.SetAlpha(1.0f, 0.0f);
+		data.SetLifeTime(0.1f);
+		data.SetYaw(random->RandomInt(0, 360));
+
+		int scale = random->RandomInt(24, 28);
+		data.SetScale(scale, 0);
+
+		FX_AddQuad(data);
+	}
+	if (bInceasedEffect4)
+	{
+		//
+		// Emitted particles
+		//
+
+		Vector offset = position + (surfaceNormal * 1.0f);
+
+		CSmartPtr<CTrailParticles> sparkEmitterRedux = CTrailParticles::Create("FX_MetalSpark 1");
+
+		if (sparkEmitterRedux == NULL)
+			return;
+
+		//Setup our information
+		sparkEmitterRedux->SetSortOrigin(offset);
+		sparkEmitterRedux->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		sparkEmitterRedux->SetVelocityDampen(9.0f);
+		sparkEmitterRedux->SetGravity(METAL_SPARK_GRAVITY_REDUX);
+		sparkEmitterRedux->SetCollisionDamped(METAL_SPARK_DAMPEN_REDUX);
+		sparkEmitterRedux->GetBinding().SetBBox(offset - Vector(32, 32, 32), offset + Vector(32, 32, 32));
+
+		int	numSparks = random->RandomInt(5, 10) * (iScale * 3);
+
+		if (g_Material_Spark == NULL)
+		{
+			g_Material_Spark = sparkEmitterRedux->GetPMaterial("effects/spark");
+		}
+
+		TrailParticle	*pParticle;
+		Vector	dir;
+		float	length = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numSparks; i++)
+		{
+			pParticle = (TrailParticle *)sparkEmitterRedux->AddParticle(sizeof(TrailParticle), g_Material_Spark, offset);
+
+			if (pParticle == NULL)
+				return;
+
+			pParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+			else
+			{
+				pParticle->m_flDieTime = random->RandomFloat(0.5f, 0.95f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			dir[0] = direction[0] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[1] = direction[1] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+			dir[2] = direction[2] + random->RandomFloat(-(METAL_SPARK_SPREAD_REDUX*spreadOfs), (METAL_SPARK_SPREAD_REDUX*spreadOfs));
+
+			VectorNormalize(dir);
+
+			pParticle->m_flWidth = random->RandomFloat(1.0f, 4.0f);
+			pParticle->m_flLength = random->RandomFloat(length*0.25f, length);
+
+			pParticle->m_vecVelocity = dir * random->RandomFloat((METAL_SPARK_MINSPEED_REDUX*(2.0f - spreadOfs)), (METAL_SPARK_MAXSPEED_REDUX*(2.0f - spreadOfs)));
+
+			Color32Init(pParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CTrailParticles> emberEmitter = CTrailParticles::Create("FX_FireEmber 1");
+
+		if (emberEmitter == NULL)
+			return;
+
+		//Setup our information
+		emberEmitter->SetSortOrigin(offset);
+		emberEmitter->SetFlag(bitsPARTICLE_TRAIL_VELOCITY_DAMPEN);
+		emberEmitter->SetVelocityDampen(9.0f);
+		emberEmitter->SetGravity(METAL_EMBER_GRAVITY);
+		emberEmitter->SetCollisionDamped(METAL_EMBER_DAMPEN);
+		emberEmitter->GetBinding().SetBBox(offset - Vector(64, 64, 64), offset + Vector(64, 64, 64));
+
+		int	numEmberSparks = random->RandomInt(8, 12) * (iScale * 3);
+
+		if (g_Material_FireEmber == NULL)
+		{
+			g_Material_FireEmber = emberEmitter->GetPMaterial("effects/fire_embers1");
+		}
+
+		TrailParticle	*pEmberParticle;
+		Vector	vecDir;
+		float	particlelength = 0.1f;
+
+		//Dump out sparks
+		for (int i = 0; i < numEmberSparks; i++)
+		{
+			pEmberParticle = (TrailParticle *)emberEmitter->AddParticle(sizeof(TrailParticle), g_Material_FireEmber, offset);
+
+			if (pEmberParticle == NULL)
+				return;
+
+			pEmberParticle->m_flLifetime = 0.0f;
+
+			if (iScale > 1 && i % 3 == 0)
+			{
+				// Every third spark goes flying far if we're having a big batch of sparks.
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+			else
+			{
+				pEmberParticle->m_flDieTime = random->RandomFloat(0.5f, 1.5f);
+			}
+
+			float	spreadOfs = random->RandomFloat(0.0f, 2.0f);
+
+			vecDir[0] = direction[0] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[1] = direction[1] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+			vecDir[2] = direction[2] + random->RandomFloat(-(METAL_EMBER_SPREAD*spreadOfs), (METAL_EMBER_SPREAD*spreadOfs));
+
+			VectorNormalize(vecDir);
+
+			pEmberParticle->m_flWidth = random->RandomFloat(45.0f, 60.0f);
+			pEmberParticle->m_flLength = random->RandomFloat(particlelength*0.25f, particlelength);
+
+			pEmberParticle->m_vecVelocity = vecDir * random->RandomFloat((METAL_EMBER_MINSPEED*(2.0f - spreadOfs)), (METAL_EMBER_MAXSPEED*(2.0f - spreadOfs)));
+
+			Color32Init(pEmberParticle->m_color, 255, 255, 255, 255);
+		}
+
+		CSmartPtr<CSimpleEmitter> pSimpleCloud = CSimpleEmitter::Create("FX_MetalSpark 3");
+		pSimpleCloud->SetSortOrigin(offset);
+		pSimpleCloud->SetGravity(0.0f);
+
+		SimpleParticle *pCloudParticle;
+
+		for (int i = 0; i < 2; i++)
+		{
+			// Originate from within a circle '2 * scale' inches in diameter.
+			offset = position + RandomVector(-0.1f, 0.1f);
+
+			pCloudParticle = (SimpleParticle *)pSimpleCloud->AddParticle(sizeof(SimpleParticle), pSimpleCloud->GetPMaterial("particle/particle_noisesphere"), offset);
+
+			if (pCloudParticle != NULL)
+			{
+				pCloudParticle->m_flLifetime = 0.0f;
+				pCloudParticle->m_flDieTime = random->RandomFloat(0.5f, 0.8f) * 20;
+
+				float spread = 0.5f;
+				pCloudParticle->m_vecVelocity.Random(-spread, spread);
+				pCloudParticle->m_vecVelocity += RandomVector(-5.0f, 5.0f);
+
+				pCloudParticle->m_uchColor[0] = pCloudParticle->m_uchColor[1] = pCloudParticle->m_uchColor[2] = 128.0f;
+
+				pCloudParticle->m_uchStartSize = 1 * RandomFloat(1.0f, 4.0f);
+				pCloudParticle->m_uchEndSize = pCloudParticle->m_uchStartSize * 60;
+
+				pCloudParticle->m_uchStartAlpha = 16.0f;
+				pCloudParticle->m_uchEndAlpha = 0;
+
+				pCloudParticle->m_flRoll = random->RandomInt(0, 360);
+				pCloudParticle->m_flRollDelta = 0.0f;
+			}
+		}
+
+		//
+		// Impact point glow
+		//
+
+		FXQuadData_t data;
+
+		data.SetMaterial("effects/yellowflare");
+		data.SetColor(1.0f, 1.0f, 1.0f);
+		data.SetOrigin(offset);
+		data.SetNormal(surfaceNormal);
+		data.SetAlpha(1.0f, 0.0f);
+		data.SetLifeTime(0.1f);
+		data.SetYaw(random->RandomInt(0, 360));
+
+		int scale = random->RandomInt(24, 28);
+		data.SetScale(scale, 0);
+
+		FX_AddQuad(data);
+	}
+	*/
 }
 
 //-----------------------------------------------------------------------------

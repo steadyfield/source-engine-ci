@@ -176,6 +176,8 @@ public:
 
 	void			SetDrawBeforeViewModel( bool state = true );
 
+	void			SetGravity(float value) { m_flGravity = value; }
+
 	SimpleParticle*	AddSimpleParticle( PMaterialHandle hMaterial, const Vector &vOrigin, float flDieTime=3, unsigned char uchSize=10 );
 	
 // Overridables for variants like CEmberEffect.
@@ -191,6 +193,7 @@ protected:
 
 	float			m_flNearClipMin;
 	float			m_flNearClipMax;
+	float			m_flGravity;
 
 private:
 	CSimpleEmitter( const CSimpleEmitter & ); // not defined, not accessible

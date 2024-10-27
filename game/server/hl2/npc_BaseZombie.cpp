@@ -52,6 +52,7 @@
 #include "tier0/memdbgon.h"
 
 extern ConVar sk_npc_head;
+ConVar zombie_headcrabless("zombie_headcrabless", "0", FCVAR_ARCHIVE);
 
 #define ZOMBIE_BULLET_DAMAGE_SCALE 0.5f
 
@@ -761,6 +762,9 @@ bool CNPC_BaseZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDa
 //-----------------------------------------------------------------------------
 HeadcrabRelease_t CNPC_BaseZombie::ShouldReleaseHeadcrab( const CTakeDamageInfo &info, float flDamageThreshold )
 {
+	if (zombie_headcrabless.GetBool())
+		return RELEASE_NO;
+
 	if ( m_iHealth <= 0 )
 	{
 		if ( info.GetDamageType() & DMG_REMOVENORAGDOLL )
@@ -1701,6 +1705,12 @@ void CNPC_BaseZombie::Spawn( void )
 
 	m_bIsSlumped = false;
 
+	// i did this because it sometimes overrides the keyvalue in a map
+	if(zombie_headcrabless.GetBool())
+		m_fIsHeadless = true;
+
+	SetBodygroup(ZOMBIE_BODYGROUP_HEADCRAB, !m_fIsHeadless);
+
 	// Zombies get to cheat for 6 seconds (sjb)
 	GetEnemies()->SetFreeKnowledgeDuration( 6.0 );
 
@@ -2378,6 +2388,9 @@ bool CNPC_BaseZombie::HeadcrabFits( CBaseAnimating *pCrab )
 //-----------------------------------------------------------------------------
 void CNPC_BaseZombie::ReleaseHeadcrab( const Vector &vecOrigin, const Vector &vecVelocity, bool fRemoveHead, bool fRagdollBody, bool fRagdollCrab )
 {
+	if (zombie_headcrabless.GetBool())
+		return;
+
 	CAI_BaseNPC		*pCrab;
 	Vector vecSpot = vecOrigin;
 

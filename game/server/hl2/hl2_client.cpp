@@ -26,6 +26,8 @@
 
 #include "tier0/vprof.h"
 
+#include "COOLMOD/smod_cvars.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -105,7 +107,7 @@ CBaseEntity* FindEntity( edict_t *pEdict, char *classname)
 //-----------------------------------------------------------------------------
 void ClientGamePrecache( void )
 {
-	CBaseEntity::PrecacheModel("models/player.mdl");
+	CBaseEntity::PrecacheModel(cl_playermodel.GetString());
 	CBaseEntity::PrecacheModel( "models/gibs/agibs.mdl" );
 	CBaseEntity::PrecacheModel ("models/weapons/v_hands.mdl");
 
@@ -120,6 +122,19 @@ void ClientGamePrecache( void )
 	
 	CBaseEntity::PrecacheScriptSound( "Geiger.BeepHigh" );
 	CBaseEntity::PrecacheScriptSound( "Geiger.BeepLow" );
+
+	CBaseEntity::PrecacheScriptSound( "Player.HeadShot" );
+	CBaseEntity::PrecacheScriptSound( "Player.Helmet" );
+
+	CBaseEntity::PrecacheScriptSound( "Player.Splat" );
+	CBaseEntity::PrecacheScriptSound( "Meat.Stamp" );
+
+	PrecacheParticleSystem( "hl2mmod_explosion_rpg" );
+	PrecacheParticleSystem( "hl2mmod_explosion_grenade" );
+	PrecacheParticleSystem( "hl2mmod_explosion_canister" );
+	PrecacheParticleSystem( "hl2mmod_explosion_remix_misc" );
+	PrecacheParticleSystem( "hl2mmod_explosion_barrel_air" );
+	PrecacheParticleSystem( "hl2mmod_explosion_remix_misc_embers" );
 }
 
 
@@ -161,6 +176,12 @@ extern ConVar gamerules_survival;
 //=========================================================
 void InstallGameRules()
 {
+	engine->ServerCommand( "sv_cheats 1\n" );
+	engine->ServerCommand( "mat_force_bloom 1\n" );
+	engine->ServerCommand( "mat_bloom_scalefactor_scalar 4\n" );
+	engine->ServerCommand( "sparkshower 1\n" );
+	engine->ServerCommand( "gore_gibhealth 200\n" );
+
 #ifdef HL2_EPISODIC
 	if ( gamerules_survival.GetBool() )
 	{

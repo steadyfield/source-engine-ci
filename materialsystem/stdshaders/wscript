@@ -127,7 +127,14 @@ def build(bld):
 		'writez_dx9.cpp',
 		'writestencil_dx9.cpp',
 		'eyeball.cpp',
-		'../../public/tier0/memoverride.cpp'
+		'../../public/tier0/memoverride.cpp',
+		'radialblur.cpp',
+		'firstperson_blur.cpp',
+		'blur.cpp',
+		'smod_scope_helper.cpp',
+		'ironsight_blur.cpp',
+		'motion_blur.cpp',
+		'smod_scope.cpp',
 #		$Folder	'stdshader_dbg Files', [$X360]
 #		{
 #			'debugdepth.cpp',

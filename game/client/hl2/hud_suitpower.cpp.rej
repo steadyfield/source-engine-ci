@@ -1,0 +1,75 @@
+--- hl2/hud_suitpower.cpp	2024-08-11 15:07:30.382937268 +0500
++++ hl2/hud_suitpower.cpp	2024-08-12 17:12:07.531568014 +0500
+@@ -267,6 +283,24 @@
+ 			}
+ 			ypos += text2_gap;
+ 		}
++		/*
++		if (pPlayer->IsNightVisionActive())
++		{
++			tempString = g_pVGuiLocalize->Find("#Valve_Hud_NIGHTVISION");
++
++			surface()->DrawSetTextPos(text2_xpos, ypos);
++
++			if (tempString)
++			{
++				surface()->DrawPrintText(tempString, wcslen(tempString));
++			}
++			else
++			{
++				surface()->DrawPrintText(L"NIGHT VISION", wcslen(L"NIGHT VISION"));
++			}
++			ypos += text2_gap;
++		}
++		*/
+ 	}
+ }
+--- smod-port/game/client/hl2/hud_ammo.cpp	2024-08-11 15:07:30.378937207 +0500
++++ smod/game/client/hl2/hud_ammo.cpp	2024-08-12 17:12:07.539568014 +0500
+@@ -67,6 +67,9 @@
+ 	int		m_iAmmo;
+ 	int		m_iAmmo2;
+ 	CHudTexture *m_iconPrimaryAmmo;
++
++	CPanelAnimationVarAliasType(float, icon_xpos, "icon_xpos", "6", "proportional_float");
++	CPanelAnimationVarAliasType(float, icon_ypos, "icon_ypos", "7", "proportional_float");
+ };
+ 
+ DECLARE_HUDELEMENT( CHudAmmo );
+@@ -94,7 +97,7 @@
+ 	
+ 	m_iconPrimaryAmmo = NULL;
+ 
+-	wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
++	/*wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AMMO");
+ 	if (tempString)
+ 	{
+ 		SetLabelText(tempString);
+@@ -102,7 +105,7 @@
+ 	else
+ 	{
+ 		SetLabelText(L"AMMO");
+-	}
++	}*/
+ }
+ 
+ //-----------------------------------------------------------------------------
+@@ -353,16 +356,8 @@
+ 
+ #ifndef HL2MP
+ 	if ( m_hCurrentVehicle == NULL && m_iconPrimaryAmmo )
+-	{
+-		int nLabelHeight;
+-		int nLabelWidth;
+-		surface()->GetTextSize( m_hTextFont, m_LabelText, nLabelWidth, nLabelHeight );
+-
+-		// Figure out where we're going to put this
+-		int x = text_xpos + ( nLabelWidth - m_iconPrimaryAmmo->Width() ) / 2;
+-		int y = text_ypos - ( nLabelHeight + ( m_iconPrimaryAmmo->Height() / 2 ) );
+-		
+-		m_iconPrimaryAmmo->DrawSelf( x, y, GetFgColor() );
++	{		
++		m_iconPrimaryAmmo->DrawSelf(icon_xpos, icon_ypos, GetFgColor() );
+ 	}
+ #endif // HL2MP
+ }

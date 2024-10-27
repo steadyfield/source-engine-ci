@@ -75,6 +75,9 @@ public:
 
 	bool ShouldLookForBetterWeapon() { return false; }
 
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
+
 	void OnChangeRunningBehavior( CAI_BehaviorBase *pOldBehavior,  CAI_BehaviorBase *pNewBehavior );
 
 	void DeathSound( const CTakeDamageInfo &info );
@@ -156,6 +159,19 @@ void CNPC_Barney::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 		// Allow Barney to defend himself at point-blank range in c17_05.
 		pWeapon->m_fMinRange1 = 0.0f;
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+void CNPC_Barney::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
 }
 
 //---------------------------------------------------------

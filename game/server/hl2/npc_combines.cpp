@@ -44,6 +44,7 @@ extern ConVar sk_plr_num_shotgun_pellets;
 ConVar	combine_spawn_health( "combine_spawn_health", "1" );
 
 LINK_ENTITY_TO_CLASS( npc_combine_s, CNPC_CombineS );
+LINK_ENTITY_TO_CLASS( npc_combine_e, CNPC_CombineS);
 
 
 #define AE_SOLDIER_BLOCK_PHYSICS		20 // trying to block an incoming physics object
@@ -94,6 +95,16 @@ void CNPC_CombineS::Spawn( void )
 //-----------------------------------------------------------------------------
 void CNPC_CombineS::Precache()
 {
+	if (!GetModelName())
+	{
+		SetModelName(MAKE_STRING("models/combine_soldier.mdl"));
+	}
+
+	if (FStrEq(GetClassname(), "npc_combine_e"))
+	{
+		SetModelName(MAKE_STRING("models/combine_super_soldier.mdl"));
+	}
+
 	const char *pModelName = STRING( GetModelName() );
 
 	if( !Q_stricmp( pModelName, "models/combine_super_soldier.mdl" ) )
@@ -103,11 +114,6 @@ void CNPC_CombineS::Precache()
 	else
 	{
 		m_fIsElite = false;
-	}
-
-	if( !GetModelName() )
-	{
-		SetModelName( MAKE_STRING( "models/combine_soldier.mdl" ) );
 	}
 
 	PrecacheModel( STRING( GetModelName() ) );

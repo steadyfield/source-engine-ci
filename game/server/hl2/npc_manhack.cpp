@@ -19,6 +19,8 @@
 #include "basegrenade_shared.h"
 #include "ndebugoverlay.h"
 #include "decals.h"
+#include "hl2_player.h"
+#include "hl2_gamerules.h"
 #include "gib.h"
 #include "game.h"			
 #include "ai_interactions.h"
@@ -26,6 +28,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "movevars_shared.h"
+#include "metal_prop_ragdoll.h"
 #include "npcevent.h"
 #include "props.h"
 #include "te_effect_dispatch.h"
@@ -329,14 +332,26 @@ void CNPC_Manhack::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDi
 
 	if ( info.GetDamageType() & DMG_BULLET)
 	{
-		g_pEffects->Ricochet(ptr->endpos,ptr->plane.normal);
+		CEffectData data;
+
+		data.m_vOrigin = ptr->endpos;
+		data.m_vAngles = GetAbsAngles();
+
+		data.m_vNormal = ptr->plane.normal;
+
+		DispatchEffect("ManhackSparks", data);
 	}
 
 	if ( info.GetDamageType() & DMG_CLUB )
 	{
-		// Clubbed!
-//		UTIL_Smoke(GetAbsOrigin(), random->RandomInt(10, 15), 10);
-		g_pEffects->Sparks( ptr->endpos, 1, 1, &ptr->plane.normal );
+		CEffectData data;
+
+		data.m_vOrigin = ptr->endpos;
+		data.m_vAngles = GetAbsAngles();
+
+		data.m_vNormal = ptr->plane.normal;
+
+		DispatchEffect("ManhackSparks", data);
 	}
 
 	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
@@ -1401,6 +1416,95 @@ void CNPC_Manhack::Splash( const Vector &vecSplashPos )
 
 	DispatchEffect( "watersplash", data );
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CNPC_Manhack::BecomeRagdoll(const CTakeDamageInfo &info, const Vector &forceVector)
+{
+	if ( (info.GetDamageType() & DMG_VEHICLE) && !g_pGameRules->IsMultiplayer() )
+	{
+		CTakeDamageInfo info2 = info;
+		info2.SetDamageForce( forceVector );
+		Vector pos = info2.GetDamagePosition();
+		float flAbsMinsZ = GetAbsOrigin().z + WorldAlignMins().z;
+		if ( (pos.z - flAbsMinsZ) < 24 )
+		{
+			// HACKHACK: Make sure the vehicle impact is at least 2ft off the ground
+			pos.z = flAbsMinsZ + 24;
+			info2.SetDamagePosition( pos );
+		}
+
+// UNDONE: Put in a real sound cue here, don't do this bogus hack anymore
+#if 0
+		Vector soundOrigin = info.GetDamagePosition();
+		CPASAttenuationFilter filter( soundOrigin );
+
+		EmitSound_t ep;
+		ep.m_nChannel = CHAN_STATIC;
+		ep.m_pSoundName = "NPC_MetroPolice.HitByVehicle";
+		ep.m_flVolume = 1.0f;
+		ep.m_SoundLevel = SNDLVL_NORM;
+		ep.m_pOrigin = &soundOrigin;
+
+		EmitSound( filter, SOUND_FROM_WORLD, ep );
+#endif
+		// in single player create ragdolls on the server when the player hits someone
+		// with their vehicle - for more dramatic death/collisions
+		CBaseEntity *pRagdoll = CreateMetalServerRagdoll( this, m_nForceBone, info2, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+		FixupBurningServerRagdoll( pRagdoll );
+		RemoveDeferred();
+		return true;
+	}
+
+	//Fix up the force applied to server side ragdolls. This fixes magnets not affecting them.
+	CTakeDamageInfo newinfo = info;
+	newinfo.SetDamageForce( forceVector );
+
+#ifdef HL2_EPISODIC
+	// Burning corpses are server-side in episodic, if we're in darkness mode
+	if ( IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode() )
+	{
+		CBaseEntity *pRagdoll = CreateMetalServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS );
+		FixupBurningServerRagdoll( pRagdoll );
+		RemoveDeferred();
+		return true;
+	}
+#endif
+
+#ifdef HL2_DLL	
+
+	bool bMegaPhyscannonActive = false;
+#if !defined( HL2MP )
+	bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
+#endif // !HL2MP
+
+	// Mega physgun requires everything to be a server-side ragdoll
+	if ( m_bForceServerRagdoll == true || ( ( bMegaPhyscannonActive == true ) && !IsPlayer() && Classify() != CLASS_PLAYER_ALLY_VITAL && Classify() != CLASS_PLAYER_ALLY ) )
+	{
+		if ( CanBecomeServerRagdoll() == false )
+			return false;
+
+		//FIXME: This is fairly leafy to be here, but time is short!
+		CBaseEntity *pRagdoll = CreateMetalServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+		FixupBurningServerRagdoll( pRagdoll );
+		PhysSetEntityGameFlags( pRagdoll, FVPHYSICS_NO_SELF_COLLISIONS );
+		RemoveDeferred();
+
+		return true;
+	}
+
+	if( hl2_episodic.GetBool() && Classify() == CLASS_PLAYER_ALLY_VITAL )
+	{
+		CreateMetalServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_INTERACTIVE_DEBRIS, true );
+		RemoveDeferred();
+		return true;
+	}
+#endif //HL2_DLL
+
+	return BecomeRagdollOnClient( forceVector );
+}
+
 
 //-----------------------------------------------------------------------------
 // Computes the slice bounce velocity
@@ -3007,8 +3111,6 @@ void CNPC_Manhack::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 	}
 	else
 	{
-		m_pPrevOwner.Set( GetOwnerEntity() );
-
 		// Suppress collisions between the manhack and the player; we're currently bumping
 		// almost certainly because it's not purely a physics object.
 		SetOwnerEntity( pPhysGunUser );
@@ -3024,10 +3126,8 @@ void CNPC_Manhack::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 //-----------------------------------------------------------------------------
 void CNPC_Manhack::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason )
 {
-	SetOwnerEntity( m_pPrevOwner.Get() );
-
 	// Stop suppressing collisions between the manhack and the player
-	m_pPrevOwner.Set( NULL );
+	SetOwnerEntity( NULL );
 
 	m_bHeld = false;
 

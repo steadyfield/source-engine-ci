@@ -28,6 +28,8 @@
 #include "smoke_trail.h"
 #include "props.h"
 
+#include "npc_replace_model.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -380,6 +382,8 @@ void CBaseAnimating::OnRestore()
 void CBaseAnimating::Spawn()
 {
 	BaseClass::Spawn();
+
+	ReplaceModel(this);
 }
 
 //-----------------------------------------------------------------------------
@@ -2497,13 +2501,17 @@ void CBaseAnimating::SetModel( const char *szModelName )
 	delete m_pStudioHdr;
 	m_pStudioHdr = NULL;
 	
-	if ( szModelName[0] )
+	const char *szNewModelName = szModelName;
+	char szEntName[FILENAME_MAX];
+	Q_snprintf(szEntName, sizeof(szEntName), "%s", GetEntityName());
+	
+	if (szNewModelName[0] )
 	{
-		int modelIndex = modelinfo->GetModelIndex( szModelName );
+		int modelIndex = modelinfo->GetModelIndex(szNewModelName);
 		const model_t *model = modelinfo->GetModel( modelIndex );
 		if ( model && ( modelinfo->GetModelType( model ) != mod_studio ) )
 		{
-			Msg( "Setting CBaseAnimating to non-studio model %s  (type:%i)\n",	szModelName, modelinfo->GetModelType( model ) );
+			Msg( "Setting CBaseAnimating to non-studio model %s  (type:%i)\n", szNewModelName, modelinfo->GetModelType( model ) );
 		}
 	}
 
@@ -2513,7 +2521,7 @@ void CBaseAnimating::SetModel( const char *szModelName )
 		m_boneCacheHandle = 0;
 	}
 
-	UTIL_SetModel( this, szModelName );
+	UTIL_SetModel( this, szNewModelName);
 
 	InitBoneControllers( );
 	SetSequence( 0 );

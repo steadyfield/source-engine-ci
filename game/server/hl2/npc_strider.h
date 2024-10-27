@@ -104,6 +104,8 @@ public:
 
 	virtual float	GetAutoAimRadius() { return 80.0f; }
 
+	void            Fire9MMBullet( void );
+
 	int				DrawDebugTextOverlays();
 
 	void			UpdateEfficiency( bool bInPVS )	{ SetEfficiency( ( GetSleepState() != AISS_AWAKE ) ? AIE_DORMANT : AIE_NORMAL ); SetMoveEfficiency( AIME_NORMAL ); }

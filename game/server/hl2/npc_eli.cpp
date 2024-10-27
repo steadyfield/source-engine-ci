@@ -37,6 +37,9 @@ public:
 	int		GetSoundInterests( void );
 	void	SetupWithoutParent( void );
 	void	PrescheduleThink( void );
+
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 };
 
 LINK_ENTITY_TO_CLASS( npc_eli, CNPC_Eli );
@@ -105,7 +108,6 @@ void CNPC_Eli::Spawn()
 		SetMoveType( MOVETYPE_NONE );
 
 		CapabilitiesAdd( bits_CAP_ANIMATEDFACE | bits_CAP_TURN_HEAD );
-		CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
 	}
 	else
 	{
@@ -133,6 +135,19 @@ void CNPC_Eli::Precache()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+void CNPC_Eli::TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
+{
+	if (ptr->hitgroup == HITGROUP_HEAD)
+	{
+		EmitSound("Player.HeadShot");
+	}
+
+	BaseClass::TraceAttack( info, vecDir, ptr, pAccumulator );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CNPC_Eli::SetupWithoutParent( void )
 {
 	SetSolid( SOLID_BBOX );
@@ -140,7 +155,6 @@ void CNPC_Eli::SetupWithoutParent( void )
 	SetMoveType( MOVETYPE_STEP );
 
 	CapabilitiesAdd( bits_CAP_MOVE_GROUND | bits_CAP_OPEN_DOORS | bits_CAP_ANIMATEDFACE | bits_CAP_TURN_HEAD );
-	CapabilitiesAdd( bits_CAP_FRIENDLY_DMG_IMMUNE );
 }
 
 //-----------------------------------------------------------------------------

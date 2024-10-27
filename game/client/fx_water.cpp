@@ -175,7 +175,7 @@ void FX_GunshotSplash( const Vector &origin, const Vector &normal, float scale )
 		offDir = normal + RandomVector( -0.8f, 0.8f );
 
 		tParticle->m_vecVelocity = offDir * random->RandomFloat( SPLASH_MIN_SPEED * flScale * 3.0f, SPLASH_MAX_SPEED * flScale * 3.0f );
-		tParticle->m_vecVelocity[2] += random->RandomFloat( 32.0f, 64.0f ) * flScale;
+		tParticle->m_vecVelocity[2] += random->RandomFloat( 32.0f, 64.0f ) * flScale * 5;
 
 		tParticle->m_flWidth		= random->RandomFloat( 1.0f, 3.0f );
 		tParticle->m_flLength		= random->RandomFloat( 0.025f, 0.05f );
@@ -209,7 +209,7 @@ void FX_GunshotSplash( const Vector &origin, const Vector &normal, float scale )
 		pParticle->m_flDieTime	= 2.0f;	//NOTENOTE: We use a clip plane to realistically control our lifespan
 
 		pParticle->m_vecVelocity.Random( -0.2f, 0.2f );
-		pParticle->m_vecVelocity += ( normal * random->RandomFloat( 4.0f, 6.0f ) );
+		pParticle->m_vecVelocity += ( normal * random->RandomFloat( 4.0f, 6.0f ) ) * 5;
 		
 		VectorNormalize( pParticle->m_vecVelocity );
 

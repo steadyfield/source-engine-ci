@@ -58,6 +58,8 @@ public:
 
 	void Event_Killed( const CTakeDamageInfo &info );
 
+	// TraceAttack
+	virtual void TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 
 	void SetActivity( Activity NewActivity );
 	NPC_STATE		SelectIdealState ( void );

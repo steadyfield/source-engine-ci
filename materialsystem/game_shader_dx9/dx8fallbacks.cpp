@@ -1,3 +1,4 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
 #include "BaseVSShader.h"
 
 // This one isn't supported on dx8

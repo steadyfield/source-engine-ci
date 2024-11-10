@@ -46,9 +46,9 @@ def build(bld):
 		'refract_dx9_helper.cpp',
 		'water.cpp',
 		'depthwrite.cpp',
-		'cable_dx9.cpp',
+#		'cable_dx9.cpp',
 		'splinerope.cpp',
-		'eyes.cpp',
+#		'eyes.cpp',
 		'eyes_dx9.cpp',
 		'eyes_dx8_dx9_helper.cpp',
 		'eyeball.cpp',
@@ -66,6 +66,7 @@ def build(bld):
 		'engine_post_dx9.cpp',
 		'depthoffield_dx9.cpp',
 		'core_dx9.cpp',
+		'weapon_sheen_pass_helper.cpp',
 	]
 
 	includes = [

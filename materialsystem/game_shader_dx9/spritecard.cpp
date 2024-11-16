@@ -417,18 +417,18 @@ SHADER_DRAW
 		if ( bZoomSeq2 )
 		{
 			float flZScale=1.0/(params[ZOOMANIMATESEQ2]->GetFloatValue());
-			float C0[4]={ 0.5*(1.0+flZScale), flZScale, 0, 0 };
+			float C0[4]={ (float)(0.5*(1.0+flZScale)), flZScale, 0, 0 };
 			pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_7, C0,
 				ARRAYSIZE(C0)/4 );
 		}
 
 		// set fade constants in vsconsts 8 and 9
 		float flMaxDistance = params[MAXDISTANCE]->GetFloatValue();
-		float flStartFade = max( 1.0, flMaxDistance - params[FARFADEINTERVAL]->GetFloatValue() );
+		float flStartFade = max( 1.f, flMaxDistance - params[FARFADEINTERVAL]->GetFloatValue() );
 
 		float VC0[8]={ params[MINSIZE]->GetFloatValue(), params[MAXSIZE]->GetFloatValue(),
 			params[STARTFADESIZE]->GetFloatValue(), params[ENDFADESIZE]->GetFloatValue(),
-			flStartFade, 1.0/(flMaxDistance-flStartFade),
+			flStartFade, (float)(1.0/(flMaxDistance-flStartFade)),
 			0,0 };
 
 		pShaderAPI->SetVertexShaderConstant( VERTEX_SHADER_SHADER_SPECIFIC_CONST_8, VC0, ARRAYSIZE(VC0)/4 );

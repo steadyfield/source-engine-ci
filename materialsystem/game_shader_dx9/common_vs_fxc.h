@@ -91,8 +91,8 @@ const float4 cViewProjZ					: register(c13);
 
 const float4 cFogParams					: register(c16);
 #define cFogEndOverFogRange cFogParams.x
-// cFogParams.y unused
-#define cRadialFogMaxDensity cFogParams.z  //radial fog max density in fractional portion. height fog max density stored in integer portion and is multiplied by 1e10
+#define cFogOne cFogParams.y
+#define cFogMaxDensity cFogParams.z
 #define cOOFogRange cFogParams.w
 
 const float4x4 cViewModel				: register(c17);
@@ -519,41 +519,8 @@ bool ApplyMorph( sampler2D morphSampler, const float3 vMorphTargetTextureDim, co
 
 #endif   // SHADER_MODEL_VS_3_0
 
-float CalcFixedFunctionFog( const float3 worldPos, const bool bWaterFog )
-{
-	if( !bWaterFog )
-	{
-		return CalcRangeFogFactorFixedFunction( worldPos, cEyePos, cRadialFogMaxDensity, cFogEndOverFogRange, cOOFogRange );
-	}
-	else
-	{
-		return 0.0f; //all done in the pixel shader as of ps20 (current min-spec)
-	}
-}
 
-float CalcFixedFunctionFog( const float3 worldPos, const int fogType )
-{
-	return CalcFixedFunctionFog( worldPos, fogType != FOGTYPE_RANGE );
-}
-
-float CalcNonFixedFunctionFog( const float3 worldPos, const bool bWaterFog )
-{
-	if( !bWaterFog )
-	{
-		return CalcRangeFogFactorNonFixedFunction( worldPos, cEyePos, cRadialFogMaxDensity, cFogEndOverFogRange, cOOFogRange );
-	}
-	else
-	{
-		return 0.0f; //all done in the pixel shader as of ps20 (current min-spec)
-	}
-}
-
-float CalcNonFixedFunctionFog( const float3 worldPos, const int fogType )
-{
-	return CalcNonFixedFunctionFog( worldPos, fogType != FOGTYPE_RANGE );
-}
-
-/*float RangeFog( const float3 projPos )
+float RangeFog( const float3 projPos )
 {
 	return max( cFogMaxDensity, ( -projPos.z * cOOFogRange + cFogEndOverFogRange ) );
 }
@@ -580,11 +547,11 @@ float WaterFog( const float3 worldPos, const float3 projPos )
 	// $tmp.w is now the distance that we see through water.
 
 	return max( cFogMaxDensity, ( -tmp.w * cOOFogRange + cFogOne ) );
-}*/
+}
 
 float CalcFog( const float3 worldPos, const float3 projPos, const int fogType )
 {
-/*#if defined( _X360 )
+#if defined( _X360 )
 	// 360 only does pixel fog
 	return 1.0f;
 #endif
@@ -601,13 +568,12 @@ float CalcFog( const float3 worldPos, const float3 projPos, const int fogType )
 #else
 		return WaterFog( worldPos, projPos );
 #endif
-	}*/
-	return CalcFixedFunctionFog( worldPos, fogType );
+	}
 }
 
 float CalcFog( const float3 worldPos, const float3 projPos, const bool bWaterFog )
 {
-/*#if defined( _X360 )
+#if defined( _X360 )
 	// 360 only does pixel fog
 	return 1.0f;
 #endif
@@ -627,8 +593,7 @@ float CalcFog( const float3 worldPos, const float3 projPos, const bool bWaterFog
 #endif
 	}
 
-	return flFog;*/
-	return CalcFixedFunctionFog( worldPos, bWaterFog );
+	return flFog;
 }
 
 float4 DecompressBoneWeights( const float4 weights )

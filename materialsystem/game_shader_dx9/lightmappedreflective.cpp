@@ -1,4 +1,4 @@
-﻿//===== Copyright � 1996-2005, Valve Corporation, All rights reserved. ======//
+//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -9,9 +9,9 @@
 #include "mathlib/vmatrix.h"
 #include "common_hlsl_cpp_consts.h" // hack hack hack!
 
-#include "SDK_lightmappedreflective_vs20.inc"
-#include "SDK_lightmappedreflective_ps20.inc"
-#include "SDK_lightmappedreflective_ps20b.inc"
+#include "lightmappedreflective_vs20.inc"
+#include "lightmappedreflective_ps20.inc"
+#include "lightmappedreflective_ps20b.inc"
 
 
 DEFINE_FALLBACK_SHADER( SDK_LightmappedReflective, SDK_LightmappedReflective_DX90 )
@@ -67,11 +67,11 @@ BEGIN_VS_SHADER( SDK_LightmappedReflective_DX90, "Help for SDK_Lightmapped Refle
 	{
 		if( params[REFRACTTEXTURE]->IsDefined() )
 		{
-			LoadTexture( REFRACTTEXTURE );
+			LoadTexture( REFRACTTEXTURE, g_pHardwareConfig->GetHDRType() == HDR_TYPE_INTEGER || IsOSX() ? TEXTUREFLAGS_SRGB : 0 );
 		}
 		if( params[REFLECTTEXTURE]->IsDefined() )
 		{
-			LoadTexture( REFLECTTEXTURE );
+			LoadTexture( REFLECTTEXTURE, g_pHardwareConfig->GetHDRType() == HDR_TYPE_INTEGER || IsOSX() ? TEXTUREFLAGS_SRGB : 0 );
 		}
 		if ( params[NORMALMAP]->IsDefined() )
 		{
@@ -79,7 +79,8 @@ BEGIN_VS_SHADER( SDK_LightmappedReflective_DX90, "Help for SDK_Lightmapped Refle
 		}
 		if( params[BASETEXTURE]->IsDefined() )
 		{
-			LoadTexture( BASETEXTURE );
+			LoadTexture( BASETEXTURE, TEXTUREFLAGS_SRGB );
+			
 			if( params[ENVMAPMASK]->IsDefined() )
 			{
 				LoadTexture( ENVMAPMASK );
@@ -102,28 +103,31 @@ BEGIN_VS_SHADER( SDK_LightmappedReflective_DX90, "Help for SDK_Lightmapped Refle
 			SetInitialShadowState( );
 			if( bRefraction )
 			{
-				pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );
-				pShaderShadow->EnableTexture( SHADER_SAMPLER1, true );
-				if( g_pHardwareConfig->GetHDRType() == HDR_TYPE_INTEGER )
-				{
-					pShaderShadow->EnableSRGBRead( SHADER_SAMPLER0, true );
-				}
+				pShaderShadow->EnableTexture( SHADER_SAMPLER0, true );	// Refract
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER0, g_pHardwareConfig->GetHDRType() == HDR_TYPE_INTEGER || IsOSX() );
+				
+				pShaderShadow->EnableTexture( SHADER_SAMPLER1, true );	// Base
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER1, true );
 			}
+			
 			if( bReflection )
 			{
-				pShaderShadow->EnableTexture( SHADER_SAMPLER2, true );
-				pShaderShadow->EnableTexture( SHADER_SAMPLER3, true );
-				if( g_pHardwareConfig->GetHDRType() == HDR_TYPE_INTEGER )
-				{
-					pShaderShadow->EnableSRGBRead( SHADER_SAMPLER2, true );
-				}
+				pShaderShadow->EnableTexture( SHADER_SAMPLER2, true );	// Reflect
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER2, g_pHardwareConfig->GetHDRType() == HDR_TYPE_INTEGER || IsOSX() );
+				
+				pShaderShadow->EnableTexture( SHADER_SAMPLER3, true );	// Lightmap
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER3, g_pHardwareConfig->GetHDRType() == HDR_TYPE_NONE );
 			}
+			
 			if( params[BASETEXTURE]->IsTexture() )
 			{
 				// BASETEXTURE
 				pShaderShadow->EnableTexture( SHADER_SAMPLER1, true );
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER1, true );
+				
 				// LIGHTMAP
 				pShaderShadow->EnableTexture( SHADER_SAMPLER3, true );
+				pShaderShadow->EnableSRGBRead( SHADER_SAMPLER3, g_pHardwareConfig->GetHDRType() == HDR_TYPE_NONE );
 
 				if ( params[ENVMAPMASK]->IsTexture() )
 				{
@@ -151,30 +155,30 @@ BEGIN_VS_SHADER( SDK_LightmappedReflective_DX90, "Help for SDK_Lightmapped Refle
 				EnableAlphaBlending( SHADER_BLEND_SRC_ALPHA, SHADER_BLEND_ONE_MINUS_SRC_ALPHA );
 			}
 
-			DECLARE_STATIC_VERTEX_SHADER( sdk_lightmappedreflective_vs20 );
+			DECLARE_STATIC_VERTEX_SHADER( lightmappedreflective_vs20 );
 			SET_STATIC_VERTEX_SHADER_COMBO( BASETEXTURE, params[BASETEXTURE]->IsTexture() );
-			SET_STATIC_VERTEX_SHADER( sdk_lightmappedreflective_vs20 );
+			SET_STATIC_VERTEX_SHADER( lightmappedreflective_vs20 );
 
 			// "REFLECT" "0..1"
 			// "REFRACT" "0..1"
 			
 			if( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 			{
-				DECLARE_STATIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20b );
+				DECLARE_STATIC_PIXEL_SHADER( lightmappedreflective_ps20b );
 				SET_STATIC_PIXEL_SHADER_COMBO( REFLECT,  bReflection );
 				SET_STATIC_PIXEL_SHADER_COMBO( REFRACT,  bRefraction );
 				SET_STATIC_PIXEL_SHADER_COMBO( BASETEXTURE, params[BASETEXTURE]->IsTexture() );
 				SET_STATIC_PIXEL_SHADER_COMBO( ENVMAPMASK, params[ENVMAPMASK]->IsTexture() && params[BASETEXTURE]->IsTexture() );
-				SET_STATIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20b );
+				SET_STATIC_PIXEL_SHADER( lightmappedreflective_ps20b );
 			}
 			else
 			{
-				DECLARE_STATIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20 );
+				DECLARE_STATIC_PIXEL_SHADER( lightmappedreflective_ps20 );
 				SET_STATIC_PIXEL_SHADER_COMBO( REFLECT,  bReflection );
 				SET_STATIC_PIXEL_SHADER_COMBO( REFRACT,  bRefraction );
 				SET_STATIC_PIXEL_SHADER_COMBO( BASETEXTURE, params[BASETEXTURE]->IsTexture() );
 				SET_STATIC_PIXEL_SHADER_COMBO( ENVMAPMASK, params[ENVMAPMASK]->IsTexture() && params[BASETEXTURE]->IsTexture() );
-				SET_STATIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20 );
+				SET_STATIC_PIXEL_SHADER( lightmappedreflective_ps20 );
 			}
 
 			FogToFogColor();
@@ -241,21 +245,21 @@ BEGIN_VS_SHADER( SDK_LightmappedReflective_DX90, "Help for SDK_Lightmapped Refle
 
 			pShaderAPI->SetPixelShaderFogParams( 8 );
 
-			DECLARE_DYNAMIC_VERTEX_SHADER( sdk_lightmappedreflective_vs20 );
-			SET_DYNAMIC_VERTEX_SHADER( sdk_lightmappedreflective_vs20 );
+			DECLARE_DYNAMIC_VERTEX_SHADER( lightmappedreflective_vs20 );
+			SET_DYNAMIC_VERTEX_SHADER( lightmappedreflective_vs20 );
 			
 			if( g_pHardwareConfig->SupportsPixelShaders_2_b() )
 			{
-				DECLARE_DYNAMIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20b );
+				DECLARE_DYNAMIC_PIXEL_SHADER( lightmappedreflective_ps20b );
 				SET_DYNAMIC_PIXEL_SHADER_COMBO( WRITE_DEPTH_TO_DESTALPHA, bFullyOpaque && pShaderAPI->ShouldWriteDepthToDestAlpha() );
 				SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
-				SET_DYNAMIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20b );
+				SET_DYNAMIC_PIXEL_SHADER( lightmappedreflective_ps20b );
 			}
 			else
 			{
-				DECLARE_DYNAMIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20 );
+				DECLARE_DYNAMIC_PIXEL_SHADER( lightmappedreflective_ps20 );
 				SET_DYNAMIC_PIXEL_SHADER_COMBO( PIXELFOGTYPE, pShaderAPI->GetPixelFogCombo() );
-				SET_DYNAMIC_PIXEL_SHADER( sdk_lightmappedreflective_ps20 );
+				SET_DYNAMIC_PIXEL_SHADER( lightmappedreflective_ps20 );
 			}
 		}
 		Draw();
@@ -280,3 +284,4 @@ BEGIN_VS_SHADER( SDK_LightmappedReflective_DX90, "Help for SDK_Lightmapped Refle
 		}
 	}
 END_SHADER
+

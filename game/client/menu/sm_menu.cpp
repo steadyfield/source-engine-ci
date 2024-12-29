@@ -48,7 +48,7 @@ void CC_MessageBoxWarn()
 	vgui::MessageBox *pMessageBox = new vgui::MessageBox( 
 	
 	"Welcome to GunMod!\n",
-	"Made by ItzVladik!\n\n\nCredits:\nLeakNet, Axel Project - Some beta code\nMissing Information Team - Icons for Beta Weapons\nAdnan - ARGG Physgun\nGarry's Mod - Entities Icons\nSersoft - sersoft_house_beta1.bsp\nValve - Half-Life");
+	"Made by ItzVladik!\n\n\n\nCredits:\nLeakNet, Axel Project - Some beta code\nMissing Information Team - Icons for Beta Weapons\nAdnan - ARGG Physgun\nGarry's Mod - Entities Icons\nSersoft - sersoft_house_beta1.bsp\nValve - Half-Life\nEternalCringe - Icon for Gunmod\n");
 	pMessageBox->SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/SourceScheme_Dark.res", "SourceScheme"));
 	pMessageBox->DoModal();
 	pMessageBox->SetPos( 693, 93 );

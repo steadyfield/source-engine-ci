@@ -1,6 +1,6 @@
-export ICON=lc.png
-export PACKAGE=lostcoast
-export APP_NAME="Half-Life 2: Lost Coast"
+export ICON=gunmod-192.png
+export PACKAGE=gunmod
+export APP_NAME="GUNMOD: 0.5 (DF)"
 cd srceng-mod-launcher
 git clone https://gitlab.com/LostGamer/android-sdk
 export ANDROID_SDK_HOME=$PWD/android-sdk

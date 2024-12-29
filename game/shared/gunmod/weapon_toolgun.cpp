@@ -91,8 +91,8 @@ private:
 	CHandle<CEntityFlame> m_pIgniter;
 #endif	
 	CNetworkVar( int, m_iMode );
-	char * szCopiedEnt; 
-	char * modelName;
+	const char * szCopiedEnt; 
+	const char * modelName;
 	CBaseEntity *ent;
 };
 

@@ -108,6 +108,7 @@ void CFuncLadder::Spawn()
 		if ( developer.GetInt() > 1 )
 		{
 			m_debugOverlays |= OVERLAY_TEXT_BIT;
+			DrawDebugGeometryOverlays();
 		}
 	}
 
@@ -444,7 +445,9 @@ BEGIN_NETWORK_TABLE( CFuncLadder, DT_FuncLadder )
 END_NETWORK_TABLE()
 
 LINK_ENTITY_TO_CLASS( func_useableladder, CFuncLadder );
-
+#ifndef CLIENT_DLL
+LINK_ENTITY_TO_CLASS( info_ladder, CFuncLadder );
+#endif
 //---------------------------------------------------------
 // Save/Restore
 //---------------------------------------------------------

@@ -386,6 +386,7 @@ CHud::CHud()
 	SetDefLessFunc( m_RenderGroups );
 
 	m_flScreenShotTime = -1;
+	m_bSkipClear = false;
 }
 
 //-----------------------------------------------------------------------------

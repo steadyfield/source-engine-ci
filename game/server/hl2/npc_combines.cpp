@@ -57,8 +57,9 @@ extern Activity ACT_WALK_MARCH;
 void CNPC_CombineS::Spawn( void )
 {
 	Precache();
-	SetModel( STRING( GetModelName() ) );
-
+	const char *pModel[] = { "models/combine_super_soldier.mdl", "models/combine_soldier.mdl" };
+	SetModel( pModel[ RandomInt( 0, 1) ] );
+	
 	if( IsElite() )
 	{
 		// Stronger, tougher.
@@ -93,7 +94,7 @@ void CNPC_CombineS::Spawn( void )
 // Output :
 //-----------------------------------------------------------------------------
 void CNPC_CombineS::Precache()
-{
+{	
 	const char *pModelName = STRING( GetModelName() );
 
 	if( !Q_stricmp( pModelName, "models/combine_super_soldier.mdl" ) )
@@ -105,12 +106,8 @@ void CNPC_CombineS::Precache()
 		m_fIsElite = false;
 	}
 
-	if( !GetModelName() )
-	{
-		SetModelName( MAKE_STRING( "models/combine_soldier.mdl" ) );
-	}
-
-	PrecacheModel( STRING( GetModelName() ) );
+	PrecacheModel( "models/combine_super_soldier.mdl" );
+	PrecacheModel( "models/combine_soldier.mdl" );
 
 	UTIL_PrecacheOther( "item_healthvial" );
 	UTIL_PrecacheOther( "weapon_frag" );

@@ -31,6 +31,8 @@ public:
 	CTEConcussiveExplosion( const char *name );
 	virtual	~CTEConcussiveExplosion( void );
 
+	virtual	void Create( IRecipientFilter& filter, float delay = 0.0f );
+
 	CNetworkVector( m_vecNormal );
 	CNetworkVar( float, m_flScale );
 	CNetworkVar( int, m_nRadius );
@@ -63,6 +65,17 @@ CTEConcussiveExplosion::~CTEConcussiveExplosion( void )
 {
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : msg_dest - 
+//			delay - 
+//			origin - 
+//			*recipient - 
+//-----------------------------------------------------------------------------
+void CTEConcussiveExplosion::Create( IRecipientFilter& filter, float delay )
+{
+	engine->PlaybackTempEntity( filter, delay, (void *)this, GetServerClass()->m_pTable, GetServerClass()->m_ClassID );
+}
 
 // Singleton to fire TEExplosion objects
 static CTEConcussiveExplosion g_TEConcussiveExplosion( "ConcussiveExplosion" );
@@ -139,8 +152,8 @@ public:
 			0,			//start frame
 			2,			//framerate
 			0.3f,		//life
-			128,		//width
-			16,			//spread
+			64,		//width
+			4,			//spread
 			0,			//amplitude
 			colorRamp,	//r
 			colorRamp,	//g
@@ -150,7 +163,7 @@ public:
 			);
 
 		//Do the radius damage
-		RadiusDamage( CTakeDamageInfo( this, GetOwnerEntity(), 200, DMG_BLAST|DMG_DISSOLVE ), GetAbsOrigin(), 256, CLASS_NONE, NULL );
+		RadiusDamage( CTakeDamageInfo( this, this, 125*magnitude, DMG_BLAST ), GetAbsOrigin(), 256*magnitude, CLASS_NONE, NULL );
 
 		UTIL_Remove( this );
 	}
@@ -163,7 +176,7 @@ LINK_ENTITY_TO_CLASS( concussiveblast, CConcussiveBlast );
 //---------------------------------------------------------
 BEGIN_DATADESC( CConcussiveBlast )
 
-//	DEFINE_FIELD( m_spriteTexture,	FIELD_INTEGER ),
+	DEFINE_FIELD( m_spriteTexture,	FIELD_INTEGER ),
 
 END_DATADESC()
 
@@ -185,7 +198,7 @@ void CreateConcussiveBlast( const Vector &origin, const Vector &surfaceNormal, C
 
 // Combine Guard weapon
 
-#if 0
+#if 1
 
 class CWeaponCGuard : public CBaseHLCombatWeapon
 {
@@ -197,6 +210,7 @@ public:
 
 	CWeaponCGuard( void );
 	
+	bool Reload( void );
 	void Precache( void );
 	void PrimaryAttack( void );
 	void AddViewKick( void );
@@ -271,6 +285,25 @@ void CWeaponCGuard::Precache( void )
 	BaseClass::Precache();
 }
 
+bool CWeaponCGuard::Reload( void )
+{
+	bool fRet;
+	float fCacheTime = m_flNextSecondaryAttack;
+
+	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
+	if ( fRet )
+	{
+		// Undo whatever the reload process has done to our secondary
+		// attack timer. We allow you to interrupt reloading to fire
+		// a grenade.
+		m_flNextSecondaryAttack = GetOwner()->m_flNextAttack = fCacheTime;
+
+		WeaponSound( RELOAD );
+	}
+
+	return fRet;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -283,7 +316,7 @@ void CWeaponCGuard::AlertTargets( void )
 
 	// Fire the bullets
 	Vector vecSrc	 = pPlayer->Weapon_ShootPosition( );
-	Vector vecAiming = pPlayer->GetRadialAutoVector( NEW_AUTOAIM_RADIUS, NEW_AUTOAIM_DIST );
+	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
 
 	Vector	impactPoint	= vecSrc + ( vecAiming * MAX_TRACE_LENGTH );
 
@@ -372,7 +405,7 @@ void CWeaponCGuard::PrimaryAttack( void )
 
 	WeaponSound( SPECIAL1 );
 
-	//UTIL_ScreenShake( GetAbsOrigin(), 10.0f, 100.0f, 2.0f, 128, SHAKE_START, false );
+	UTIL_ScreenShake( GetAbsOrigin(), 10.0f, 100.0f, 2.0f, 128, SHAKE_START, false );
 
 	m_flChargeTime	= gpGlobals->curtime + 1.0f;
 	m_bFired		= false;
@@ -384,6 +417,7 @@ void CWeaponCGuard::PrimaryAttack( void )
 void CWeaponCGuard::ItemPostFrame( void )
 {
 	//FIXME: UpdateLasers();
+	UpdateLasers();
 
 	if ( ( m_flChargeTime < gpGlobals->curtime ) && ( m_bFired == false ) )
 	{
@@ -437,7 +471,7 @@ void CWeaponCGuard::DelayedFire( void )
 
 	// Fire the bullets
 	Vector vecSrc	 = pPlayer->Weapon_ShootPosition( );
-	Vector vecAiming = pPlayer->GetRadialAutoVector( NEW_AUTOAIM_RADIUS, NEW_AUTOAIM_DIST );
+	Vector vecAiming = pPlayer->GetAutoaimVector( AUTOAIM_SCALE_DEFAULT );
 
 	//Factor in the view kick
 	AddViewKick();

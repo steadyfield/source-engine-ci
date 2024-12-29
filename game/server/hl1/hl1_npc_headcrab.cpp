@@ -25,7 +25,7 @@
 extern void ClearMultiDamage(void);
 extern void ApplyMultiDamage( void );
 
-ConVar	sk_headcrab_health( "sk_headcrab_health","20");
+extern ConVar	sk_headcrab_health;
 ConVar	sk_headcrab_dmg_bite( "sk_headcrab_dmg_bite","10");
 
 #define CRAB_ATTN_IDLE				(float)1.5
@@ -76,7 +76,7 @@ void CNPC_Headcrab::Spawn( void )
 
 	SetRenderColor( 255, 255, 255, 255 );
 
-	SetModel( "models/headcrab.mdl" );
+	SetModel( "models/headcrab_hl1.mdl" );
 	m_iHealth = sk_headcrab_health.GetFloat();
 
 	SetHullType(HULL_TINY);
@@ -105,7 +105,7 @@ void CNPC_Headcrab::Spawn( void )
 //-----------------------------------------------------------------------------
 void CNPC_Headcrab::Precache( void )
 {
-	PrecacheModel( "models/headcrab.mdl" );
+	PrecacheModel( "models/headcrab_hl1.mdl" );
 //	PrecacheModel( "models/hc_squashed01.mdl" );
 //	PrecacheModel( "models/gibs/hc_gibs.mdl" );
 

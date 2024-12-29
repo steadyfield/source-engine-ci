@@ -69,6 +69,7 @@ protected:
 	virtual const char *GetDescription();
 	virtual void OnSizeChanged(int newWide, int newTall);
 	virtual void ApplySchemeSettings( IScheme *pScheme );
+	bool m_bScaleImage;
 
 private:
 	IImage *m_pImage;
@@ -77,7 +78,6 @@ private:
 	char *m_pszDrawColorName;
 	bool m_bPositionImage;
 	bool m_bCenterImage;
-	bool m_bScaleImage;
 	bool m_bTileImage;
 	bool m_bTileHorizontally;
 	bool m_bTileVertically;

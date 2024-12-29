@@ -35,6 +35,12 @@ extern IFileSystem *filesystem;
 	static ConVar dispcoll_drawplane( "dispcoll_drawplane", "0" );
 #endif
 
+ConVar mov_2004("mov_2004", "0");
+//ConVar mov_only_ducking("mov_only_ducking", "0");
+ConVar mov_afh("mov_afh", "0");
+ConVar mov_jumpforwardscale("mov_jumpforwardscale", "0.5");
+ConVar mov_jumpforwardsprintscale("mov_jumpforwardsprintscale", "0.1");
+ConVar mov_scale("mov_scale", "0");
 
 // tickcount currently isn't set during prediction, although gpGlobals->curtime and
 // gpGlobals->frametime are. We should probably set tickcount (to player->m_nTickBase),
@@ -2474,24 +2480,57 @@ bool CGameMovement::CheckJumpButton( void )
 		vecForward.z = 0;
 		VectorNormalize( vecForward );
 		
-		// We give a certain percentage of the current forward movement as a bonus to the jump speed.  That bonus is clipped
-		// to not accumulate over time.
-		float flSpeedBoostPerc = ( !pMoveData->m_bIsSprinting && !player->m_Local.m_bDucked ) ? 0.5f : 0.1f;
-		float flSpeedAddition = fabs( mv->m_flForwardMove * flSpeedBoostPerc );
-		float flMaxSpeed = mv->m_flMaxSpeed + ( mv->m_flMaxSpeed * flSpeedBoostPerc );
-		float flNewSpeed = ( flSpeedAddition + mv->m_vecVelocity.Length2D() );
-
-		// If we're over the maximum, we want to only boost as much as will get us to the goal speed
-		if ( flNewSpeed > flMaxSpeed )
+		if ( mov_2004.GetBool() )
 		{
-			flSpeedAddition -= flNewSpeed - flMaxSpeed;
+			if ( !pMoveData->m_bIsSprinting && !player->m_Local.m_bDucked )
+			{
+				for ( int iAxis = 0; iAxis < 2 ; ++iAxis )
+				{
+					vecForward[iAxis] *= ( mv->m_flForwardMove * mov_jumpforwardscale.GetFloat() );
+				}
+			}
+			else
+			{
+				for ( int iAxis = 0; iAxis < 2 ; ++iAxis )
+				{
+					vecForward[iAxis] *= ( mv->m_flForwardMove * mov_jumpforwardsprintscale.GetFloat() );
+				}
+			}
+			VectorAdd( vecForward, mv->m_vecVelocity, mv->m_vecVelocity );
 		}
+		else 
+		{
+			// We give a certain percentage of the current forward movement as a bonus to the jump speed.  That bonus is clipped
+			// to not accumulate over time.
+			float flSpeedBoostPerc = ( !pMoveData->m_bIsSprinting && !player->m_Local.m_bDucked ) ? 0.5f : 0.1f;
+			float flSpeedAddition = fabs( mv->m_flForwardMove * flSpeedBoostPerc );
+			float flMaxSpeed = mv->m_flMaxSpeed + ( mv->m_flMaxSpeed * flSpeedBoostPerc );
+			float flNewSpeed = ( flSpeedAddition + mv->m_vecVelocity.Length2D() );
 
-		if ( mv->m_flForwardMove < 0.0f )
-			flSpeedAddition *= -1.0f;
+			// If we're over the maximum, we want to only boost as much as will get us to the goal speed
+			if ( flNewSpeed > flMaxSpeed )
+			{
+				if ( mov_afh.GetBool() )
+					flSpeedAddition += flNewSpeed + flMaxSpeed + mov_scale.GetFloat();
+				else
+					flSpeedAddition -= flNewSpeed - flMaxSpeed + mov_scale.GetFloat();
+			}
 
-		// Add it on
-		VectorAdd( (vecForward*flSpeedAddition), mv->m_vecVelocity, mv->m_vecVelocity );
+			if ( mov_afh.GetBool() )
+			{ 
+				{
+					flSpeedAddition *= 1.0f + mov_scale.GetFloat();
+				}
+	 		}
+	 		else
+	 		{
+	 			if ( mv->m_flForwardMove < 0.0f )
+					flSpeedAddition *= -1.0f;
+	 		}
+			
+			// Add it on
+			VectorAdd( (vecForward*flSpeedAddition), mv->m_vecVelocity, mv->m_vecVelocity );
+		}
 	}
 #endif
 

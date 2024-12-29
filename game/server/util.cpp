@@ -36,6 +36,7 @@
 #include "datacache/imdlcache.h"
 #include "util.h"
 #include "cdll_int.h"
+#include "stdio.h"
 
 #ifdef PORTAL
 #include "PortalSimulation.h"
@@ -108,9 +109,37 @@ void DumpEntityFactories_f()
 	}
 }
 
+void DumpEntityToFile_f()
+{
+	FILE *fp;
+	fp = fopen("gunmod/addons/menu/entitylist.txt", "w+");
+	
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+		return;
+
+	fprintf( fp, "\"EntityList\"\n");
+	fprintf( fp, "{\n");
+	
+	CEntityFactoryDictionary *dict = ( CEntityFactoryDictionary * )EntityFactoryDictionary();
+	if ( dict )
+	{
+		for ( int i = dict->m_Factories.First(); i != dict->m_Factories.InvalidIndex(); i = dict->m_Factories.Next( i ) )
+		{
+			if (fp)
+			{
+				fprintf( fp, "\"entity\"");
+				fprintf( fp, "          ");
+				fprintf( fp, "\"%s\"\n", dict->m_Factories.GetElementName( i ) );
+			}
+		}
+	}
+	
+	fprintf( fp, "}");
+	fflush( fp );
+}
+
 static ConCommand dumpentityfactories( "dumpentityfactories", DumpEntityFactories_f, "Lists all entity factory names.", FCVAR_GAMEDLL );
-
-
+static ConCommand dumpentitytofile( "dumpentitytofile", DumpEntityToFile_f, "Lists all entity factory names.", FCVAR_GAMEDLL );
 //-----------------------------------------------------------------------------
 // 
 //-----------------------------------------------------------------------------
@@ -148,10 +177,8 @@ IEntityFactory *CEntityFactoryDictionary::FindFactory( const char *pClassName )
 //-----------------------------------------------------------------------------
 void CEntityFactoryDictionary::InstallFactory( IEntityFactory *pFactory, const char *pClassName )
 {
-	Assert( FindFactory( pClassName ) == NULL );
 	m_Factories.Insert( pClassName, pFactory );
 }
-
 
 //-----------------------------------------------------------------------------
 // Instantiate something using a factory
@@ -345,7 +372,7 @@ int UTIL_DropToFloor( CBaseEntity *pEntity, unsigned int mask, CBaseEntity *pIgn
 
 	trace_t	trace;
 
-#if !defined(HL2MP) && !defined(HL1_DLL)
+#ifndef HL2MP
 	// HACK: is this really the only sure way to detect crossing a terrain boundry?
 	UTIL_TraceEntity( pEntity, pEntity->GetAbsOrigin(), pEntity->GetAbsOrigin(), mask, pIgnore, pEntity->GetCollisionGroup(), &trace );
 	if (trace.fraction == 0.0)

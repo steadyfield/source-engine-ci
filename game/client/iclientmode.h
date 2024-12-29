@@ -85,6 +85,12 @@ public:
 	virtual int		KeyInput( int down, ButtonCode_t keynum, const char *pszCurrentBinding ) = 0;
 	virtual void	StartMessageMode( int iMessageModeType ) = 0;
 	virtual vgui::Panel *GetMessagePanel() = 0;
+#ifdef ARGG
+	// adnan
+	// does this weapon need to override the view angles?
+	virtual bool	OverrideViewAngles( void ) = 0;
+	// end adnan
+#endif
 	virtual void	OverrideMouseInput( float *x, float *y ) = 0;
 	virtual bool	CreateMove( float flInputSampleTime, CUserCmd *cmd ) = 0;
 
@@ -109,6 +115,7 @@ public:
 	virtual void	ActivateInGameVGuiContext( vgui::Panel *pPanel ) = 0;
 	virtual void	DeactivateInGameVGuiContext() = 0;
 	virtual float	GetViewModelFOV( void ) = 0;
+	virtual float	SetViewModelFOV( float value ) = 0;
 
 	virtual bool	CanRecordDemo( char *errorMsg, int length ) const = 0;
 

@@ -6,7 +6,7 @@
 
 #include "cbase.h"
 #include "basehlcombatweapon.h"
-#include "NPCevent.h"
+#include "npcevent.h"
 #include "basecombatcharacter.h"
 #include "ai_basenpc.h"
 #include "player.h"
@@ -50,12 +50,10 @@ public:
 
 	CWeaponAR1();
 
-	int m_ROF;
-
 	void	Precache( void );
 	bool	Deploy( void );
 
-	float GetFireRate( void ) {return RateOfFire[ m_ROF ];}
+	float GetFireRate( void ) {return 0.075f;}
 
 	int CapabilitiesGet( void ) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
 
@@ -113,15 +111,11 @@ IMPLEMENT_ACTTABLE(CWeaponAR1);
 // Save/Restore
 //---------------------------------------------------------
 BEGIN_DATADESC( CWeaponAR1 )
-
-	DEFINE_FIELD( m_ROF,			FIELD_INTEGER ),
-
 END_DATADESC()
 
 
 CWeaponAR1::CWeaponAR1( )
 {
-	m_ROF = 0;
 }
 
 void CWeaponAR1::Precache( void )
@@ -149,34 +143,4 @@ void CWeaponAR1::FireBullets( const FireBulletsInfo_t &info )
 
 void CWeaponAR1::SecondaryAttack( void )
 {
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	if ( pPlayer )
-	{
-		pPlayer->m_nButtons &= ~IN_ATTACK2;
-	}
-
-	m_flNextSecondaryAttack = gpGlobals->curtime + 0.1;
-
-	m_ROF += 1;
-
-	if( m_ROF == MAX_SETTINGS )
-	{
-		m_ROF = 0;
-	}
-
-	int i;
-
-	Msg( "\n" );
-	for( i = 0 ; i < MAX_SETTINGS ; i++ )
-	{
-		if( i == m_ROF )
-		{
-			Msg( "|" );
-		}
-		else
-		{
-			Msg( "-" );
-		}
-	}
-	Msg( "\n" );
 }

@@ -1044,6 +1044,9 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	// load MOTD from file into stringtable
 	LoadMessageOfTheDay();
 
+	ConVarRef c("sv_cheats");
+	c.SetValue(1);
+
 	// Sometimes an ent will Remove() itself during its precache, so RemoveImmediate won't happen.
 	// This makes sure those ents get cleaned up.
 	gEntList.CleanupDeleteList();

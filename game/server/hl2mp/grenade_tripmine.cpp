@@ -18,8 +18,7 @@
 
 extern const char* g_pModelNameLaser;
 
-ConVar    sk_plr_dmg_tripmine		( "sk_plr_dmg_tripmine","150"); // commented values in hl2/skill.cfg
-ConVar    sk_npc_dmg_tripmine		( "sk_npc_dmg_tripmine","125");
+extern ConVar sk_plr_dmg_tripmine;
 ConVar    sk_tripmine_radius		( "sk_tripmine_radius","200");
 
 LINK_ENTITY_TO_CLASS( npc_tripmine, CTripmineGrenade );

@@ -1619,8 +1619,8 @@ CGameMenu *CBasePanel::RecursiveLoadGameMenu(KeyValues *datafile)
 			bFoundServerBrowser = true;
 	}
 
-	if( !bFoundServerBrowser && !ModInfo().IsSinglePlayerOnly() )
-		menu->AddMenuItem("AntiM*dG*yButton", "#GameUI_GameMenu_FindServers", "OpenServerBrowser", this);
+	//if( !bFoundServerBrowser && !ModInfo().IsSinglePlayerOnly() )
+		//menu->AddMenuItem("AntiM*dG*yButton", "#GameUI_GameMenu_FindServers", "OpenServerBrowser", this);
 
 	// loop through all the data adding items to the menu
 	for (KeyValues *dat = datafile->GetFirstSubKey(); dat != NULL; dat = dat->GetNextKey())

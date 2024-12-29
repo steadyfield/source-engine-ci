@@ -9,6 +9,7 @@
 #include "datacache/imdlcache.h"
 
 #if defined( CLIENT_DLL )
+#include "iclientmode.h"
 #include "iprediction.h"
 #include "prediction.h"
 #include "client_virtualreality.h"
@@ -24,7 +25,6 @@
 
 #ifdef SIXENSE
 extern ConVar in_forceuser;
-#include "iclientmode.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -428,6 +428,8 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 
 	SetLocalOrigin( vmorigin );
 	SetLocalAngles( vmangles );
+
+
 
 #ifdef SIXENSE
 	if( g_pSixenseInput->IsEnabled() && (owner->GetObserverMode()==OBS_MODE_NONE) && !UseVR() )

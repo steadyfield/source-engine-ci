@@ -34,6 +34,7 @@ public:
 	void	Start( void );
 	int		DrawModel( int flags );
 	bool	ShouldDraw( void ) { return m_bEmit; }
+	virtual void ClientThink( void );			
 
 protected:
 
@@ -87,6 +88,7 @@ void C_ExtinguisherJet::OnDataChanged( DataUpdateType_t updateType )
 
 	if( updateType == DATA_UPDATE_CREATED )
 	{
+		SetNextClientThink( CLIENT_THINK_ALWAYS );
 		Start();
 	}
 }
@@ -106,7 +108,7 @@ void C_ExtinguisherJet::Start( void )
 	Assert( m_pEmitter.IsValid() );
 	if ( m_pEmitter.IsValid() )
 	{
-		m_MaterialHandle = g_Mat_DustPuff[0];
+		m_MaterialHandle = m_pEmitter->GetPMaterial( "particle/particle_smokegrenade" );
 		m_pEmitter->SetSortOrigin( GetAbsOrigin() );
 	}
 
@@ -116,7 +118,7 @@ void C_ExtinguisherJet::Start( void )
 	Assert( m_pEmberEmitter.IsValid() );
 	if ( m_pEmberEmitter.IsValid() )
 	{
-		m_EmberMaterialHandle = g_Mat_DustPuff[0];
+		m_EmberMaterialHandle = m_pEmberEmitter->GetPMaterial( "particle/particle_smokegrenade" );
 		m_pEmberEmitter->SetSortOrigin( GetAbsOrigin() );
 	}
 }
@@ -153,35 +155,18 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 
 	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
 
-	if ( m_bUseMuzzlePoint )
-	{
-		C_BaseViewModel *vm = player ? player->GetViewModel( 0 ) : NULL;
-
-		if ( vm )
-		{
-			int iAttachment = vm->LookupAttachment( "muzzle" );
-			Vector origin;
-			QAngle angles;
-			vm->GetAttachment( iAttachment, origin, angles );
-
-			Assert( !GetMoveParent() );
-			SetLocalOrigin( origin );
-			SetLocalAngles( angles );
-		}
-	}
-
 	trace_t	tr;
 	Vector	shotDir, vRight, vUp;
 
-	AngleVectors( GetAbsAngles(), &shotDir, &vRight, &vUp );
+	AngleVectors( player->EyeAngles(), &shotDir, &vRight, &vUp );
 	
 	//FIXME: Muzzle point is incorrect on the model!
 	if ( m_bUseMuzzlePoint )
 	{
-		shotDir.Negate();
+		//shotDir.Negate();
 	}
 
-	Vector	endPoint = GetAbsOrigin() + ( shotDir * 150.0f );
+	Vector	endPoint = player->EyePosition() + ( shotDir * 150.0f );
 	
 	UTIL_TraceLine( GetAbsOrigin(), endPoint, MASK_SHOT, NULL, COLLISION_GROUP_NONE, &tr );
 
@@ -229,7 +214,7 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 
 				if ( m_bUseMuzzlePoint )
 				{
-					dir.Negate();
+					//dir.Negate();
 				}
 
 				pParticle->m_vecVelocity	= dir * random->RandomInt( 400, 800 );
@@ -266,7 +251,7 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 
 				if ( m_bUseMuzzlePoint )
 				{
-					dir.Negate();
+					//dir.Negate();
 				}
 
 				pParticle->m_vecVelocity	= dir * random->RandomInt( 32, 64 );
@@ -317,7 +302,7 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 			{
 				m_pEmberEmitter->SetSortOrigin( GetAbsOrigin() );
 
-				pParticle = (SimpleParticle *) m_pEmberEmitter->AddParticle( sizeof(SimpleParticle), g_Mat_DustPuff[0], GetAbsOrigin() );
+				pParticle = (SimpleParticle *) m_pEmberEmitter->AddParticle( sizeof(SimpleParticle), m_pEmberEmitter->GetPMaterial( "particle/particle_smokegrenade" ), GetAbsOrigin() );
 				
 				assert(pParticle);
 
@@ -347,7 +332,7 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 
 					if ( m_bUseMuzzlePoint )
 					{
-						dir.Negate();
+						//dir.Negate();
 					}
 
 					pParticle->m_vecVelocity	= dir * random->RandomInt( 400, 800 );
@@ -359,7 +344,7 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 	// Inner beam
 
 	CBeamSegDraw	beamDraw;
-	CBeamSeg		seg;
+	BeamSeg_t		seg;
 	const int		numPoints = 4;
 	Vector			beamPoints[numPoints];
 
@@ -377,8 +362,11 @@ void C_ExtinguisherJet::Update( float fTimeDelta )
 	}
 
 	IMaterial *pMat = materials->FindMaterial( "particle/particle_smokegrenade", TEXTURE_GROUP_PARTICLE );
-
-	beamDraw.Start( numPoints, pMat );
+	
+	CMatRenderContextPtr pRenderContext( materials );
+	pRenderContext->Bind( pMat );
+	
+	beamDraw.Start( pRenderContext, numPoints, pMat );
 
 	//Setup and draw those points	
 	for( i = 0; i < numPoints; i++ )
@@ -410,4 +398,31 @@ int C_ExtinguisherJet::DrawModel( int flags )
 	Update( Helper_GetFrameTime() );
 
 	return 1;
+}
+
+void C_ExtinguisherJet::ClientThink(void)
+{
+	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
+
+	if ( m_bUseMuzzlePoint )
+	{
+		C_BaseViewModel *vm = player ? player->GetViewModel( 0 ) : NULL;
+
+		if ( vm )
+		{
+			int iAttachment = vm->LookupAttachment( "muzzle" );
+			Vector origin;
+			QAngle angles;
+			vm->GetAttachment( iAttachment, origin, angles );
+
+			SetAbsOrigin( origin );
+			SetAbsAngles( angles );
+
+		}
+		else
+		{
+			SetAbsOrigin( player->GetAbsOrigin() );
+			SetAbsAngles( player->GetAbsAngles() );
+		}
+	}
 }

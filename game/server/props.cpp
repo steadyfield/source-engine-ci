@@ -199,16 +199,16 @@ void CBaseProp::Spawn( void )
 			UTIL_Remove( this );
 			return;
 		}
-		else if ( iResult == PARSE_FAILED_NO_DATA )
-		{
-			// If we don't have data, but we're a prop_physics, fail
-			if ( FClassnameIs( this, "prop_physics" ) )
-			{
-				DevWarning( "%s at %.0f %.0f %0.f uses model %s, which has no propdata which means it must be used on a prop_static. DELETED.\n", GetClassname(), GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z, szModel );
-				UTIL_Remove( this );
-				return;
-			}
-		}
+//		else if ( iResult == PARSE_FAILED_NO_DATA )
+//		{
+//			// If we don't have data, but we're a prop_physics, fail
+//			if ( FClassnameIs( this, "prop_physics" ) )
+//			{
+//				DevWarning( "%s at %.0f %.0f %0.f uses model %s, which has no propdata which means it must be used on a prop_static. DELETED.\n", GetClassname(), GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z, szModel );
+//				UTIL_Remove( this );
+//				return;
+//			}
+//		}
 		else if ( iResult == PARSE_SUCCEEDED )
 		{
 			// If we have data, and we're not a physics prop, fail

@@ -335,7 +335,7 @@ void CWeapon_SLAM::StartSatchelDetonate()
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::TripmineAttach( void )
 {
-	CHL2_Player *pOwner  = ToBasePlayer( GetOwner() );
+	CBasePlayer *pOwner  = ToBasePlayer( GetOwner() );
 	if (!pOwner)
 	{
 		return;
@@ -694,7 +694,7 @@ void CWeapon_SLAM::SLAMThink( void )
 //-----------------------------------------------------------------------------
 bool CWeapon_SLAM::CanAttachSLAM( void )
 {
-	CHL2_Player *pOwner = ToBasePlayer( GetOwner() );
+	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 
 	if (!pOwner)
 	{

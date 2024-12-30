@@ -611,12 +611,13 @@ SMFrame::SMFrame( vgui::Panel *parent, const char *panelName, const char *name, 
 
 	SetProportional( true );
 
-	int wide = 445;
-	int tall = 360;
+	int wide = 300;
+	int tall = 240;
 	int swide, stall;
 	surface()->GetScreenSize(swide, stall);
-	SetSize( wide, tall );
-	SetPos((swide - wide) / 2, (stall - tall) / 2);
+	SetProportionalBounds( this, (swide - wide) / 2, (stall - tall) / 2, wide, tall  );
+	//SetSize( wide, tall );
+	//SetPos((swide - wide) / 2, (stall - tall) / 2);
 	
 	if ( bCitizen )
 	{

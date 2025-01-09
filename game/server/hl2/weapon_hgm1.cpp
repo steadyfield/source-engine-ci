@@ -32,9 +32,8 @@ public:
 		return cone;
 	}
 
-	void CWeaponHMG1::SecondaryAttack()
+	void SecondaryAttack()
 	{
-
 		BaseClass::PrimaryAttack();
 	}
 

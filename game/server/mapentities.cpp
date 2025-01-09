@@ -18,6 +18,7 @@
 #include "datacache/imdlcache.h"
 #include "world.h"
 #include "toolframework/iserverenginetools.h"
+#include "filesystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -32,6 +33,30 @@ struct HierarchicalSpawnMapData_t
 static CStringRegistry *g_pClassnameSpawnPriority = NULL;
 extern edict_t *g_pForceAttachEdict;
 
+const char *ReplaceEntity( const char *classname )
+{	
+	if ( ( !Q_strncmp( gpGlobals->mapname.ToCStr(), "c1", 2 ) == 0 ) || ( !Q_strncmp( gpGlobals->mapname.ToCStr(), "c2", 2 ) == 0 ) || ( !Q_strncmp( gpGlobals->mapname.ToCStr(), "c4", 2 ) == 0 ) || ( !Q_strncmp( gpGlobals->mapname.ToCStr(), "c4", 2 ) == 0 ) )
+	{
+		KeyValues *kv = new KeyValues( "ReplaceEntity" );
+		if ( kv )
+		{
+			if ( kv->LoadFromFile(g_pFullFileSystem, "addons/menu/replace_entity.txt") )
+			{
+				for ( KeyValues *control = kv->GetFirstSubKey(); control != NULL; control = control->GetNextKey() )
+				{	
+					if ( FStrEq( control->GetName(), classname ))
+					{	
+						return control->GetString();
+						printf("replaced\n\n\n\n");
+					}
+				}
+			}
+			kv->deleteThis();
+		}
+	}
+	return classname;
+}
+
 // creates an entity by string name, but does not spawn it
 CBaseEntity *CreateEntityByName( const char *className, int iForceEdictIndex )
 {
@@ -42,6 +67,7 @@ CBaseEntity *CreateEntityByName( const char *className, int iForceEdictIndex )
 			Error( "CreateEntityByName( %s, %d ) - CreateEdict failed.", className, iForceEdictIndex );
 	}
 
+	className = ReplaceEntity( className );
 	IServerNetworkable *pNetwork = EntityFactoryDictionary()->Create( className );
 	g_pForceAttachEdict = NULL;
 

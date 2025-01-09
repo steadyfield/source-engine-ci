@@ -179,7 +179,7 @@ void CWeaponHopWire::SecondaryAttack( void )
 		//Send the weapon animation
 		SendWeaponAnim( ACT_VM_HAULBACK );
 	}
-	RollGrenade(pPlayer);
+	
 	DecrementAmmo(pOwner);
 	m_flNextSecondaryAttack	= gpGlobals->curtime + SequenceDuration();
 }
@@ -206,7 +206,7 @@ void CWeaponHopWire::PrimaryAttack( void )
 
 	SendWeaponAnim( ACT_VM_THROW );
 	
-	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();
+	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
 }
 
 //-----------------------------------------------------------------------------

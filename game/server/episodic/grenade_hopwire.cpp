@@ -105,7 +105,7 @@ void CGravityVortexController::PullPlayersInRange( void )
 {
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 	
-	Vector	vecForce = GetAbsOrigin() - pPlayer->WorldSpaceCenter();
+	Vector	vecForce = GetLocalOrigin() - pPlayer->WorldSpaceCenter();
 	float	dist = VectorNormalize( vecForce );
 	
 	// FIXME: Need a more deterministic method here

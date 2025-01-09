@@ -128,6 +128,7 @@ $Project "Client (HL2)"
 			$File "$SRCDIR\game\shared\hl2mp\weapon_slam.cpp"
 			$File "hl2\c_weapon_oicw.cpp"
 			$File "episodic\c_weapon_hopwire.cpp"
+			$File "hl2\c_npc_hydra.cpp"
 		}
 
 		$Folder "Half-Life: Source"

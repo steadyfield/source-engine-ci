@@ -41,6 +41,7 @@ ConVar mov_afh("mov_afh", "0");
 ConVar mov_jumpforwardscale("mov_jumpforwardscale", "0.5");
 ConVar mov_jumpforwardsprintscale("mov_jumpforwardsprintscale", "0.1");
 ConVar mov_scale("mov_scale", "0");
+ConVar mov_autojump("mov_autojump", "0");
 
 // tickcount currently isn't set during prediction, although gpGlobals->curtime and
 // gpGlobals->frametime are. We should probably set tickcount (to player->m_nTickBase),
@@ -2411,7 +2412,10 @@ bool CGameMovement::CheckJumpButton( void )
 #endif
 
 	if ( mv->m_nOldButtons & IN_JUMP )
-		return false;		// don't pogo stick
+	{
+		if ( !mov_autojump.GetBool() )
+			return false; 	// don't pogo stick
+	}
 
 	// Cannot jump will in the unduck transition.
 	if ( player->m_Local.m_bDucking && (  player->GetFlags() & FL_DUCKING ) )
@@ -2463,7 +2467,16 @@ bool CGameMovement::CheckJumpButton( void )
 		// v = g * sqrt(2.0 * 45 / g )
 		// v^2 = g * g * 2.0 * 45 / g
 		// v = sqrt( g * 2.0 * 45 )
-		mv->m_vecVelocity[2] = flGroundFactor * flMul;  // 2 * gravity * height
+		if ( player->m_bHasLongJump && ( mv->m_nButtons & IN_DUCK ) && 
+		   ( player->m_Local.m_flDucktime > 0 ) && mv->m_vecVelocity.Length() > 50 )
+		{
+			player->m_Local.m_vecPunchAngle.Set( PITCH, -5 );
+
+			mv->m_vecVelocity = m_vecForward * 350 * 1.6;
+			mv->m_vecVelocity.z = sqrt(2 * 800 * 56.0);
+		}
+		else
+			mv->m_vecVelocity[2] = flGroundFactor * flMul;  // 2 * gravity * height
 	}
 	else
 	{

@@ -1142,6 +1142,7 @@ public:
 	CNetworkVar( float, m_flAmmoStartCharge );
 	CNetworkVar( float, m_flPlayAftershock );
 	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
+	CNetworkVar( bool, m_bHasLongJump );
 private:
 	friend class CPlayerMove;
 	friend class CPlayerClass;

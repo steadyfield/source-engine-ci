@@ -115,7 +115,7 @@ public:
 	virtual void	ActivateInGameVGuiContext( vgui::Panel *pPanel ) = 0;
 	virtual void	DeactivateInGameVGuiContext() = 0;
 	virtual float	GetViewModelFOV( void ) = 0;
-	virtual float	SetViewModelFOV( float value ) = 0;
+	virtual void	SetViewModelFOV( float value ) = 0;
 
 	virtual bool	CanRecordDemo( char *errorMsg, int length ) const = 0;
 

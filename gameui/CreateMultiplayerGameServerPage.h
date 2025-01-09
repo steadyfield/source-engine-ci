@@ -34,21 +34,16 @@ public:
 
 	vgui::ComboBox *GetMapList( void ) { return m_pMapList; }
 
-	// CS Bots
-	void EnableBots( KeyValues *data );
-	int GetBotQuota( void );
-	bool GetBotsEnabled( void );
-
 protected:
 	virtual void OnApplyChanges();
 	MESSAGE_FUNC( OnCheckButtonChecked, "CheckButtonChecked" );
 
 private:
-	void LoadMapList();
+	void LoadMapList( const char *dir );
 	void LoadMaps( const char *pszPathID );
 
 	vgui::ComboBox *m_pMapList;
-	vgui::CheckButton *m_pEnableBotsCheck;
+	vgui::CheckButton *m_pLoadDefMaps;
 	CCvarToggleCheckButton *m_pEnableTutorCheck;
 	KeyValues *m_pSavedData;
 

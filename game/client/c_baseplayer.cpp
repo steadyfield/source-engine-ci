@@ -296,6 +296,7 @@ END_RECV_TABLE()
 		RecvPropFloat( RECVINFO( m_flAmmoStartCharge ) ),
 		RecvPropFloat( RECVINFO( m_flPlayAftershock ) ),
 		RecvPropFloat( RECVINFO( m_flNextAmmoBurn ) ),
+		RecvPropInt( RECVINFO( m_bHasLongJump ) ),
 
 #ifdef ARGG
 		// adnan

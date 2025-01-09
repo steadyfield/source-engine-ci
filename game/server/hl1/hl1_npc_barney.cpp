@@ -917,8 +917,8 @@ END_DATADESC()
 //=========================================================
 void CNPC_DeadBarney::Spawn( void )
 {
-	PrecacheModel("models/barney.mdl");
-	SetModel( "models/barney.mdl");
+	PrecacheModel("models/barney_hl1.mdl");
+	SetModel( "models/barney_hl1.mdl");
 
 	ClearEffects();
 	SetSequence( 0 );

@@ -10,17 +10,16 @@
 #include "player.h"
 #include "gamerules.h"
 #include "ammodef.h"
-#include "mathlib.h"
 #include "in_buttons.h"
 #include "soundent.h"
-#include "BaseBludgeonWeapon.h"
+#include "basebludgeonweapon.h"
 #include "vstdlib/random.h"
 
 #define	ICEAXE_RANGE	60
 #define	ICEAXE_REFIRE	0.25f
 
-ConVar    sk_plr_dmg_iceaxe			( "sk_plr_dmg_iceaxe","0");
-ConVar    sk_npc_dmg_iceaxe			( "sk_npc_dmg_iceaxe","0");
+ConVar    sk_plr_dmg_iceaxe			( "sk_plr_dmg_iceaxe", "0");
+ConVar    sk_npc_dmg_iceaxe			( "sk_npc_dmg_iceaxe", "0");
 
 //-----------------------------------------------------------------------------
 // CWeaponIceAxe

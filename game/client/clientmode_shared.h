@@ -104,7 +104,7 @@ public:
 	virtual bool	ShouldDrawFog( void );
 	
 	virtual float	GetViewModelFOV( void );
-	virtual float   SetViewModelFOV( float value );
+	virtual void    SetViewModelFOV( float value );
 	virtual vgui::Panel* GetViewport() { return m_pViewport; }
 	// Gets at the viewports vgui panel animation controller, if there is one...
 	virtual vgui::AnimationController *GetViewportAnimationController()

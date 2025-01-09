@@ -2048,6 +2048,10 @@ void CBasePanel::RunMenuCommand(const char *command)
 	{
 		OnOpenNewGameDialog();
 	}
+	else if( !Q_stricmp( command, "OpenNewGameDialog_HLS" ))
+	{
+		OnOpenNewGameDialog( NULL, true );
+	}
 	else if ( !Q_stricmp( command, "OpenConsole" ) )
 	{
 		GameConsole().Activate();
@@ -3129,11 +3133,11 @@ void CBasePanel::OnOpenDisconnectConfirmationDialog()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CBasePanel::OnOpenNewGameDialog(const char *chapter )
+void CBasePanel::OnOpenNewGameDialog( const char *chapter, bool bHLS )
 {
 	if ( !m_hNewGameDialog.Get() )
 	{
-		m_hNewGameDialog = new CNewGameDialog(this, false);
+		m_hNewGameDialog = new CNewGameDialog( this, false, bHLS );
 		PositionDialog( m_hNewGameDialog );
 	}
 

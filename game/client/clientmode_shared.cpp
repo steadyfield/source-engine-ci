@@ -935,7 +935,7 @@ float ClientModeShared::GetViewModelFOV( void )
 	return v_viewmodel_fov.GetFloat();
 }
 
-float ClientModeShared::SetViewModelFOV( float value )
+void ClientModeShared::SetViewModelFOV( float value )
 {
 	v_viewmodel_fov.SetValue( value );
 }

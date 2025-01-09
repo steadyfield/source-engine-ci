@@ -532,11 +532,14 @@ private:
 	EHANDLE			m_pCurrentVguiScreen;
 
 	bool			m_bFiredWeapon;
+
 public:
 	CNetworkVar( float, m_flStartCharge );
 	CNetworkVar( float, m_flAmmoStartCharge );
 	CNetworkVar( float, m_flPlayAftershock );
 	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
+	CNetworkVar( bool, m_bHasLongJump );
+
 private:
 	// Player flashlight dynamic light pointers
 	CFlashlightEffect *m_pFlashlight;

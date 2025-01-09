@@ -48,7 +48,7 @@ void CC_MessageBoxWarn()
 	vgui::MessageBox *pMessageBox = new vgui::MessageBox( 
 	
 	"Welcome to GunMod!\n",
-	"Made by ItzVladik!\n\n\n\nCredits:\nLeakNet, Axel Project - Some beta code\nMissing Information Team - Icons for Beta Weapons\nAdnan - ARGG Physgun\nGarry's Mod - Entities Icons\nSersoft - sersoft_house_beta1.bsp\nValve - Half-Life\nEternalCringe - Icon for Gunmod\n");
+	"Made by ItzVladik!\n\n\n\nCredits:\nLeakNet, Axel Project - Some beta code\nMissing Information Team - Icons for Beta Weapons\nAdnan - ARGG Physgun\nGarry's Mod - Entities Icons\nSersoft - sersoft_house_beta1.bsp\nEternalCringe - Icon for Gunmod\nValve - Half-Life\n");
 	pMessageBox->SetScheme(vgui::scheme()->LoadSchemeFromFile("resource/SourceScheme_Dark.res", "SourceScheme"));
 	pMessageBox->DoModal();
 	pMessageBox->SetPos( 693, 93 );
@@ -61,6 +61,7 @@ SMMovement::SMMovement( vgui::Panel *parent, const char *panelName ) : BaseClass
 {
  	vgui::ivgui()->AddTickSignal( GetVPanel(), 250 );
 	m_AFH = new CheckButton( this, "AFH", "Enable AFH");
+	m_AutoJump = new CheckButton( this, "m_AutoJump", "Enable AutoJump" );
 	m_OldEngine = new CheckButton( this, "m_OldEngine", "Enable Old Engine Bunny Hopping");
 	m_MainScale = new TextEntry( this, "MainScale");
 	m_MainScale->SetText("0");
@@ -97,6 +98,7 @@ void SMMovement::OnTick( void )
 	static ConVar  *mov_jumpforwardscale = cvar->FindVar("mov_jumpforwardscale");
 	static ConVar  *mov_jumpforwardsprintscale = cvar->FindVar("mov_jumpforwardsprintscale");
 	static ConVar  *mov_scale = cvar->FindVar("mov_scale");
+	static ConVar  *mov_autojump = cvar->FindVar("mov_autojump");
 
 	char buf[64], buf1[64], buf2[64], buf3[64];
 	
@@ -119,6 +121,7 @@ void SMMovement::OnTick( void )
 
 	mov_2004->SetValue( m_OldEngine->IsSelected() );
 	mov_afh->SetValue( m_AFH->IsSelected() );
+	mov_autojump->SetValue( m_AutoJump->IsSelected() );
 	//mov_only_ducking->SetValue( m_Duck->IsSelected() );
 	char scale[64];
 	char scale1[64];
@@ -309,10 +312,7 @@ SMModels::SMModels( vgui::Panel *parent, const char *panelName ) : BaseClass( pa
 
 void SMModels::InitModels( Panel *panel, const char *modeltype, const char *modelfolder, const char *mdlPath )
 {
-	if ( FStrEq( modelfolder, "props_buildings") || FStrEq(modelfolder, "props_buildings_details") )
-		return;
-
-	if ( FStrEq(modelfolder, "props_combine") )
+	if ( !FStrEq(modelfolder, "props_c17") )
 		return;
 
 	FileFindHandle_t fh;
@@ -610,9 +610,10 @@ SMFrame::SMFrame( vgui::Panel *parent, const char *panelName, const char *name, 
 	bCombine = true;
 
 	SetProportional( true );
+	SetSizeable( true );
 
 	int wide = 300;
-	int tall = 240;
+	int tall = 260;
 	int swide, stall;
 	surface()->GetScreenSize(swide, stall);
 	SetProportionalBounds( this, (swide - wide) / 2, (stall - tall) / 2, wide, tall  );
@@ -792,7 +793,7 @@ void SMList::AddImageButton( PanelListPanel *panel, const char *image, const cha
 // }
 	
 void SMList::InitEntities( KeyValues *kv, PanelListPanel *panel, const char *enttype )
-{
+{	
 	for ( KeyValues *control = kv->GetFirstSubKey(); control != NULL; control = control->GetNextKey() )
 	{
 		const char *entname = control->GetString();
@@ -836,7 +837,7 @@ void SMList::InitEntities( KeyValues *kv, PanelListPanel *panel, const char *ent
 				}
 			}
 		}
-	}		
+	}
 }
 
 // void SMList::InitModels( PanelListPanel *panel, const char *modeltype, const char *modelfolder, const char *mdlPath )
@@ -919,10 +920,12 @@ CSMenu::CSMenu( vgui::VPANEL *parent, const char *panelName ) : BaseClass( NULL,
 			npces->InitEntities( kv, npces, "monster_"); // hl1 npces
 			SMList *weapons = new SMList( this, "EntityPanel");
 			weapons->InitEntities( kv, weapons, "weapon_" );
-			weapons->InitEntities( kv, weapons, "item_");
-			weapons->InitEntities( kv, weapons, "ammo_");
+			SMList *items = new SMList( this, "EntityPanel");
+			items->InitEntities( kv, items, "item_");
+			items->InitEntities( kv, items, "ammo_");
 			AddPage( npces, "NPCs" );
 			AddPage( weapons, "Weapons");
+			AddPage( items, "Items");
 		}
 		kv->deleteThis();
 	}

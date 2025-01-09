@@ -18,7 +18,7 @@
 
 #define SF_SUIT_SHORTLOGON		0x0001
 
-#define SUIT_MODEL "models/w_suit.mdl"
+#define SUIT_MODEL "models/w_suit_hl1.mdl"
 
 extern int gEvilImpulse101;
 
@@ -57,5 +57,5 @@ public:
 	}
 };
 
-LINK_ENTITY_TO_CLASS(item_suit, CItemSuit);
-PRECACHE_REGISTER(item_suit);
+LINK_ENTITY_TO_CLASS( item_suit_hl1, CItemSuit);
+PRECACHE_REGISTER( item_suit_hl1 );

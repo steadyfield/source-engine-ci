@@ -247,7 +247,6 @@ CTetherHook	*CTetherHook::Create( const Vector &origin, const QAngle &angles, CG
 BEGIN_DATADESC( CGrenadeHopWire )
 	DEFINE_FIELD( m_nHooksShot, FIELD_INTEGER ),
 	DEFINE_FIELD( m_pGlow, FIELD_CLASSPTR ),
-
 	DEFINE_FUNCTION( TetherThink ),
 	DEFINE_FUNCTION( CombatThink ),
 END_DATADESC()
@@ -368,8 +367,8 @@ void CGrenadeHopWire::TetherThink( void )
 		CPASAttenuationFilter filter( this,"Weapon_Tripwire.Attach" );
 		EmitSound( filter, entindex(),"Weapon_Tripwire.Attach" );
 
-		SetThink( &CGrenadeHopWire::CombatThink );
 		SetNextThink( gpGlobals->curtime + 0.1f );
+		SetThink( &CGrenadeHopWire::CombatThink );
 	}
 	else
 	{

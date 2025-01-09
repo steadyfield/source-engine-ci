@@ -47,7 +47,7 @@ static ConVar	cl_pred_optimize( "cl_pred_optimize", "2", 0, "Optimize for not co
 
 #endif
 
-extern IGameMovement *g_pGameMovement;
+//extern IGameMovement *g_pGameMovement;
 extern CMoveData *g_pMoveData;
 
 void COM_Log( char *pszFile, const char *fmt, ...);
@@ -837,7 +837,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
 
-	g_pGameMovement->StartTrackPredictionErrors( player );
+//	g_pGameMovement->StartTrackPredictionErrors( player );
 
 // TODO
 // TODO:  Check for impulse predicted?
@@ -895,8 +895,8 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// RUN MOVEMENT
 	if ( !pVehicle )
 	{
-		Assert( g_pGameMovement );
-		g_pGameMovement->ProcessMovement( player, g_pMoveData );
+//		Assert( g_pGameMovement );
+//		g_pGameMovement->ProcessMovement( player, g_pMoveData );
 	}
 	else
 	{
@@ -907,7 +907,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	RunPostThink( player );
 
-	g_pGameMovement->FinishTrackPredictionErrors( player );
+//	g_pGameMovement->FinishTrackPredictionErrors( player );
 
 	FinishCommand( player );
 

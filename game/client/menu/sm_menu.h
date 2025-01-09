@@ -107,6 +107,7 @@ private:
 	vgui::TextEntry *m_NormSpeed;
 	vgui::TextEntry *m_SprintSpeed;
 	vgui::TextEntry *m_WalkSpeed;
+	vgui::CheckButton *m_AutoJump;
 };
 
 class SMWeapons : public vgui::PropertyPage

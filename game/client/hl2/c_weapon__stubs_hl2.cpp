@@ -37,6 +37,7 @@ STUB_WEAPON_CLASS( weapon_ar1, WeaponAR1, C_BaseHLCombatWeapon );
 STUB_WEAPON_CLASS( weapon_tripwire, Weapon_Tripwire, C_BaseHLCombatWeapon );
 STUB_WEAPON_CLASS( weapon_immolator, WeaponImmolator, C_BaseHLCombatWeapon);
 STUB_WEAPON_CLASS( weapon_blackhole, WeaponBlackhole, C_BaseHLCombatWeapon );
+STUB_WEAPON_CLASS( weapon_iceaxe, WeaponIceAxe, C_BaseHLCombatWeapon );
 #ifndef HL2MP
 STUB_WEAPON_CLASS( weapon_ar2, WeaponAR2, C_HLMachineGun );
 STUB_WEAPON_CLASS( weapon_frag, WeaponFrag, C_BaseHLCombatWeapon );

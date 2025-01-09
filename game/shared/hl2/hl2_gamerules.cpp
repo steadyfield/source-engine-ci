@@ -116,8 +116,8 @@ ConVar	sk_npc_dmg_pistol		( "sk_npc_dmg_pistol","0", FCVAR_REPLICATED);
 ConVar	sk_max_pistol			( "sk_max_pistol","0", FCVAR_REPLICATED);
 
 ConVar	sk_plr_dmg_smg1			( "sk_plr_dmg_smg1","0", FCVAR_REPLICATED );
-ConVar	sk_npc_dmg_smg1			( "sk_npc_dmg_smg1","0", FCVAR_REPLICATED);
-ConVar	sk_max_smg1				( "sk_max_smg1","0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_smg1			( "sk_npc_dmg_smg1","0", FCVAR_REPLICATED );
+ConVar	sk_max_smg1				( "sk_max_smg1","0", FCVAR_REPLICATED );
 
 // FIXME: remove these
 ConVar	sk_plr_dmg_flare_round	( "sk_plr_dmg_flare_round","0", FCVAR_REPLICATED);
@@ -139,9 +139,9 @@ ConVar	sk_max_sniper_round		( "sk_max_sniper_round","0", FCVAR_REPLICATED);
 
 //ConVar	sk_max_tripwire			( "sk_max_tripwire","0", FCVAR_REPLICATED);
 
-// ConVar	sk_plr_dmg_molotov		( "sk_plr_dmg_molotov","0", FCVAR_REPLICATED);
-// ConVar	sk_npc_dmg_molotov		( "sk_npc_dmg_molotov","0", FCVAR_REPLICATED);
-// ConVar	sk_max_molotov			( "sk_max_molotov","0", FCVAR_REPLICATED);
+ConVar	sk_plr_dmg_molotov		( "sk_plr_dmg_molotov","0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_molotov		( "sk_npc_dmg_molotov","0", FCVAR_REPLICATED);
+ConVar	sk_max_molotov			( "sk_max_molotov","0",     FCVAR_REPLICATED);
 
 ConVar	sk_plr_dmg_grenade		( "sk_plr_dmg_grenade","0", FCVAR_REPLICATED);
 ConVar	sk_npc_dmg_grenade		( "sk_npc_dmg_grenade","0", FCVAR_REPLICATED);
@@ -2415,6 +2415,7 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	"sk_plr_dmg_357",			"sk_npc_dmg_357",			"sk_max_357",			BULLET_IMPULSE(800, 5000), 0 );
 		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			"sk_plr_dmg_crossbow",		"sk_npc_dmg_crossbow",		"sk_max_crossbow",		BULLET_IMPULSE(800, 8000), 0 );
 		def.AddAmmoType("FlareRound",		DMG_BURN,					TRACER_LINE, 			"sk_plr_dmg_flare_round",	"sk_npc_dmg_flare_round",	"sk_max_flare_round",	BULLET_IMPULSE(1500, 600), 0 );
+		def.AddAmmoType("Molotov",			DMG_BURN,					TRACER_NONE,			"sk_plr_dmg_molotov",		"sk_npc_dmg_molotov",		"sk_max_molotov",		0, 0);
 		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			"sk_plr_dmg_buckshot",		"sk_npc_dmg_buckshot",		"sk_max_buckshot",		BULLET_IMPULSE(400, 1200), 0 );
 		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			"sk_plr_dmg_rpg_round",		"sk_npc_dmg_rpg_round",		"sk_max_rpg_round",		0, 0 );
 		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			"sk_plr_dmg_smg1_grenade",	"sk_npc_dmg_smg1_grenade",	"sk_max_smg1_grenade",	0, 0 );
@@ -2438,6 +2439,7 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("Gravity",			DMG_CLUB,					TRACER_NONE,			0,	0, 8, 0, 0 );
 		def.AddAmmoType("Extinguisher",		DMG_BURN,					TRACER_NONE,			0,	0, 100, 0, 0 );
 		def.AddAmmoType("Battery",			DMG_CLUB,					TRACER_NONE,			0, 0, 0, 0, 0 );
+		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,	0,	5,	0,	0 );
 		//=====================================================================
 		// STRIDER MINIGUN DAMAGE - Pull up a chair and I'll tell you a tale.
 		//

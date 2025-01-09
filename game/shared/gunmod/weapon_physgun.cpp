@@ -74,30 +74,35 @@ IPhysicsObject *GetPhysObjFromPhysicsBone( CBaseEntity *pEntity, short physicsbo
 		return pEntity->VPhysicsGetObject();
 	}
 
-	CBaseAnimating *pModel = static_cast< CBaseAnimating * >( pEntity );
+	CBaseAnimating *pModel = static_cast<CBaseAnimating*>( pEntity );
 	if ( pModel != NULL )
 	{
-		IPhysicsObject	*pPhysicsObject = NULL;
-		
-		//Find the real object we hit.
-		if( physicsbone >= 0 )
+		IPhysicsObject *pPhysicsObject = NULL;
+
+		// Find the real object we hit.
+		if ( physicsbone >= 0 )
 		{
 #ifdef CLIENT_DLL
 			if ( pModel->m_pRagdoll )
 			{
-				CRagdoll *pCRagdoll = dynamic_cast < CRagdoll * > ( pModel->m_pRagdoll );
+				CRagdoll *pCRagdoll = dynamic_cast<CRagdoll*>( pModel->m_pRagdoll );
 #else
-				// Affect the object
+				// Server-side handling
 				CRagdollProp *pCRagdoll = dynamic_cast<CRagdollProp*>( pEntity );
 #endif
 				if ( pCRagdoll )
 				{
 					ragdoll_t *pRagdollT = pCRagdoll->GetRagdoll();
-
 					if ( physicsbone < pRagdollT->listCount )
 					{
-						pPhysicsObject = pRagdollT->list[physicsbone].pObject;
+						ragdoll_t *pRagdollT = pCRagdoll->GetRagdoll();
+						if ( physicsbone < pRagdollT->listCount )
+						{
+							pPhysicsObject = pRagdollT->list[physicsbone].pObject;
+						}
+						return pPhysicsObject;
 					}
+					
 					return pPhysicsObject;
 				}
 #ifdef CLIENT_DLL
@@ -263,7 +268,7 @@ void CGravControllerPoint::AttachEntity( CBasePlayer *pPlayer, CBaseEntity *pEnt
 	Vector position;
 	QAngle angles;
 	pPhys->GetPosition( &position, &angles );
-	SetTargetPosition( vGrabPosition, angles );
+	SetTargetPosition( position, angles );
 	m_targetRotation = TransformAnglesToPlayerSpace( angles, pPlayer );
 #ifdef ARGG
 	// adnan
@@ -495,6 +500,8 @@ private:
 	Vector		m_originalObjectPosition;
 	CNetworkVector	( m_targetPosition );
 	CNetworkVector	( m_worldPosition );
+	CNetworkVector	( m_physpos );
+	CNetworkVar( bool, m_bIsProp );
 
 #ifdef ARGG
 	// adnan
@@ -524,7 +531,9 @@ BEGIN_NETWORK_TABLE( CWeaponGravityGun, DT_WeaponGravityGun )
 	RecvPropInt( RECVINFO( m_physicsBone ) ),
 	RecvPropVector( RECVINFO( m_targetPosition ) ),
 	RecvPropVector( RECVINFO( m_worldPosition ) ),
+	RecvPropVector( RECVINFO( m_physpos ) ),
 	RecvPropInt( RECVINFO(m_active) ),
+	RecvPropBool( RECVINFO( m_bIsProp )),
 #ifdef ARGG
 	// adnan
 	// also receive if we're rotating what we're holding (by pressing use)
@@ -536,7 +545,9 @@ BEGIN_NETWORK_TABLE( CWeaponGravityGun, DT_WeaponGravityGun )
 	SendPropInt( SENDINFO( m_physicsBone ) ),
 	SendPropVector(SENDINFO( m_targetPosition ), -1, SPROP_COORD),
 	SendPropVector(SENDINFO( m_worldPosition ), -1, SPROP_COORD),
+	SendPropVector(SENDINFO( m_physpos ), -1, SPROP_COORD),
 	SendPropInt( SENDINFO(m_active), 1, SPROP_UNSIGNED ),
+	SendPropBool( SENDINFO( m_bIsProp ) ),
 #ifdef ARGG
 	// adnan
 	// need to seind if we're rotating what we're holding
@@ -785,7 +796,8 @@ void CWeaponGravityGun::EffectUpdate( void )
 	if ( m_hObject == NULL && tr.DidHitNonWorldEntity() )
 	{
 		CBaseEntity *pEntity = tr.m_pEnt;
-		AttachObject( pEntity, GetPhysObjFromPhysicsBone( pEntity, tr.physicsbone ), tr.physicsbone, start, tr.endpos, distance );
+		IPhysicsObject *pPhys = GetPhysObjFromPhysicsBone( pEntity, tr.physicsbone );
+		AttachObject( pEntity, pPhys, tr.physicsbone, start, end, distance );
 	}
 
 	// Add the incremental player yaw to the target transform
@@ -794,46 +806,18 @@ void CWeaponGravityGun::EffectUpdate( void )
 	CBaseEntity *pObject = m_hObject;
 	if ( pObject )
 	{
-		
-		bool bFreeze = false;
 		IPhysicsObject *pObj = GetPhysObjFromPhysicsBone(pObject, m_physicsBone );
-		
-		if ( bFreeze )
-		{
-			if ( pOwner->m_afButtonPressed & IN_ATTACK2 )
-				pObj->EnableMotion( false );
-		}
-		else
-		{
-			if ( pOwner->m_afButtonPressed & IN_ATTACK2 )
-				pObj->EnableMotion( true );
-		}
-
-
 		if ( m_useDown )
 		{
 			if ( pOwner->m_afButtonPressed & IN_USE )
+				pObj->EnableMotion( false );
 				m_useDown = false;
 		}
 		else 
 		{
 			if ( pOwner->m_afButtonPressed & IN_USE )
+				pObj->EnableMotion( true );
 				m_useDown = true;
-		}
-
-		if ( m_useDown )
-		{
-#ifndef CLIENT_DLL
-			pOwner->SetPhysicsFlag( PFLAG_DIROVERRIDE, true );
-#endif
-			if ( pOwner->m_nButtons & IN_FORWARD )
-			{
-				m_distance = Approach( 1024, m_distance, gpGlobals->frametime * 100 );
-			}
-			if ( pOwner->m_nButtons & IN_BACK )
-			{
-				m_distance = Approach( 40, m_distance, gpGlobals->frametime * 100 );
-			}
 		}
 
 		if ( pOwner->m_nButtons & IN_WEAPON1 )
@@ -868,18 +852,31 @@ void CWeaponGravityGun::EffectUpdate( void )
 
 			Vector newPosition = start + forward * m_distance;
 			Vector offset;
-			pPhys->LocalToWorld( &offset, m_worldPosition );
+			Vector wrld = m_worldPosition;
+			pPhys->LocalToWorld( &offset, wrld );
 			Vector vecOrigin;
 			pPhys->GetPosition( &vecOrigin, NULL );
 			m_gravCallback.SetTargetPosition( newPosition + (vecOrigin - offset), angles );
 			Vector dir = (newPosition - pObject->GetLocalOrigin());
 			m_movementLength = dir.Length();
+			m_bIsProp = false;
+			
+			if ( !pObject->GetBaseAnimating()->IsRagdoll() )
+			{
+				m_bIsProp = true;
+			}
+			else
+			{
+				m_physpos = vecOrigin;
+				m_bIsProp = false;
+			}
+
 		}
 	}
 	else
 	{
 		m_targetPosition = end;
-		//m_gravCallback.SetTargetPosition( end, m_gravCallback.m_targetRotation );
+		m_gravCallback.SetTargetPosition( m_targetPosition, m_gravCallback.m_targetRotation );
 	}
 }
 
@@ -972,7 +969,7 @@ void CWeaponGravityGun::SoundStart( void )
 		}
 		break;
 	}
-													//   volume, att, flags, pitch
+	//   volume, att, flags, pitch
 }
 
 void CWeaponGravityGun::SoundUpdate( void )
@@ -1112,7 +1109,6 @@ void CWeaponGravityGun::AttachObject( CBaseEntity *pObject, IPhysicsObject *pPhy
 		Vector vecOrigin;
 		pPhysics->GetPosition( &vecOrigin, NULL );
 		m_gravCallback.AttachEntity( pOwner, pObject, pPhysics, physicsbone, vecOrigin );
-
 		m_originalObjectPosition = vecOrigin;
 
 		pPhysics->Wake();
@@ -1272,25 +1268,35 @@ void CWeaponGravityGun::ViewModelDrawn( C_BaseViewModel *pBaseViewModel )
 
 	pBaseViewModel->GetAttachment( 1, points[0], tmpAngle );
 
+	Vector forward, right, up;
+	QAngle playerAngles = pOwner->EyeAngles();
+	AngleVectors( playerAngles, &forward, &right, &up );
+	Vector vecSrc = pOwner->Weapon_ShootPosition( );
+	points[1] = vecSrc + 0.5f * (forward * points[2].DistTo(points[0]));
+
 	// a little noise 11t & 13t should be somewhat non-periodic looking
 	//points[1].z += 4*sin( gpGlobals->curtime*11 ) + 5*cos( gpGlobals->curtime*13 );
-	if ( pObject == NULL )
+	if ( pObject )
+	{
+		if ( m_bIsProp )
+		{
+			pObject->EntityToWorldSpace( m_worldPosition, &points[2] );
+		}
+		else
+		{
+			//pObject->EntityToWorldSpace( m_physpos, &points[2] );
+			points[2] = m_physpos;
+		}
+		//points[2] = m_worldPosition; 
+		//points[2] = m_physpos;
+	}
+	else
 	{
 		//points[2] = m_targetPosition;
 		trace_t tr;
 		TraceLine( &tr );
 		points[2] = tr.endpos;
 	}
-	else
-	{
-		pObject->EntityToWorldSpace(m_worldPosition, &points[2]);
-	}
-
-	Vector forward, right, up;
-	QAngle playerAngles = pOwner->EyeAngles();
-	AngleVectors( playerAngles, &forward, &right, &up );
-	Vector vecSrc = pOwner->Weapon_ShootPosition( );
-	points[1] = vecSrc + 0.5f * (forward * points[2].DistTo(points[0]));
 	
 	IMaterial *pMat = materials->FindMaterial( "sprites/physbeam1", TEXTURE_GROUP_CLIENT_EFFECTS );
 	if ( pObject )

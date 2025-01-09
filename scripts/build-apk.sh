@@ -1,6 +1,6 @@
 export ICON=gunmod-192.png
 export PACKAGE=gunmod
-export APP_NAME="GUNMOD: 0.5 (DF)"
+export APP_NAME="GUNMOD: 0.6 (HF)"
 cd srceng-mod-launcher
 git clone https://gitlab.com/LostGamer/android-sdk
 export ANDROID_SDK_HOME=$PWD/android-sdk

@@ -433,6 +433,7 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_flAmmoStartCharge, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flPlayAftershock, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flNextAmmoBurn, FIELD_FLOAT ),
+	DEFINE_FIELD( m_bHasLongJump, FIELD_BOOLEAN ),
 
 	DEFINE_FIELD( m_hConstraintEntity, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_vecConstraintCenter, FIELD_VECTOR ),
@@ -6186,10 +6187,6 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		if ( beta_weapons_allowed.GetBool() )
 		{
 			GiveAmmo( 100,	"Hopwire" );
-//			GiveNamedItem( "weapon_binoculars");
-//			GiveNamedItem( "weapon_molotov");
-//			GiveNamedItem( "weapon_hmg1");
-//			GiveNamedItem( "weapon_rollerwand");
 			GiveNamedItem( "weapon_stunstick"  );
 			GiveNamedItem( "weapon_cguard"  );
 			GiveNamedItem( "weapon_flaregun" );
@@ -6205,8 +6202,9 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 			GiveNamedItem( "weapon_sniperrifle" );
 			GiveNamedItem( "weapon_ar1" );
 			GiveNamedItem( "weapon_immolator" );
-			GiveNamedItem( "weapon_slam" );
 			GiveNamedItem( "weapon_blackhole" );
+			GiveNamedItem( "weapon_iceaxe" );
+//			GiveNamedItem( "weapon_rollerwand");
 		}	
 
 		GiveNamedItem( "weapon_smg1" );
@@ -8083,12 +8081,13 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropFloat	(SENDINFO(m_flFOVTime) ),
 		SendPropInt		(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED ),
 		SendPropEHandle	(SENDINFO(m_hZoomOwner) ),
-		SendPropArray	( SendPropEHandle( SENDINFO_ARRAY( m_hViewModel ) ), m_hViewModel ),
+		SendPropArray	(SendPropEHandle( SENDINFO_ARRAY( m_hViewModel ) ), m_hViewModel ),
 		SendPropString	(SENDINFO(m_szLastPlaceName) ),
 		SendPropFloat 	(SENDINFO( m_flStartCharge ) ),
 		SendPropFloat 	(SENDINFO( m_flAmmoStartCharge ) ),
 		SendPropFloat 	(SENDINFO( m_flPlayAftershock ) ),
 		SendPropFloat 	(SENDINFO( m_flNextAmmoBurn ) ),
+		SendPropInt 	(SENDINFO( m_bHasLongJump ), 1, SPROP_UNSIGNED ),
 
 #if defined USES_ECON_ITEMS
 		SendPropUtlVector( SENDINFO_UTLVECTOR( m_hMyWearables ), MAX_WEARABLES_SENT_FROM_SERVER, SendPropEHandle( NULL, 0 ) ),

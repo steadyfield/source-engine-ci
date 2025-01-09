@@ -131,7 +131,7 @@ class CGameChapterPanel : public vgui::EditablePanel
 	bool m_bIsSelected;
 
 public:
-	CGameChapterPanel( CNewGameDialog *parent, const char *name, const char *chapterName, int chapterIndex, const char *chapterNumber, const char *chapterConfigFile, bool bCommentary ) : BaseClass( parent, name )
+	CGameChapterPanel( CNewGameDialog *parent, const char *name, const char *chapterName, int chapterIndex, const char *chapterNumber, const char *chapterConfigFile, bool bCommentary, bool bHLS ) : BaseClass( parent, name )
 	{
 		Q_strncpy( m_szConfigFile, chapterConfigFile, sizeof(m_szConfigFile) );
 		Q_strncpy( m_szChapter, chapterNumber, sizeof(m_szChapter) );
@@ -148,16 +148,8 @@ public:
 		g_pVGuiLocalize->ConvertANSIToUnicode( chapterNumber, num, sizeof(num) );
 		_snwprintf( text, ARRAYSIZE(text), L"%ls %ls", chapter ? chapter : L"CHAPTER", num );
 
-		if ( ModInfo().IsSinglePlayerOnly() )
-		{
-			m_pChapterLabel = new Label( this, "ChapterLabel", text );
-			m_pChapterNameLabel = new Label( this, "ChapterNameLabel", chapterName );
-		}
-		else
-		{
-			m_pChapterLabel = new Label( this, "ChapterLabel", chapterName );
-			m_pChapterNameLabel = new Label( this, "ChapterNameLabel", "#GameUI_LoadCommentary" );
-		}
+		m_pChapterLabel = new Label( this, "ChapterLabel", text );
+		m_pChapterNameLabel = new Label( this, "ChapterNameLabel", chapterName );
 
 		SetPaintBackgroundEnabled( false );
 
@@ -301,7 +293,7 @@ const char *COM_GetModDirectory()
 //-----------------------------------------------------------------------------
 // Purpose: new game chapter selection
 //-----------------------------------------------------------------------------
-CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode) : BaseClass(parent, "NewGameDialog")
+CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode, bool bHLS ) : BaseClass(parent, "NewGameDialog")
 {
 	SetDeleteSelfOnClose(true);
 	SetBounds(0, 0, 372, 160);
@@ -317,6 +309,8 @@ CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode) : Base
 	m_ButtonPressed = SCROLL_NONE;
 	m_ScrollDirection = SCROLL_NONE;
 	m_pCommentaryLabel = NULL;
+
+	m_bHLS = bHLS;
 
 	m_iBonusSelection = 0;
 	m_bScrollToFirstBonusMap = false;
@@ -375,7 +369,13 @@ CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode) : Base
 	if ( IsPC() || !IsX360() )
 	{
 		FileFindHandle_t findHandle = FILESYSTEM_INVALID_FIND_HANDLE;
-		const char *fileName = "cfg/chapter*.cfg";
+		
+		const char *fileName;
+		if ( bHLS )
+			fileName = "cfg/hl1/chapter*.cfg";
+		else
+			fileName = "cfg/chapter*.cfg";
+		
 		fileName = g_pFullFileSystem->FindFirst( fileName, &findHandle );
 		while ( fileName && chapterIndex < MAX_CHAPTERS )
 		{
@@ -383,7 +383,11 @@ CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode) : Base
 			{
 				// Only load chapter configs from the current mod's cfg dir
 				// or else chapters appear that we don't want!
-				Q_snprintf( szFullFileName, sizeof(szFullFileName), "cfg/%s", fileName );
+				if ( bHLS )
+					Q_snprintf( szFullFileName, sizeof(szFullFileName), "cfg/hl1/%s", fileName );
+				else
+					Q_snprintf( szFullFileName, sizeof(szFullFileName), "cfg/%s", fileName );
+				
 				FileHandle_t f = g_pFullFileSystem->Open( szFullFileName, "rb", "MOD" );
 				if ( f )
 				{	
@@ -399,53 +403,8 @@ CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode) : Base
 			fileName = g_pFullFileSystem->FindNext(findHandle);
 		}
 	}
-	else if ( IsX360() )
-	{
-		int ChapterStringIndex = 0;
-		bool bExists = true;
-		while ( bExists && chapterIndex < MAX_CHAPTERS )
-		{
-			Q_snprintf( szFullFileName, sizeof( szFullFileName ), "cfg/chapter%d.cfg", ChapterStringIndex+1 );
-
-			FileHandle_t f = g_pFullFileSystem->Open( szFullFileName, "rb", "MOD" );
-			if ( f )
-			{		
-				Q_strncpy(chapters[chapterIndex].filename, szFullFileName + 4, sizeof(chapters[chapterIndex].filename));
-				++chapterIndex;
-				++ChapterStringIndex;
-				g_pFullFileSystem->Close( f );
-			}
-			else
-			{
-				bExists = false;
-			}	
-			//Hack to account for xbox360 missing chapter9a
-			if ( ChapterStringIndex == 10 )
-			{				
-				Q_snprintf( szFullFileName, sizeof( szFullFileName ), "cfg/chapter9a.cfg" );
-				FileHandle_t fChap = g_pFullFileSystem->Open( szFullFileName, "rb", "MOD" );
-				if ( fChap )
-				{		
-					Q_strncpy(chapters[chapterIndex].filename, szFullFileName + 4, sizeof(chapters[chapterIndex].filename));
-					++chapterIndex;
-					g_pFullFileSystem->Close( fChap );
-				}		
-			}
-
-		}
-		
-	}
 
 	bool bBonusesUnlocked = false;
-
-	if ( GameUI().IsConsoleUI() )
-	{
-		if ( !m_bCommentaryMode )
-		{
-			// Scan to see if the bonus maps have been unlocked
-			bBonusesUnlocked = BonusMapsDatabase()->BonusesUnlocked();
-		}
-	}
 
 	// sort the chapters
 	qsort(chapters, chapterIndex, sizeof(chapter_t), &ChapterSortFunc);
@@ -475,13 +434,21 @@ CNewGameDialog::CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode) : Base
 			*ext = 0;
 		}
 
-		const char *pGameDir = COM_GetModDirectory();
+		const char *pGameDir;
+		
+		if ( m_bHLS )
+			pGameDir = "hl1";
+		else
+			pGameDir = COM_GetModDirectory();
 
 		char chapterName[64];
 		Q_snprintf(chapterName, sizeof(chapterName), "#%s_Chapter%s_Title", pGameDir, chapterID);
 
-		Q_snprintf( szFullFileName, sizeof( szFullFileName ), "%s", fileName );
-		CGameChapterPanel *chapterPanel = SETUP_PANEL( new CGameChapterPanel( this, NULL, chapterName, i, chapterID, szFullFileName, m_bCommentaryMode ) );
+		if ( bHLS )
+			Q_snprintf( szFullFileName, sizeof( szFullFileName ), "hl1/%s", fileName );
+		else	
+			Q_snprintf( szFullFileName, sizeof( szFullFileName ), "%s", fileName );
+		CGameChapterPanel *chapterPanel = SETUP_PANEL( new CGameChapterPanel( this, NULL, chapterName, i, chapterID, szFullFileName, m_bCommentaryMode, m_bHLS ) );
 		chapterPanel->SetVisible( false );
 
 		UpdatePanelLockedStatus( iUnlockedChapter, i + 1, chapterPanel );

@@ -73,6 +73,6 @@ public:
 	}
 };
 
-LINK_ENTITY_TO_CLASS(item_battery, CItemBattery);
-PRECACHE_REGISTER(item_battery);
+LINK_ENTITY_TO_CLASS( hl1_item_battery, CItemBattery );
+PRECACHE_REGISTER( hl1_item_battery );
 

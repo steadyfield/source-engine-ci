@@ -12,7 +12,7 @@ jobs:
       run: |
         git clone https://github.com/ItzVladik/srceng-mod-launcher
         sudo apt-get update
-        sudo apt-get install -f -y openjdk-8-jre zip apksigner imagemagick
+        sudo apt-get install -f -y openjdk-8-jre zip apksigner imagemagick lib32z1
     - name: Build Android (32 bit)
       run: |
         scripts/build-android-armv7a.sh
@@ -29,7 +29,7 @@ jobs:
          mv srceng-mod-launcher/build/android/mod-signed.apk mod-release.apk
 
     - name: 'Upload Artifact'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mod-apk
         path: mod-release.apk

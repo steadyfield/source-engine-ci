@@ -54,6 +54,9 @@ protected:
 	void	StopJet( void );
 
 	CExtinguisherJet	*m_pJet;
+
+private:
+	bool	m_bNeedAnim;
 };
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponExtinguisher, DT_WeaponExtinguisher)
@@ -141,7 +144,7 @@ void CWeaponExtinguisher::Event_Killed( const CTakeDamageInfo &info )
 	//Put out fire in a radius
 	FireSystem_ExtinguishInRadius( GetAbsOrigin(), fire_extinguisher_explode_radius.GetInt(), fire_extinguisher_explode_strength.GetFloat() );
 
-	SetThink( SUB_Remove );
+	SetThink( &CBaseEntity::SUB_Remove );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -169,12 +172,15 @@ void CWeaponExtinguisher::StartJet( void )
 		m_pJet->m_bUseMuzzlePoint = true;
 		m_pJet->m_bAutoExtinguish = false;
 		m_pJet->m_nLength = fire_extinguisher_distance.GetInt();
+		
+		m_pJet->m_bWithSound = false;
 	}
 
 	//Turn the jet on
 	if ( m_pJet != NULL )
 	{
 		m_pJet->TurnOn();
+		WeaponSound( SINGLE );
 	}
 }
 
@@ -186,7 +192,12 @@ void CWeaponExtinguisher::StopJet( void )
 	//Turn the jet off
 	if ( m_pJet != NULL )
 	{
+		if ( m_pJet->m_bEmit )
+		{
+			WeaponSound( SPECIAL1 );
+		}
 		m_pJet->TurnOff();
+		StopWeaponSound( SINGLE );
 	}
 }
 
@@ -204,12 +215,22 @@ void CWeaponExtinguisher::ItemPostFrame( void )
 	if ( pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0 )
 	{
 		StopJet();
+		
+		m_bNeedAnim = false;
+		SendWeaponAnim( ACT_VM_IDLE );
+		
 		return;
 	}
 	
 	//See if we should try and extinguish fires
 	if ( pOwner->m_nButtons & IN_ATTACK )
 	{
+		if( !m_bNeedAnim )
+		{
+			SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+		//	WeaponSound( SINGLE_NPC );
+			m_bNeedAnim = true;
+		}
 		//Drain ammo
 		if ( m_flNextPrimaryAttack < gpGlobals->curtime  )
 		{
@@ -221,6 +242,10 @@ void CWeaponExtinguisher::ItemPostFrame( void )
 		if ( pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0 )
 		{
 			StopJet();
+			
+			m_bNeedAnim = false;
+			SendWeaponAnim( ACT_VM_IDLE );
+			
 			return;
 		}
 
@@ -269,6 +294,10 @@ void CWeaponExtinguisher::ItemPostFrame( void )
 	else
 	{
 		StopJet();
+		
+		m_bNeedAnim = false;
+		SendWeaponAnim( ACT_VM_IDLE );
+	//	WeaponSound( EMPTY );
 	}
 }
 
@@ -355,7 +384,7 @@ void CExtinguisherCharger::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, U
 
 	SetNextThink( gpGlobals->curtime + 0.25 );
 	
-	SetThink( TurnOff );
+	SetThink( &CExtinguisherCharger::TurnOff );
 
 	CBasePlayer	*pPlayer = ToBasePlayer( pActivator );
 

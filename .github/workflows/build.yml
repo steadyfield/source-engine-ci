@@ -11,71 +11,95 @@ jobs:
     - name: Build linux-i386
       run: |
         scripts/build-ubuntu-i386.sh
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-i386
+        path: bin
 
   build-linux-amd64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build linux-amd64
       run: |
         scripts/build-ubuntu-amd64.sh
-
-  build-android-armv7a:
-    runs-on: ubuntu-20.04
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build android-armv7a
-      run: |
-        scripts/build-android-armv7a.sh
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-amd64
+        path: bin
 
   build-windows-i386:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build windows-i386
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug --32bits
-        ./waf.bat build
+        ./waf.bat configure -T release --build-games=gunmod --prefix=bin --32bits
+        ./waf.bat install
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-i386
+        path: bin
 
   build-windows-amd64:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build windows-amd64
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug
-        ./waf.bat build
+        ./waf.bat configure -T release --build-games=gunmod --prefix=bin
+        ./waf.bat install
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-amd64
+        path: bin
 
   build-dedicated-windows-i386:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build dedicated windows-i386
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug -d
-        ./waf.bat build
+        ./waf.bat configure -T release --prefix=bin -d
+        ./waf.bat install 
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-dedicated-i386
+        path: bin
 
   build-dedicated-windows-amd64:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build dedicated windows-amd64
       run: |
         git submodule init && git submodule update
-        ./waf.bat configure -T debug -d
-        ./waf.bat build
+        ./waf.bat configure -T release --prefix=bin -d
+        ./waf.bat install
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-dedicated-amd64
+        path: bin
 
   build-dedicated-linux-i386:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -83,14 +107,25 @@ jobs:
       run: |
         scripts/build-ubuntu-i386.sh -d
 
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-dedicated-i386
+        path: bin
+
   build-dedicated-linux-amd64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Build dedicated linux-amd64
       run: |
         scripts/build-ubuntu-amd64.sh -d
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-dedicated-amd64
+        path: bin
 
   build-macos-amd64:
     runs-on: macos-latest
@@ -100,6 +135,11 @@ jobs:
     - name: Build macos-amd64
       run: |
         scripts/build-macos-amd64.sh
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-amd64
+        path: bin
 
   build-dedicated-macos-amd64:
     runs-on: macos-latest
@@ -109,3 +149,9 @@ jobs:
     - name: Build dedicated macos-amd64
       run: |
         scripts/build-macos-amd64.sh -d
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-dedicated-amd64
+        path: bin

@@ -38,25 +38,12 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage(vgui::Panel *
 	// we can use this if we decide we want to put "listen server" at the end of the game name
 	m_pMapList = new ComboBox(this, "MapList", 12, false);
 
-	m_pEnableBotsCheck = new CheckButton( this, "EnableBotsCheck", "" );
-	m_pEnableBotsCheck->SetVisible( false );
-	m_pEnableBotsCheck->SetEnabled( false );
+	m_pLoadDefMaps = new CheckButton( this, "LoadDefMaps", "Show Default Maps" );
 
 	LoadControlSettings("Resource/CreateMultiplayerGameServerPage.res");
 
-	LoadMapList();
+	LoadMapList( "CUSTOMMAPS" );
 	m_szMapName[0]  = 0;
-
-	// initialize hostname
-	SetControlString("ServerNameEdit", ModInfo().GetGameName());//szHostName);
-
-	// initialize password
-//	SetControlString("PasswordEdit", engine->pfnGetCvarString("sv_password"));
-	ConVarRef var( "sv_password" );
-	if ( var.IsValid() )
-	{
-		SetControlString("PasswordEdit", var.GetString() );
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -97,67 +84,12 @@ void CCreateMultiplayerGameServerPage::OnKeyCodePressed( vgui::KeyCode code )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CCreateMultiplayerGameServerPage::EnableBots( KeyValues *data )
-{
-	m_pSavedData = data;
-
-	int quota = data->GetInt( "bot_quota", 0 );
-	SetControlInt( "BotQuotaCombo", quota );
-	m_pEnableBotsCheck->SetSelected( (quota > 0) );
-
-	int difficulty = data->GetInt( "bot_difficulty", 0 );
-	difficulty = max( difficulty, 0 );
-	difficulty = min( 3, difficulty );
-
-	char buttonName[64];
-	Q_snprintf( buttonName, sizeof( buttonName ), "SkillLevel%d", difficulty );
-	vgui::RadioButton *button = dynamic_cast< vgui::RadioButton * >(FindChildByName( buttonName ));
-	if ( button )
-	{
-		button->SetSelected( true );
-	}
-}
-
-//-----------------------------------------------------------------------------
 // Purpose: called to get the info from the dialog
 //-----------------------------------------------------------------------------
 void CCreateMultiplayerGameServerPage::OnApplyChanges()
 {
 	KeyValues *kv = m_pMapList->GetActiveItemUserData();
 	strncpy(m_szMapName, kv->GetString("mapname", ""), DATA_STR_LENGTH);
-
-	if ( m_pSavedData )
-	{
-		int quota = GetControlInt( "BotQuotaCombo", 0 );
-		if ( !m_pEnableBotsCheck->IsSelected() )
-		{
-			quota = 0;
-		}
-		m_pSavedData->SetInt( "bot_quota", quota );
-		ConVarRef bot_quota( "bot_quota" );
-		bot_quota.SetValue( quota );
-
-		int difficulty = 0;
-		for ( int i=0; i<4; ++i )
-		{
-			char buttonName[64];
-			Q_snprintf( buttonName, sizeof( buttonName ), "SkillLevel%d", i );
-			vgui::RadioButton *button = dynamic_cast< vgui::RadioButton * >(FindChildByName( buttonName ));
-			if ( button )
-			{
-				if ( button->IsSelected() )
-				{
-					difficulty = i;
-					break;
-				}
-			}
-		}
-		m_pSavedData->SetInt( "bot_difficulty", difficulty );
-		ConVarRef bot_difficulty( "bot_difficulty" );
-		bot_difficulty.SetValue( difficulty );
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -231,7 +163,7 @@ void CCreateMultiplayerGameServerPage::LoadMaps( const char *pszPathID )
 //-----------------------------------------------------------------------------
 // Purpose: loads the list of available maps into the map list
 //-----------------------------------------------------------------------------
-void CCreateMultiplayerGameServerPage::LoadMapList()
+void CCreateMultiplayerGameServerPage::LoadMapList( const char *dir )
 {
 	// clear the current list (if any)
 	m_pMapList->DeleteAllItems();
@@ -240,7 +172,7 @@ void CCreateMultiplayerGameServerPage::LoadMapList()
 	m_pMapList->AddItem( RANDOM_MAP, new KeyValues( "data", "mapname", RANDOM_MAP ) );
 
 	// Load the GameDir maps
-	LoadMaps( "GAME" ); 
+	LoadMaps( dir );
 
 	// set the first item to be selected
 	m_pMapList->ActivateItem( 0 );
@@ -303,11 +235,12 @@ void CCreateMultiplayerGameServerPage::SetMap(const char *mapName)
 //-----------------------------------------------------------------------------
 void CCreateMultiplayerGameServerPage::OnCheckButtonChecked()
 {
-	SetControlEnabled("SkillLevel0", m_pEnableBotsCheck->IsSelected());
-	SetControlEnabled("SkillLevel1", m_pEnableBotsCheck->IsSelected());
-	SetControlEnabled("SkillLevel2", m_pEnableBotsCheck->IsSelected());
-	SetControlEnabled("SkillLevel3", m_pEnableBotsCheck->IsSelected());
-	SetControlEnabled("BotQuotaCombo", m_pEnableBotsCheck->IsSelected());
-	SetControlEnabled("BotQuotaLabel", m_pEnableBotsCheck->IsSelected());
-	SetControlEnabled("BotDifficultyLabel", m_pEnableBotsCheck->IsSelected());
+	if ( m_pLoadDefMaps->IsSelected() )
+	{
+		LoadMapList( "GAME" );
+	}
+	else
+	{
+		LoadMapList( "CUSTOMMAPS" );
+	}
 }

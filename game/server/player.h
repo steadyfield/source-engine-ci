@@ -1117,13 +1117,33 @@ private:
 
 	EHANDLE					m_hViewEntity;
 
+#ifdef ARGG
+public:
+	// adnan
+	// send the use angles for the current player... set when they press use
+	// UPDATE: this could be improved somehow by only storing these on the server side
+	//  - set a flag on the client and send that, stating that the viewangles shouldnt change
+	//  - ... maybe not
+	CNetworkQAngle( m_vecUseAngles );
+	// end adnan
+
+private:
+
+#endif
+
 	// Movement constraints
 	CNetworkHandle( CBaseEntity, m_hConstraintEntity );
 	CNetworkVector( m_vecConstraintCenter );
 	CNetworkVar( float, m_flConstraintRadius );
 	CNetworkVar( float, m_flConstraintWidth );
 	CNetworkVar( float, m_flConstraintSpeedFactor );
-
+public:
+	CNetworkVar( float, m_flStartCharge );
+	CNetworkVar( float, m_flAmmoStartCharge );
+	CNetworkVar( float, m_flPlayAftershock );
+	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
+	CNetworkVar( bool, m_bHasLongJump );
+private:
 	friend class CPlayerMove;
 	friend class CPlayerClass;
 

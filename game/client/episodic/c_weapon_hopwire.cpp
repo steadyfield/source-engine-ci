@@ -329,13 +329,13 @@ void C_HopwireExplosion::StartPreExplosion( void )
 // Hopwire client class
 //-----------------------------------------------------------------------------
 
-class C_GrenadeHopwire : public C_BaseGrenade
+class C_GrenadeBlackhole : public C_BaseGrenade
 {
-	DECLARE_CLASS( C_GrenadeHopwire, C_BaseGrenade );
+	DECLARE_CLASS( C_GrenadeBlackhole, C_BaseGrenade );
 	DECLARE_CLIENTCLASS();
 
 public:
-	C_GrenadeHopwire( void );
+	C_GrenadeBlackhole( void );
 
 	virtual int		DrawModel( int flags );
 
@@ -347,7 +347,7 @@ private:
 	C_HopwireExplosion	m_ExplosionEffect;	// Explosion effect information and drawing
 };
 
-IMPLEMENT_CLIENTCLASS_DT( C_GrenadeHopwire, DT_GrenadeHopwire, CGrenadeHopwire )
+IMPLEMENT_CLIENTCLASS_DT( C_GrenadeBlackhole, DT_GrenadeBlackhole, CGrenadeBlackhole )
 END_RECV_TABLE()
 
 #define	HOPWIRE_START_EXPLOSION		0
@@ -357,7 +357,7 @@ END_RECV_TABLE()
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
-C_GrenadeHopwire::C_GrenadeHopwire( void )
+C_GrenadeBlackhole::C_GrenadeBlackhole( void )
 {
 	m_ExplosionEffect.SetActive( false );
 }
@@ -367,7 +367,7 @@ C_GrenadeHopwire::C_GrenadeHopwire( void )
 // Input  : classID - class to receive the message
 //			&msg - message in question
 //-----------------------------------------------------------------------------
-void C_GrenadeHopwire::ReceiveMessage( int classID, bf_read &msg )
+void C_GrenadeBlackhole::ReceiveMessage( int classID, bf_read &msg )
 {
 	if ( classID != GetClientClass()->m_ClassID )
 	{
@@ -400,7 +400,7 @@ void C_GrenadeHopwire::ReceiveMessage( int classID, bf_read &msg )
 // Purpose: 
 // Input  : updateType - 
 //-----------------------------------------------------------------------------
-void C_GrenadeHopwire::OnDataChanged( DataUpdateType_t updateType )
+void C_GrenadeBlackhole::OnDataChanged( DataUpdateType_t updateType )
 {
 	BaseClass::OnDataChanged( updateType );
 
@@ -411,7 +411,7 @@ void C_GrenadeHopwire::OnDataChanged( DataUpdateType_t updateType )
 // Purpose: 
 // Input  : flags - 
 //-----------------------------------------------------------------------------
-int	C_GrenadeHopwire::DrawModel( int flags )
+int	C_GrenadeBlackhole::DrawModel( int flags )
 {
 	if ( m_ExplosionEffect.IsActive() )
 		return 1;

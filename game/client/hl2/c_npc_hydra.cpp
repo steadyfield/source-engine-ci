@@ -149,7 +149,7 @@ void  C_NPC_Hydra::StandardBlendingRules( Vector pos[], Quaternion q[], float cu
 {
 	VPROF( "C_NPC_Hydra::StandardBlendingRules" );
 
-	studiohdr_t *hdr = GetModelPtr();
+	CStudioHdr *hdr = GetModelPtr();
 	if ( !hdr )
 	{
 		return;
@@ -159,9 +159,9 @@ void  C_NPC_Hydra::StandardBlendingRules( Vector pos[], Quaternion q[], float cu
 
 	// check for changing model memory requirements
 	bool bNewlyInited = false;
-	if (m_numHydraBones != hdr->numbones)
+	if (m_numHydraBones != hdr->numbones() )
 	{
-		m_numHydraBones = hdr->numbones;
+		m_numHydraBones = hdr->numbones();
 
 		// build root animation
 		float	poseparam[MAXSTUDIOPOSEPARAM];
@@ -169,7 +169,8 @@ void  C_NPC_Hydra::StandardBlendingRules( Vector pos[], Quaternion q[], float cu
 		{
 			poseparam[i] = 0;
 		}
-		CalcPose( hdr, NULL, pos, q, 0.0f, 0.0f, poseparam, BONE_USED_BY_ANYTHING );
+
+		//CalcPose( hdr, NULL, pos, q, 0.0f, 0.0f, poseparam, BONE_USED_BY_ANYTHING );
 
 		// allocate arrays
 		if (m_boneLength)

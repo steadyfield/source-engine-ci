@@ -29,6 +29,8 @@
 #include "sixense/in_sixense.h"
 #endif
 
+#include "menu/sm_menu.h"
+
 #if defined( TF_CLIENT_DLL )
 #include "tf_gamerules.h"
 #endif
@@ -200,6 +202,7 @@ void VGui_CreateGlobalPanels( void )
 {
 	VPANEL gameToolParent = enginevgui->GetPanel( PANEL_CLIENTDLL_TOOLS );
 	VPANEL toolParent = enginevgui->GetPanel( PANEL_TOOLS );
+	VPANEL gameParent = enginevgui->GetPanel( PANEL_CLIENTDLL );
 #if defined( TRACK_BLOCKING_IO )
 	VPANEL gameDLLPanel = enginevgui->GetPanel( PANEL_GAMEDLL );
 #endif
@@ -211,6 +214,7 @@ void VGui_CreateGlobalPanels( void )
 	// Debugging or related tool
 	fps->Create( toolParent );
 	touch_panel->Create( toolParent );
+	smenu->Create(gameParent);
 
 #if defined( TRACK_BLOCKING_IO )
 	iopanel->Create( gameDLLPanel );
@@ -243,6 +247,8 @@ void VGui_Shutdown()
 	fps->Destroy();
 	touch_panel->Destroy();
 
+	smenu->Destroy();
+
 	messagechars->Destroy();
 	loadingdisc->Destroy();
 	internalCenterPrint->Destroy();
@@ -271,13 +277,11 @@ void VGui_PreRender()
 	if ( IsPC() )
 	{
 		loadingdisc->SetLoadingVisible( engine->IsDrawingLoadingImage() && !engine->IsPlayingDemo() );
-		
-		bool bShowPausedImage = !enginevgui->IsGameUIVisible() && cl_showpausedimage.GetBool() && engine->IsPaused() && !engine->IsTakingScreenshot() && !engine->IsPlayingDemo();
 #if !defined( TF_CLIENT_DLL )
-		loadingdisc->SetPausedVisible( bShowPausedImage  );
+		loadingdisc->SetPausedVisible( !enginevgui->IsGameUIVisible() && cl_showpausedimage.GetBool() && engine->IsPaused() && !engine->IsTakingScreenshot() && !engine->IsPlayingDemo() );
 #else
-		bShowPausedImage &= ( TFGameRules() && !TFGameRules()->IsInTraining() );
-		loadingdisc->SetPausedVisible( bShowPausedImage );
+		bool bShowPausedImage = cl_showpausedimage.GetBool() && ( TFGameRules() && !TFGameRules()->IsInTraining() );
+		loadingdisc->SetPausedVisible( !enginevgui->IsGameUIVisible() && bShowPausedImage && engine->IsPaused() && !engine->IsTakingScreenshot() && !engine->IsPlayingDemo() );
 #endif
 	}
 }

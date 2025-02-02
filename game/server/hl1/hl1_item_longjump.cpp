@@ -32,25 +32,25 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		CHL1_Player *pHL1Player = (CHL1_Player*)pPlayer;
+//		CHL1_Player *pHL1Player = (CHL1_Player*)pPlayer;
 
-		if ( pHL1Player->m_bHasLongJump == true )
+		if ( pPlayer->m_bHasLongJump == true )
 		{
 			return false;
 		}
 
-		if ( pHL1Player->IsSuitEquipped() )
+		if ( pPlayer->IsSuitEquipped() )
 		{
-			pHL1Player->m_bHasLongJump = true;// player now has longjump module
+			pPlayer->m_bHasLongJump = true;// player now has longjump module
 
-			CSingleUserRecipientFilter user( pHL1Player );
+			CSingleUserRecipientFilter user( pPlayer );
 			user.MakeReliable();
 
 			UserMessageBegin( user, "ItemPickup" );
 				WRITE_STRING( STRING(m_iClassname) );
 			MessageEnd();
 
-			UTIL_EmitSoundSuit( pHL1Player->edict(), "!HEV_A1" );	// Play the longjump sound UNDONE: Kelly? correct sound?
+			UTIL_EmitSoundSuit( pPlayer->edict(), "!HEV_A1" );	// Play the longjump sound UNDONE: Kelly? correct sound?
 			return true;		
 		}
 		return false;

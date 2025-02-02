@@ -137,14 +137,15 @@ void CGenericNPC::Spawn()
 {
 	Precache();
 
-	SetModel( STRING( GetModelName() ) );
-
-/*
-	if ( FStrEq( STRING( GetModelName() ), "models/player.mdl" ) )
-		UTIL_SetSize(this, VEC_HUMAN_HULL_MIN, VEC_HUMAN_HULL_MAX);
+	// HACK FOR C1A1A MAP
+	if ( FStrEq( gpGlobals->mapname.ToCStr(), "c1a1" ) )
+	{
+		SetModel( "models/barney_hl1.mdl" );
+	}
 	else
-		UTIL_SetSize(this, VEC_HULL_MIN, VEC_HULL_MAX);
-*/
+	{
+		SetModel( STRING( GetModelName() ) );
+	}
 
 	if ( FStrEq( STRING( GetModelName() ), "models/player.mdl" ) || FStrEq( STRING( GetModelName() ), "models/holo.mdl" ) )
 		UTIL_SetSize(this, VEC_HULL_MIN, VEC_HULL_MAX);

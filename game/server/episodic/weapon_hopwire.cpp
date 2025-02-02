@@ -30,9 +30,9 @@
 //-----------------------------------------------------------------------------
 // Fragmentation grenades
 //-----------------------------------------------------------------------------
-class CWeaponHopwire: public CBaseHLCombatWeapon
+class CWeaponBlackhole: public CBaseHLCombatWeapon
 {
-	DECLARE_CLASS( CWeaponHopwire, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponBlackhole, CBaseHLCombatWeapon );
 public:
 	DECLARE_SERVERCLASS();
 
@@ -64,7 +64,7 @@ private:
 	int		m_AttackPaused;
 	bool	m_fDrawbackFinished;
 
-	CHandle<CGrenadeHopwire>	m_hActiveHopWire;
+	CHandle<CGrenadeBlackhole>	m_hActiveHopWire;
 
 	DECLARE_ACTTABLE();
 
@@ -72,34 +72,34 @@ private:
 };
 
 
-BEGIN_DATADESC( CWeaponHopwire )
+BEGIN_DATADESC( CWeaponBlackhole )
 	DEFINE_FIELD( m_bRedraw, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_AttackPaused, FIELD_INTEGER ),
 	DEFINE_FIELD( m_fDrawbackFinished, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_hActiveHopWire, FIELD_EHANDLE ),
 END_DATADESC()
 
-acttable_t	CWeaponHopwire::m_acttable[] = 
+acttable_t	CWeaponBlackhole::m_acttable[] = 
 {
 	{ ACT_RANGE_ATTACK1, ACT_RANGE_ATTACK_SLAM, true },
 };
 
-IMPLEMENT_ACTTABLE(CWeaponHopwire);
+IMPLEMENT_ACTTABLE(CWeaponBlackhole);
 
-IMPLEMENT_SERVERCLASS_ST(CWeaponHopwire, DT_WeaponHopwire)
+IMPLEMENT_SERVERCLASS_ST(CWeaponBlackhole, DT_WeaponBlackhole )
 END_SEND_TABLE()
 
-LINK_ENTITY_TO_CLASS( weapon_hopwire, CWeaponHopwire );
-PRECACHE_WEAPON_REGISTER(weapon_hopwire);
+LINK_ENTITY_TO_CLASS( weapon_blackhole, CWeaponBlackhole );
+PRECACHE_WEAPON_REGISTER(weapon_blackhole );
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::Precache( void )
+void CWeaponBlackhole::Precache( void )
 {
 	BaseClass::Precache();
 
-	UTIL_PrecacheOther( "npc_grenade_hopwire" );
+	UTIL_PrecacheOther( "npc_grenade_blackhole" );
 
 	PrecacheScriptSound( "WeaponFrag.Throw" );
 	PrecacheScriptSound( "WeaponFrag.Roll" );
@@ -110,7 +110,7 @@ void CWeaponHopwire::Precache( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CWeaponHopwire::Deploy( void )
+bool CWeaponBlackhole::Deploy( void )
 {
 	m_bRedraw = false;
 	m_fDrawbackFinished = false;
@@ -122,7 +122,7 @@ bool CWeaponHopwire::Deploy( void )
 // Purpose: 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool CWeaponHopwire::Holster( CBaseCombatWeapon *pSwitchingTo )
+bool CWeaponBlackhole::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	if ( m_hActiveHopWire != NULL )
 		return false;
@@ -138,7 +138,7 @@ bool CWeaponHopwire::Holster( CBaseCombatWeapon *pSwitchingTo )
 // Input  : *pEvent - 
 //			*pOperator - 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
+void CWeaponBlackhole::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	bool fThrewGrenade = false;
@@ -202,7 +202,7 @@ void CWeaponHopwire::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatC
 // Purpose: Override the ammo behavior so we never disallow pulling the weapon out
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool CWeaponHopwire::HasAnyAmmo( void )
+bool CWeaponBlackhole::HasAnyAmmo( void )
 {
 	if ( m_hActiveHopWire != NULL )
 		return true;
@@ -214,7 +214,7 @@ bool CWeaponHopwire::HasAnyAmmo( void )
 // Purpose: 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool CWeaponHopwire::Reload( void )
+bool CWeaponBlackhole::Reload( void )
 {
 	if ( !HasPrimaryAmmo() )
 		return false;
@@ -239,7 +239,7 @@ bool CWeaponHopwire::Reload( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::SecondaryAttack( void )
+void CWeaponBlackhole::SecondaryAttack( void )
 {
 	/*
 	if ( m_bRedraw )
@@ -277,7 +277,7 @@ void CWeaponHopwire::SecondaryAttack( void )
 //-----------------------------------------------------------------------------
 // Purpose: Allow activation even if this is our last piece of ammo
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::HandleFireOnEmpty( void )
+void CWeaponBlackhole::HandleFireOnEmpty( void )
 {
 	if ( m_hActiveHopWire!= NULL )
 	{
@@ -291,7 +291,7 @@ void CWeaponHopwire::HandleFireOnEmpty( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::PrimaryAttack( void )
+void CWeaponBlackhole::PrimaryAttack( void )
 {
 	if ( m_bRedraw )
 		return;
@@ -343,7 +343,7 @@ void CWeaponHopwire::PrimaryAttack( void )
 // Purpose: 
 // Input  : *pOwner - 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::DecrementAmmo( CBaseCombatCharacter *pOwner )
+void CWeaponBlackhole::DecrementAmmo( CBaseCombatCharacter *pOwner )
 {
 	pOwner->RemoveAmmo( 1, m_iPrimaryAmmoType );
 }
@@ -351,7 +351,7 @@ void CWeaponHopwire::DecrementAmmo( CBaseCombatCharacter *pOwner )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::ItemPostFrame( void )
+void CWeaponBlackhole::ItemPostFrame( void )
 {
 	if( m_fDrawbackFinished )
 	{
@@ -406,7 +406,7 @@ void CWeaponHopwire::ItemPostFrame( void )
 }
 
 	// check a throw from vecSrc.  If not valid, move the position back along the line to vecEye
-void CWeaponHopwire::CheckThrowPosition( CBasePlayer *pPlayer, const Vector &vecEye, Vector &vecSrc )
+void CWeaponBlackhole::CheckThrowPosition( CBasePlayer *pPlayer, const Vector &vecEye, Vector &vecSrc )
 {
 	trace_t tr;
 
@@ -423,7 +423,7 @@ void CWeaponHopwire::CheckThrowPosition( CBasePlayer *pPlayer, const Vector &vec
 // Purpose: 
 // Input  : *pPlayer - 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::ThrowGrenade( CBasePlayer *pPlayer )
+void CWeaponBlackhole::ThrowGrenade( CBasePlayer *pPlayer )
 {
 	Vector	vecEye = pPlayer->EyePosition();
 	Vector	vForward, vRight;
@@ -436,7 +436,7 @@ void CWeaponHopwire::ThrowGrenade( CBasePlayer *pPlayer )
 	Vector vecThrow;
 	pPlayer->GetVelocity( &vecThrow, NULL );
 	vecThrow += vForward * 1200;
-	m_hActiveHopWire = static_cast<CGrenadeHopwire *> (HopWire_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(600,random->RandomInt(-1200,1200),0), pPlayer, GRENADE_TIMER ));
+	m_hActiveHopWire = static_cast<CGrenadeBlackhole *> (BlackHole_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(600,random->RandomInt(-1200,1200),0), pPlayer, GRENADE_TIMER ));
 
 	m_bRedraw = true;
 
@@ -447,7 +447,7 @@ void CWeaponHopwire::ThrowGrenade( CBasePlayer *pPlayer )
 // Purpose: 
 // Input  : *pPlayer - 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::LobGrenade( CBasePlayer *pPlayer )
+void CWeaponBlackhole::LobGrenade( CBasePlayer *pPlayer )
 {
 	Vector	vecEye = pPlayer->EyePosition();
 	Vector	vForward, vRight;
@@ -459,7 +459,7 @@ void CWeaponHopwire::LobGrenade( CBasePlayer *pPlayer )
 	Vector vecThrow;
 	pPlayer->GetVelocity( &vecThrow, NULL );
 	vecThrow += vForward * 350 + Vector( 0, 0, 50 );
-	m_hActiveHopWire = static_cast<CGrenadeHopwire *> (HopWire_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(200,random->RandomInt(-600,600),0), pPlayer, GRENADE_TIMER ));
+	m_hActiveHopWire = static_cast<CGrenadeBlackhole *> (BlackHole_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(200,random->RandomInt(-600,600),0), pPlayer, GRENADE_TIMER ));
 
 	WeaponSound( WPN_DOUBLE );
 
@@ -470,7 +470,7 @@ void CWeaponHopwire::LobGrenade( CBasePlayer *pPlayer )
 // Purpose: 
 // Input  : *pPlayer - 
 //-----------------------------------------------------------------------------
-void CWeaponHopwire::RollGrenade( CBasePlayer *pPlayer )
+void CWeaponBlackhole::RollGrenade( CBasePlayer *pPlayer )
 {
 	// BUGBUG: Hardcoded grenade width of 4 - better not change the model :)
 	Vector vecSrc;
@@ -500,7 +500,7 @@ void CWeaponHopwire::RollGrenade( CBasePlayer *pPlayer )
 	QAngle orientation(0,pPlayer->GetLocalAngles().y,-90);
 	// roll it
 	AngularImpulse rotSpeed(0,0,720);
-	m_hActiveHopWire = static_cast<CGrenadeHopwire *> (HopWire_Create( vecSrc, orientation, vecThrow, rotSpeed, pPlayer, GRENADE_TIMER ));
+	m_hActiveHopWire = static_cast<CGrenadeBlackhole *> (BlackHole_Create( vecSrc, orientation, vecThrow, rotSpeed, pPlayer, GRENADE_TIMER ));
 
 	WeaponSound( SPECIAL1 );
 

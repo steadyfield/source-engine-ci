@@ -307,7 +307,7 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->GiveAmmo( AMMO_357_GIVE, "357Round" ) )
+		if (pPlayer->GiveAmmo( AMMO_357_GIVE, "357" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
@@ -357,7 +357,7 @@ public:
 			nGive = AMMO_RPG_GIVE;
 		}
 
-		if (pPlayer->GiveAmmo( nGive, "RPG_Rocket" ) )
+		if (pPlayer->GiveAmmo( nGive, "RPG_Round" ) )
 		{
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{

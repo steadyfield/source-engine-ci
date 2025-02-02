@@ -436,6 +436,14 @@ public:
 
 	CUserCmd		*m_pCurrentCommand;
 
+#ifdef ARGG
+	// adnan
+	// store the use angles
+	// set when the player presses use
+	QAngle		m_vecUseAngles;
+	// end adnan
+#endif
+
 	// Movement constraints
 	EHANDLE			m_hConstraintEntity;
 	Vector			m_vecConstraintCenter;
@@ -525,7 +533,14 @@ private:
 
 	bool			m_bFiredWeapon;
 
+public:
+	CNetworkVar( float, m_flStartCharge );
+	CNetworkVar( float, m_flAmmoStartCharge );
+	CNetworkVar( float, m_flPlayAftershock );
+	CNetworkVar( float, m_flNextAmmoBurn );	// while charging, when to absorb another unit of player's ammo?
+	CNetworkVar( bool, m_bHasLongJump );
 
+private:
 	// Player flashlight dynamic light pointers
 	CFlashlightEffect *m_pFlashlight;
 

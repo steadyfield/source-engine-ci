@@ -52,9 +52,6 @@ IMPLEMENT_ACTTABLE(CWeapon_Tripwire);
 
 void CWeapon_Tripwire::Spawn( )
 {
-	UTIL_Remove(this);
-	return;
-
 	BaseClass::Spawn();
 
 	Precache( );
@@ -86,7 +83,7 @@ void CWeapon_Tripwire::Precache( void )
 //------------------------------------------------------------------------------
 void CWeapon_Tripwire::SetPickupTouch( void )
 {
-	SetTouch(TripwireTouch);
+	SetTouch(&CWeapon_Tripwire::TripwireTouch);
 }
 
 //-----------------------------------------------------------------------------

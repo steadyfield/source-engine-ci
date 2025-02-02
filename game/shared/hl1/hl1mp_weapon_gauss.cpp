@@ -11,11 +11,7 @@
 //#include "basecombatcharacter.h"
 //#include "AI_BaseNPC.h"
 #include "takedamageinfo.h"
-#ifdef CLIENT_DLL
-#include "hl1/hl1_c_player.h"
-#else
-#include "hl1_player.h"
-#endif
+#include "baseplayer_shared.h"
 #include "gamerules.h"
 #include "in_buttons.h"
 #ifdef CLIENT_DLL
@@ -40,7 +36,7 @@
 #define GAUSS_BEAM_SPRITE	"sprites/smoke.vmt"
 
 
-extern ConVar sk_plr_dmg_gauss;
+extern ConVar sk_jeep_gauss_damage;
 
 #ifdef CLIENT_DLL
 #define CWeaponGauss C_WeaponGauss
@@ -72,6 +68,10 @@ public:
 //	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
+#ifndef CLIENT_DLL
+	DECLARE_ACTTABLE();
+#endif
+
 private:
 	void	StopSpinSound( void );
 	float	GetFullChargeTime( void );
@@ -79,8 +79,6 @@ private:
 	void	Fire( Vector vecOrigSrc, Vector vecDir, float flDamage );
 
 private:
-//	int			m_nAttackState;
-//	bool		m_bPrimaryFire;
 	CNetworkVar( int, m_nAttackState);
 	CNetworkVar( bool, m_bPrimaryFire);
 
@@ -99,6 +97,20 @@ BEGIN_NETWORK_TABLE( CWeaponGauss, DT_WeaponGauss )
 #endif
 END_NETWORK_TABLE()
 
+#ifndef CLIENT_DLL
+acttable_t	CWeaponGauss::m_acttable[] = 
+{
+	{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_PHYSGUN,					false },
+	{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN_PHYSGUN,					false },
+	{ ACT_HL2MP_IDLE_CROUCH,			ACT_HL2MP_IDLE_CROUCH_PHYSGUN,			false },
+	{ ACT_HL2MP_WALK_CROUCH,			ACT_HL2MP_WALK_CROUCH_PHYSGUN,			false },
+	{ ACT_HL2MP_GESTURE_RANGE_ATTACK,	ACT_HL2MP_GESTURE_RANGE_ATTACK_PHYSGUN,	false },
+	{ ACT_HL2MP_GESTURE_RELOAD,			ACT_HL2MP_GESTURE_RELOAD_PHYSGUN,		false },
+	{ ACT_HL2MP_JUMP,					ACT_HL2MP_JUMP_PHYSGUN,					false },
+};
+IMPLEMENT_ACTTABLE(CWeaponGauss);
+#endif
+
 BEGIN_PREDICTION_DATA( CWeaponGauss )
 #ifdef CLIENT_DLL
 	DEFINE_PRED_FIELD( m_nAttackState, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
@@ -106,9 +118,8 @@ BEGIN_PREDICTION_DATA( CWeaponGauss )
 #endif
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_gauss, CWeaponGauss );
-
-PRECACHE_WEAPON_REGISTER( weapon_gauss );
+LINK_ENTITY_TO_CLASS( weapon_gauss_hl1, CWeaponGauss );
+PRECACHE_WEAPON_REGISTER( weapon_gauss_hl1 );
 
 //IMPLEMENT_SERVERCLASS_ST( CWeaponGauss, DT_WeaponGauss )
 //END_SEND_TABLE()
@@ -195,7 +206,7 @@ void CWeaponGauss::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponGauss::SecondaryAttack( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( !pPlayer )
 	{
 		return;
@@ -349,13 +360,15 @@ void CWeaponGauss::StartFire( void )
 {
 	float flDamage;
 	
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( !pPlayer )
 	{
 		return;
 	}
 
-	Vector vecAiming	= pPlayer->GetAutoaimVector( 0 );
+	CBasePlayer *player = ToBasePlayer( GetOwner() );
+
+	Vector vecAiming	= player->GetAutoaimVector( 0 );
 	Vector vecSrc		= pPlayer->Weapon_ShootPosition( );
 
 	if ( gpGlobals->curtime - pPlayer->m_flStartCharge > GetFullChargeTime() )
@@ -369,7 +382,7 @@ void CWeaponGauss::StartFire( void )
 
 	if ( m_bPrimaryFire )
 	{
-		flDamage = sk_plr_dmg_gauss.GetFloat() * g_pGameRules->GetDamageMultiplier();
+		flDamage = sk_jeep_gauss_damage.GetFloat() * g_pGameRules->GetDamageMultiplier();
 	}
 
 	//ALERT ( at_console, "Time:%f Damage:%f\n", gpGlobals->curtime - m_pPlayer->m_flStartCharge, flDamage );
@@ -634,7 +647,7 @@ void CWeaponGauss::Fire( Vector vecOrigSrc, Vector vecDir, float flDamage )
 
 void CWeaponGauss::WeaponIdle( void )
 {
-	CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	if ( !pPlayer )
 	{
 		return;
@@ -686,7 +699,7 @@ bool CWeaponGauss::Deploy( void )
 {
 	if ( DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), ACT_VM_DRAW, (char*)GetAnimPrefix() ) )
 	{
-		CHL1_Player *pPlayer = ToHL1Player( GetOwner() );
+		CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 		if ( pPlayer )
 		{
 			pPlayer->m_flPlayAftershock = 0.0;

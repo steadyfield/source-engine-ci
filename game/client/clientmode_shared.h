@@ -86,6 +86,12 @@ public:
 
 	// Input
 	virtual int		KeyInput( int down, ButtonCode_t keynum, const char *pszCurrentBinding );
+#ifdef ARGG
+	// adnan
+	// does this weapon need to override the view angles?
+	virtual bool	OverrideViewAngles( void );
+	// end adnan
+#endif
 	virtual int		HudElementKeyInput( int down, ButtonCode_t keynum, const char *pszCurrentBinding );
 	virtual void	OverrideMouseInput( float *x, float *y );
 	virtual void	StartMessageMode( int iMessageModeType );
@@ -98,6 +104,7 @@ public:
 	virtual bool	ShouldDrawFog( void );
 	
 	virtual float	GetViewModelFOV( void );
+	virtual void    SetViewModelFOV( float value );
 	virtual vgui::Panel* GetViewport() { return m_pViewport; }
 	// Gets at the viewports vgui panel animation controller, if there is one...
 	virtual vgui::AnimationController *GetViewportAnimationController()

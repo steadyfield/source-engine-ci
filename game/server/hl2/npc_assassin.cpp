@@ -146,7 +146,7 @@ void CNPC_Assassin::Precache( void )
 //
 //
 //-----------------------------------------------------------------------------
-void CNPC_Assassin::Spawn( void )
+void CNPC_Assassin::w( void )
 {
 	Precache();
 

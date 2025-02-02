@@ -211,7 +211,7 @@ public:
 	void OnGameUIActivated();
 
 	// game dialogs
-	void OnOpenNewGameDialog( const char *chapter = NULL );
+	void OnOpenNewGameDialog( const char *chapter = NULL, bool bHLS = false );
 	void OnOpenBonusMapsDialog();
 	void OnOpenLoadGameDialog();
 	void OnOpenLoadGameDialog_Xbox();

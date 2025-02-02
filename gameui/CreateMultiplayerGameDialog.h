@@ -35,12 +35,6 @@ protected:
 private:
 	CCreateMultiplayerGameServerPage *m_pServerPage;
 	CCreateMultiplayerGameGameplayPage *m_pGameplayPage;
-	CCreateMultiplayerGameBotPage *m_pBotPage;
-
-	bool m_bBotsEnabled;
-
-	// for loading/saving game config
-	KeyValues *m_pSavedData;
 };
 
 

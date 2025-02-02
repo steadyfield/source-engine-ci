@@ -17,9 +17,9 @@ extern ConVar hopwire_trap;
 
 class CGravityVortexController;
 
-class CGrenadeHopwire : public CBaseGrenade
+class CGrenadeBlackhole : public CBaseGrenade
 {
-	DECLARE_CLASS( CGrenadeHopwire, CBaseGrenade );
+	DECLARE_CLASS( CGrenadeBlackhole, CBaseGrenade );
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
 
@@ -41,6 +41,6 @@ protected:
 	CHandle<CGravityVortexController>	m_hVortexController;
 };
 
-extern CBaseGrenade *HopWire_Create( const Vector &position, const QAngle &angles, const Vector &velocity, const AngularImpulse &angVelocity, CBaseEntity *pOwner, float timer );
+extern CBaseGrenade *BlackHole_Create( const Vector &position, const QAngle &angles, const Vector &velocity, const AngularImpulse &angVelocity, CBaseEntity *pOwner, float timer );
 
 #endif // GRENADE_HOPWIRE_H

@@ -15,7 +15,7 @@
 #define	WEAPONSLAM_H
 
 #include "basegrenade_shared.h"
-#include "weapon_hl2mpbasehlmpcombatweapon.h"
+#include "basehlcombatweapon_shared.h"
 
 enum
 {
@@ -28,10 +28,10 @@ enum
 #define CWeapon_SLAM C_Weapon_SLAM
 #endif
 
-class CWeapon_SLAM : public CBaseHL2MPCombatWeapon
+class CWeapon_SLAM : public CBaseHLCombatWeapon
 {
 public:
-	DECLARE_CLASS( CWeapon_SLAM, CBaseHL2MPCombatWeapon );
+	DECLARE_CLASS( CWeapon_SLAM, CBaseHLCombatWeapon );
 
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();

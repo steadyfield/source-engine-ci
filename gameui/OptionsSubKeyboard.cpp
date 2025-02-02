@@ -407,7 +407,7 @@ void COptionsSubKeyboard::FillInCurrentBindings( void )
 
 	// NVNT see if we have a falcon connected.
 	bool bFalcon = false;
-	ConVarRef falconVar("hap_HasDevice");
+	// ConVarRef falconVar("hap_HasDevice"); <-- convar is doesnt exist
 	if ( var.IsValid() )
 	{
 		bFalcon = var.GetBool();

@@ -19,9 +19,8 @@
 
 #define	SLAM_SPRITE	"sprites/redglow1.vmt"
 
-ConVar    sk_plr_dmg_satchel		( "sk_plr_dmg_satchel","150"); // commented lines in hl2/skill.cfg
-ConVar    sk_npc_dmg_satchel		( "sk_npc_dmg_satchel","75");
-ConVar    sk_satchel_radius		( "sk_satchel_radius","150");
+extern ConVar sk_plr_dmg_satchel;
+ConVar sk_satchel_radius( "sk_satchel_radius","150");
 
 BEGIN_DATADESC( CSatchelCharge )
 

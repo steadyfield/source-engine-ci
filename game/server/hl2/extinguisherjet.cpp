@@ -58,6 +58,7 @@ CExtinguisherJet::CExtinguisherJet( void )
 	m_bEmit				= false;
 	m_bEnabled			= false;
 	m_bAutoExtinguish	= true;
+	m_bWithSound		= true;
 
 	m_nLength			= 128;
 	m_nSize				= 8;
@@ -97,11 +98,14 @@ void CExtinguisherJet::TurnOn( void )
 	//Turn on sound
 	if ( m_bEmit == false )
 	{
-		EmitSound( "ExtinguisherJet.TurnOn" );
+		if ( m_bWithSound )
+		{
+			EmitSound( "ExtinguisherJet.TurnOn" );
+		}
 		m_bEnabled = m_bEmit = true;
 	}
 	
-	SetThink( ExtinguishThink );
+	SetThink( &CExtinguisherJet::ExtinguishThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -113,7 +117,10 @@ void CExtinguisherJet::TurnOff( void )
 	//Turn off sound
 	if ( m_bEmit )
 	{
-		EmitSound( "ExtinguisherJet.TurnOff" );
+		if ( m_bWithSound )
+		{
+			EmitSound( "ExtinguisherJet.TurnOff" );
+		}
 		m_bEnabled = m_bEmit = false;
 	}
 	

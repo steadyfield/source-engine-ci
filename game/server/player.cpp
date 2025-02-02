@@ -82,6 +82,9 @@
 #include "weapon_physcannon.h"
 #endif
 
+ConVar hls_weapons_allowed("hls_weapons_allowed", "0");
+ConVar beta_weapons_allowed("beta_weapons_allowed", "0");
+
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
 
@@ -417,6 +420,20 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_flOldPlayerViewOffsetZ, FIELD_FLOAT ),
 	DEFINE_FIELD( m_bPlayerUnderwater, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_hViewEntity, FIELD_EHANDLE ),
+
+#if defined( ARGG )
+	// adnan
+	// set the use angles
+	// set when the player presses use
+	DEFINE_FIELD( m_vecUseAngles, FIELD_VECTOR ),
+	// end adnan
+#endif
+
+	DEFINE_FIELD( m_flStartCharge, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flAmmoStartCharge, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flPlayAftershock, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flNextAmmoBurn, FIELD_FLOAT ),
+	DEFINE_FIELD( m_bHasLongJump, FIELD_BOOLEAN ),
 
 	DEFINE_FIELD( m_hConstraintEntity, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_vecConstraintCenter, FIELD_VECTOR ),
@@ -5069,7 +5086,6 @@ void CBasePlayer::Precache( void )
 {
 	BaseClass::Precache();
 
-
 	PrecacheScriptSound( "Player.FallGib" );
 	PrecacheScriptSound( "Player.Death" );
 	PrecacheScriptSound( "Player.PlasmaDamage" );
@@ -6149,20 +6165,48 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 
 		EquipSuit();
 
+		
+		// HACKHACK: idk why if you try to give tripmine after giving others weapons tripmine
+		// just didnt appear in hud
+		if ( hls_weapons_allowed.GetBool() )
+		{
+			GiveNamedItem( "weapon_tripmine_hl1" );
+		}
+
 		// Give the player everything!
 		GiveAmmo( 255,	"Pistol");
 		GiveAmmo( 255,	"AR2");
-		GiveAmmo( 5,	"AR2AltFire");
+		GiveAmmo( 100,	"AR2AltFire");
 		GiveAmmo( 255,	"SMG1");
 		GiveAmmo( 255,	"Buckshot");
-		GiveAmmo( 3,	"smg1_grenade");
-		GiveAmmo( 3,	"rpg_round");
-		GiveAmmo( 5,	"grenade");
-		GiveAmmo( 32,	"357" );
-		GiveAmmo( 16,	"XBowBolt" );
-#ifdef HL2_EPISODIC
-		GiveAmmo( 5,	"Hopwire" );
-#endif		
+		GiveAmmo( 100,	"smg1_grenade");
+		GiveAmmo( 100,	"rpg_round");
+		GiveAmmo( 100,	"grenade");
+		GiveAmmo( 100,	"357" );
+		GiveAmmo( 100,	"XBowBolt" );
+		if ( beta_weapons_allowed.GetBool() )
+		{
+			GiveAmmo( 100,	"Hopwire" );
+			GiveNamedItem( "weapon_stunstick"  );
+			GiveNamedItem( "weapon_cguard"  );
+			GiveNamedItem( "weapon_flaregun" );
+			GiveNamedItem( "weapon_alyxgun" );
+			GiveNamedItem( "weapon_bugbait" );
+			GiveNamedItem( "weapon_annabelle" );
+			GiveNamedItem( "weapon_gauss" );
+			GiveNamedItem( "weapon_extinguisher" );
+			GiveNamedItem( "weapon_oicw" );
+			GiveNamedItem( "weapon_hopwire" );
+			GiveNamedItem( "weapon_stickylauncher" );
+			GiveNamedItem( "weapon_smg2" );
+			GiveNamedItem( "weapon_sniperrifle" );
+			GiveNamedItem( "weapon_ar1" );
+			GiveNamedItem( "weapon_immolator" );
+			GiveNamedItem( "weapon_blackhole" );
+			GiveNamedItem( "weapon_iceaxe" );
+//			GiveNamedItem( "weapon_rollerwand");
+		}	
+
 		GiveNamedItem( "weapon_smg1" );
 		GiveNamedItem( "weapon_frag" );
 		GiveNamedItem( "weapon_crowbar" );
@@ -6174,12 +6218,38 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		GiveNamedItem( "weapon_rpg" );
 		GiveNamedItem( "weapon_357" );
 		GiveNamedItem( "weapon_crossbow" );
+		
+		if ( hls_weapons_allowed.GetBool() )
+		{
+			GiveNamedItem( "weapon_tripmine_hl1" );
+			GiveNamedItem( "item_suit" );
+			GiveNamedItem( "item_battery" );
+			GiveNamedItem( "weapon_crowbar_hl1" );
+			GiveNamedItem( "weapon_glock_hl1" );
+			GiveNamedItem( "ammo_9mmclip" );
+			GiveNamedItem( "weapon_shotgun_hl1" );
+			GiveNamedItem( "ammo_buckshot" );
+			GiveNamedItem( "weapon_mp5_hl1" );
+			GiveNamedItem( "ammo_9mmar" );
+			GiveNamedItem( "ammo_argrenades" );
+			GiveNamedItem( "weapon_handgrenade" );
+			GiveNamedItem( "weapon_357_hl1" );
+			GiveNamedItem( "weapon_crossbow_hl1" );
+			GiveNamedItem( "ammo_crossbow" );
+			GiveNamedItem( "weapon_egon" );
+			GiveNamedItem( "weapon_gauss" );
+			GiveNamedItem( "ammo_gaussclip" );
+			GiveNamedItem( "weapon_rpg_hl1" );
+			GiveNamedItem( "weapon_satchel_hl1" );
+			GiveNamedItem( "weapon_snark" );
+			GiveNamedItem( "weapon_hornetgun" );
+		}		
 #ifdef HL2_EPISODIC
 		// GiveNamedItem( "weapon_magnade" );
 #endif
 		if ( GetHealth() < 100 )
 		{
-			TakeHealth( 25, DMG_GENERIC );
+			TakeHealth( 100, DMG_GENERIC );
 		}
 		
 		gEvilImpulse101		= false;
@@ -7958,6 +8028,14 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropVector		( SENDINFO( m_vecBaseVelocity ), 20, 0, -1000, 1000 ),
 #endif
 
+#ifdef ARGG
+		// adnan
+		// send the use angles
+		// set when the player presses use
+		SendPropVector		( SENDINFO( m_vecUseAngles), 0, SPROP_NOSCALE ),
+		// end adnan
+#endif
+
 		SendPropEHandle		( SENDINFO( m_hConstraintEntity)),
 		SendPropVector		( SENDINFO( m_vecConstraintCenter), 0, SPROP_NOSCALE ),
 		SendPropFloat		( SENDINFO( m_flConstraintRadius ), 0, SPROP_NOSCALE ),
@@ -8003,8 +8081,13 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropFloat	(SENDINFO(m_flFOVTime) ),
 		SendPropInt		(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED ),
 		SendPropEHandle	(SENDINFO(m_hZoomOwner) ),
-		SendPropArray	( SendPropEHandle( SENDINFO_ARRAY( m_hViewModel ) ), m_hViewModel ),
+		SendPropArray	(SendPropEHandle( SENDINFO_ARRAY( m_hViewModel ) ), m_hViewModel ),
 		SendPropString	(SENDINFO(m_szLastPlaceName) ),
+		SendPropFloat 	(SENDINFO( m_flStartCharge ) ),
+		SendPropFloat 	(SENDINFO( m_flAmmoStartCharge ) ),
+		SendPropFloat 	(SENDINFO( m_flPlayAftershock ) ),
+		SendPropFloat 	(SENDINFO( m_flNextAmmoBurn ) ),
+		SendPropInt 	(SENDINFO( m_bHasLongJump ), 1, SPROP_UNSIGNED ),
 
 #if defined USES_ECON_ITEMS
 		SendPropUtlVector( SENDINFO_UTLVECTOR( m_hMyWearables ), MAX_WEARABLES_SENT_FROM_SERVER, SendPropEHandle( NULL, 0 ) ),

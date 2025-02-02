@@ -18,12 +18,13 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar hopwire_vortex( "hopwire_vortex", "0" );
+ConVar hopwire_vortex( "hopwire_vortex", "1" );
 ConVar hopwire_trap( "hopwire_trap", "1" );
 ConVar hopwire_strider_kill_dist_h( "hopwire_strider_kill_dist_h", "300" );
 ConVar hopwire_strider_kill_dist_v( "hopwire_strider_kill_dist_v", "256" );
 ConVar hopwire_strider_hits( "hopwire_strider_hits", "1" );
 ConVar hopwire_hopheight( "hopwire_hopheight", "400" );
+ConVar hopwire_pull_player("hopwire_pull_player", "0");
 
 ConVar g_debug_hopwire( "g_debug_hopwire", "0" );
 
@@ -104,7 +105,7 @@ void CGravityVortexController::PullPlayersInRange( void )
 {
 	CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
 	
-	Vector	vecForce = GetAbsOrigin() - pPlayer->WorldSpaceCenter();
+	Vector	vecForce = GetLocalOrigin() - pPlayer->WorldSpaceCenter();
 	float	dist = VectorNormalize( vecForce );
 	
 	// FIXME: Need a more deterministic method here
@@ -337,22 +338,22 @@ LINK_ENTITY_TO_CLASS( vortex_controller, CGravityVortexController );
 #define GRENADE_MODEL_CLOSED	"models/roller.mdl"
 #define GRENADE_MODEL_OPEN		"models/roller_spikes.mdl"
 
-BEGIN_DATADESC( CGrenadeHopwire )
+BEGIN_DATADESC( CGrenadeBlackhole )
 	DEFINE_FIELD( m_hVortexController, FIELD_EHANDLE ),
 
 	DEFINE_THINKFUNC( EndThink ),
 	DEFINE_THINKFUNC( CombatThink ),
 END_DATADESC()
 
-LINK_ENTITY_TO_CLASS( npc_grenade_hopwire, CGrenadeHopwire );
+LINK_ENTITY_TO_CLASS( npc_grenade_blackhole, CGrenadeBlackhole );
 
-IMPLEMENT_SERVERCLASS_ST( CGrenadeHopwire, DT_GrenadeHopwire )
+IMPLEMENT_SERVERCLASS_ST( CGrenadeBlackhole, DT_GrenadeBlackhole )
 END_SEND_TABLE()
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::Spawn( void )
+void CGrenadeBlackhole::Spawn( void )
 {
 	Precache();
 
@@ -366,7 +367,7 @@ void CGrenadeHopwire::Spawn( void )
 // Purpose: 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool CGrenadeHopwire::CreateVPhysics()
+bool CGrenadeBlackhole::CreateVPhysics()
 {
 	// Create the object in the physics system
 	VPhysicsInitNormal( SOLID_BBOX, 0, false );
@@ -376,7 +377,7 @@ bool CGrenadeHopwire::CreateVPhysics()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::Precache( void )
+void CGrenadeBlackhole::Precache( void )
 {
 	// FIXME: Replace
 	//PrecacheSound("NPC_Strider.Shoot");
@@ -394,7 +395,7 @@ void CGrenadeHopwire::Precache( void )
 // Purpose: 
 // Input  : timer - 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::SetTimer( float timer )
+void CGrenadeBlackhole::SetTimer( float timer )
 {
 	SetThink( &CBaseGrenade::PreDetonate );
 	SetNextThink( gpGlobals->curtime + timer );
@@ -409,7 +410,7 @@ void CGrenadeHopwire::SetTimer( float timer )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::KillStriders( void )
+void CGrenadeBlackhole::KillStriders( void )
 {
 	CBaseEntity *pEnts[128];
 	Vector	mins, maxs;
@@ -461,7 +462,7 @@ void CGrenadeHopwire::KillStriders( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::EndThink( void )
+void CGrenadeBlackhole::EndThink( void )
 {
 	if ( hopwire_vortex.GetBool() )
 	{
@@ -477,7 +478,7 @@ void CGrenadeHopwire::EndThink( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::CombatThink( void )
+void CGrenadeBlackhole::CombatThink( void )
 {
 	// Stop the grenade from moving
 	AddEFlags( EF_NODRAW );
@@ -509,7 +510,7 @@ void CGrenadeHopwire::CombatThink( void )
 		MessageEnd();
 		
 		// Begin to stop in two seconds
-		SetThink( &CGrenadeHopwire::EndThink );
+		SetThink( &CGrenadeBlackhole::EndThink );
 		SetNextThink( gpGlobals->curtime + 2.0f );
 	}
 	else
@@ -523,7 +524,7 @@ void CGrenadeHopwire::CombatThink( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::SetVelocity( const Vector &velocity, const AngularImpulse &angVelocity )
+void CGrenadeBlackhole::SetVelocity( const Vector &velocity, const AngularImpulse &angVelocity )
 {
 	IPhysicsObject *pPhysicsObject = VPhysicsGetObject();
 	
@@ -536,7 +537,7 @@ void CGrenadeHopwire::SetVelocity( const Vector &velocity, const AngularImpulse 
 //-----------------------------------------------------------------------------
 // Purpose: Hop off the ground to start deployment
 //-----------------------------------------------------------------------------
-void CGrenadeHopwire::Detonate( void )
+void CGrenadeBlackhole::Detonate( void )
 {
 	SetModel( GRENADE_MODEL_OPEN );
 
@@ -557,16 +558,16 @@ void CGrenadeHopwire::Detonate( void )
 	float apexTime = sqrt( hopHeight / GetCurrentGravity() );
 
 	// Explode at the apex
-	SetThink( &CGrenadeHopwire::CombatThink );
+	SetThink( &CGrenadeBlackhole::CombatThink );
 	SetNextThink( gpGlobals->curtime + apexTime);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-CBaseGrenade *HopWire_Create( const Vector &position, const QAngle &angles, const Vector &velocity, const AngularImpulse &angVelocity, CBaseEntity *pOwner, float timer )
+CBaseGrenade *BlackHole_Create( const Vector &position, const QAngle &angles, const Vector &velocity, const AngularImpulse &angVelocity, CBaseEntity *pOwner, float timer )
 {
-	CGrenadeHopwire *pGrenade = (CGrenadeHopwire *) CBaseEntity::Create( "npc_grenade_hopwire", position, angles, pOwner );
+	CGrenadeBlackhole *pGrenade = (CGrenadeBlackhole *) CBaseEntity::Create( "npc_grenade_blackhole", position, angles, pOwner );
 	
 	// Only set ourselves to detonate on a timer if we're not a trap hopwire
 	if ( hopwire_trap.GetBool() == false )

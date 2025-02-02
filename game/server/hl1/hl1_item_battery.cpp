@@ -16,7 +16,7 @@
 
 #define BATTERY_MODEL "models/w_battery.mdl"
 
-ConVar	sk_battery( "sk_battery","0" );			
+extern ConVar sk_battery;
 
 class CItemBattery : public CHL1Item
 {
@@ -73,6 +73,6 @@ public:
 	}
 };
 
-LINK_ENTITY_TO_CLASS(item_battery, CItemBattery);
-PRECACHE_REGISTER(item_battery);
+LINK_ENTITY_TO_CLASS( hl1_item_battery, CItemBattery );
+PRECACHE_REGISTER( hl1_item_battery );
 

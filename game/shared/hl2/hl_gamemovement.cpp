@@ -19,6 +19,8 @@ static ConVar sv_ladder_useonly( "sv_ladder_useonly", "0", FCVAR_REPLICATED, "If
 
 #define USE_DISMOUNT_SPEED 100
 
+static ConVar sv_ladder_hl1( "sv_ladder_hl1", "0" );
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -282,7 +284,21 @@ bool CHL2GameMovement::ContinueForcedMove()
 // Input  : &trace - ignored
 //-----------------------------------------------------------------------------
 bool CHL2GameMovement::OnLadder( trace_t &trace )
-{
+{	
+	if ( trace.contents & CONTENTS_LADDER )
+		return true;
+
+	IPhysicsSurfaceProps *pPhysProps = MoveHelper( )->GetSurfaceProps();
+	if ( pPhysProps )
+	{
+		const surfacedata_t *pSurfaceData = pPhysProps->GetSurfaceData( trace.surface.surfaceProps );
+		if ( pSurfaceData )
+		{
+			if ( pSurfaceData->game.climbable != 0 )
+				return true;
+		}
+	}
+	
 	return ( GetLadder() != NULL ) ? true : false;
 }
 
@@ -522,6 +538,11 @@ bool CHL2GameMovement::ExitLadderViaDismountNode( CFuncLadder *ladder, bool stri
 //-----------------------------------------------------------------------------
 void CHL2GameMovement::FullLadderMove()
 {
+	if ( BaseClass::LadderMove() )
+	{
+		BaseClass::FullLadderMove();
+	}
+
 #if !defined( CLIENT_DLL )
 	CFuncLadder *ladder = GetLadder();
 	Assert( ladder );
@@ -883,7 +904,9 @@ bool CHL2GameMovement::CheckLadderAutoMount( CFuncLadder *ladder, const Vector& 
 //-----------------------------------------------------------------------------
 bool CHL2GameMovement::LadderMove( void )
 {
-
+	if ( BaseClass::LadderMove() ) 
+		return true;
+	
 	if ( player->GetMoveType() == MOVETYPE_NOCLIP )
 	{
 		SetLadder( NULL );

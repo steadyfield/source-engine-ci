@@ -91,23 +91,24 @@ COptionsDialog::COptionsDialog(vgui::Panel *parent) : PropertyDialog(parent, "Op
 	AddPage(new COptionsSubTouch(this), "Touch");
 #endif
 
-	m_pOptionsSubAudio = new COptionsSubAudio(this);
-	AddPage(m_pOptionsSubAudio, "#GameUI_Audio");
 	m_pOptionsSubVideo = new COptionsSubVideo(this);
 	AddPage(m_pOptionsSubVideo, "#GameUI_Video");
+	m_pOptionsSubAudio = new COptionsSubAudio(this);
+	AddPage(m_pOptionsSubAudio, "#GameUI_Audio");
 
-	if ( !ModInfo().IsSinglePlayerOnly() ) 
-	{
-		AddPage(new COptionsSubVoice(this), "#GameUI_Voice");
-	}
+//	if ( !ModInfo().IsSinglePlayerOnly() ) 
+//	{
+//		AddPage(new COptionsSubVoice(this), "#GameUI_Voice");
+//	}
 
+	// ITZVLADIK: IDK WHY ENGINE THINKS ITS MULTIPLAYER
 	// add the multiplay page last, if we're combo single/multi or just multi
-	if ( (ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) ||
-		 (!ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) )
-	{
-		m_pOptionsSubMultiplayer = new COptionsSubMultiplayer(this);
-		AddPage(m_pOptionsSubMultiplayer, "#GameUI_Multiplayer");
-	}
+//	if ( (ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) ||
+//		 (!ModInfo().IsMultiplayerOnly() && !ModInfo().IsSinglePlayerOnly()) )
+//	{
+//		m_pOptionsSubMultiplayer = new COptionsSubMultiplayer(this);
+//		AddPage(m_pOptionsSubMultiplayer, "#GameUI_Multiplayer");
+//	}
 
 //	double s5 = system()->GetCurrentTime();
 //	Msg("COptionsDialog::COptionsDialog(): %.3fms\n", (float)(s5 - s4) * 1000.0f);

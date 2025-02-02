@@ -9,13 +9,11 @@
 #include "npcevent.h"
 #include "in_buttons.h"
 #include "engine/IEngineSound.h"
+#include "hl2_player_shared.h"
 
-#if defined( CLIENT_DLL )
-	#include "c_hl2mp_player.h"
-#else
-	#include "hl2mp_player.h"
-	#include "grenade_tripmine.h"
-	#include "grenade_satchel.h"
+#if !defined( CLIENT_DLL )
+	#include "hl2mp/grenade_tripmine.h"
+	#include "hl2mp/grenade_satchel.h"
 	#include "entitylist.h"
 	#include "eventqueue.h"
 #endif
@@ -113,8 +111,6 @@ void CWeapon_SLAM::Spawn( )
 	BaseClass::Spawn();
 
 	Precache( );
-
-	FallInit();// get ready to fall down
 
 	m_tSlamState		= (int)SLAM_SATCHEL_THROW;
 	m_flWallSwitchTime	= 0;
@@ -339,7 +335,7 @@ void CWeapon_SLAM::StartSatchelDetonate()
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::TripmineAttach( void )
 {
-	CHL2MP_Player *pOwner  = ToHL2MPPlayer( GetOwner() );
+	CBasePlayer *pOwner  = ToBasePlayer( GetOwner() );
 	if (!pOwner)
 	{
 		return;
@@ -698,7 +694,7 @@ void CWeapon_SLAM::SLAMThink( void )
 //-----------------------------------------------------------------------------
 bool CWeapon_SLAM::CanAttachSLAM( void )
 {
-	CHL2MP_Player *pOwner = ToHL2MPPlayer( GetOwner() );
+	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 
 	if (!pOwner)
 	{

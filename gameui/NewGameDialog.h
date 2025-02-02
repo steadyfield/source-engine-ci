@@ -73,7 +73,7 @@ public:
 	MESSAGE_FUNC( FinishScroll,	"FinishScroll" );
 	MESSAGE_FUNC( StartGame, "StartGame" );
 
-	CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode );
+	CNewGameDialog(vgui::Panel *parent, bool bCommentaryMode, bool bHLS = false );
 	~CNewGameDialog();
 
 	virtual void	Activate( void );
@@ -118,6 +118,7 @@ private:
 	vgui::ImagePanel	*m_pBonusSelectionBorder;
 	CFooterPanel		*m_pFooter;
 	bool				m_bCommentaryMode;
+	bool 				m_bHLS;
 	vgui::Label			*m_pCommentaryLabel;
 
 	// Xbox

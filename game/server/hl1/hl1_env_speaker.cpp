@@ -27,9 +27,9 @@
 // Speaker class. Used for announcements per level, for door lock/unlock spoken voice. 
 //
 
-class CSpeaker : public CPointEntity
+class CSpeaker_HL1 : public CPointEntity
 {
-	DECLARE_CLASS( CSpeaker, CPointEntity );
+	DECLARE_CLASS( CSpeaker_HL1, CPointEntity );
 public:
 	bool KeyValue( const char *szKeyName, const char *szValue );
 	void Spawn( void );
@@ -45,9 +45,9 @@ public:
 	DECLARE_DATADESC();
 };
 
-LINK_ENTITY_TO_CLASS( speaker, CSpeaker );
+LINK_ENTITY_TO_CLASS( speaker, CSpeaker_HL1 );
 
-BEGIN_DATADESC( CSpeaker )
+BEGIN_DATADESC( CSpeaker_HL1 )
 	DEFINE_FIELD( m_preset, FIELD_INTEGER ),
 	DEFINE_KEYFIELD( m_iszMessage, FIELD_STRING, "message" ),
 	DEFINE_THINKFUNC( SpeakerThink ),
@@ -57,7 +57,7 @@ END_DATADESC()
 //
 // ambient_generic - general-purpose user-defined static sound
 //
-void CSpeaker::Spawn( void )
+void CSpeaker_HL1::Spawn( void )
 {
 	char* szSoundFile = (char*) STRING( m_iszMessage );
 
@@ -65,18 +65,18 @@ void CSpeaker::Spawn( void )
 	{
 		Msg( "SPEAKER with no Level/Sentence! at: %f, %f, %f\n", GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z );
 		SetNextThink( gpGlobals->curtime + 0.1 );
-		SetThink( &CSpeaker::SUB_Remove );
+		SetThink( &CSpeaker_HL1::SUB_Remove );
 		return;
 	}
     SetSolid( SOLID_NONE );
     SetMoveType( MOVETYPE_NONE );
 
 	
-	SetThink(&CSpeaker::SpeakerThink);
+	SetThink(&CSpeaker_HL1::SpeakerThink);
 	SetNextThink( TICK_NEVER_THINK );
 
 	// allow on/off switching via 'use' function.
-	SetUse ( &CSpeaker::ToggleUse );
+	SetUse ( &CSpeaker_HL1::ToggleUse );
 
 	Precache( );
 }
@@ -84,13 +84,13 @@ void CSpeaker::Spawn( void )
 #define ANNOUNCE_MINUTES_MIN	0.25	 
 #define ANNOUNCE_MINUTES_MAX	2.25
 
-void CSpeaker::Precache( void )
+void CSpeaker_HL1::Precache( void )
 {
 	if ( !FBitSet ( GetSpawnFlags(), SPEAKER_START_SILENT ) )
 		// set first announcement time for random n second
 		SetNextThink( gpGlobals->curtime + random->RandomFloat( 5.0, 15.0 ) );
 }
-void CSpeaker::SpeakerThink( void )
+void CSpeaker_HL1::SpeakerThink( void )
 {
 	char* szSoundFile = NULL;
 	float flvolume = m_iHealth * 0.1;
@@ -159,7 +159,7 @@ void CSpeaker::SpeakerThink( void )
 //
 // ToggleUse - if an announcement is pending, cancel it.  If no announcement is pending, start one.
 //
-void CSpeaker::ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CSpeaker_HL1::ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	int fActive = (GetNextThink() > 0.0);
 
@@ -206,7 +206,7 @@ void CSpeaker::ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 // KeyValue - load keyvalue pairs into member data
 // NOTE: called BEFORE spawn!
 
-bool CSpeaker::KeyValue( const char *szKeyName, const char *szValue )
+bool CSpeaker_HL1::KeyValue( const char *szKeyName, const char *szValue )
 {
 	// preset
 	if (FStrEq(szKeyName, "preset"))

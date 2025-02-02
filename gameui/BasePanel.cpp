@@ -1619,8 +1619,8 @@ CGameMenu *CBasePanel::RecursiveLoadGameMenu(KeyValues *datafile)
 			bFoundServerBrowser = true;
 	}
 
-	if( !bFoundServerBrowser && !ModInfo().IsSinglePlayerOnly() )
-		menu->AddMenuItem("AntiM*dG*yButton", "#GameUI_GameMenu_FindServers", "OpenServerBrowser", this);
+	//if( !bFoundServerBrowser && !ModInfo().IsSinglePlayerOnly() )
+		//menu->AddMenuItem("AntiM*dG*yButton", "#GameUI_GameMenu_FindServers", "OpenServerBrowser", this);
 
 	// loop through all the data adding items to the menu
 	for (KeyValues *dat = datafile->GetFirstSubKey(); dat != NULL; dat = dat->GetNextKey())
@@ -2047,6 +2047,10 @@ void CBasePanel::RunMenuCommand(const char *command)
 	else if ( !Q_stricmp( command, "OpenNewGameDialog" ) )
 	{
 		OnOpenNewGameDialog();
+	}
+	else if( !Q_stricmp( command, "OpenNewGameDialog_HLS" ))
+	{
+		OnOpenNewGameDialog( NULL, true );
 	}
 	else if ( !Q_stricmp( command, "OpenConsole" ) )
 	{
@@ -3129,11 +3133,11 @@ void CBasePanel::OnOpenDisconnectConfirmationDialog()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CBasePanel::OnOpenNewGameDialog(const char *chapter )
+void CBasePanel::OnOpenNewGameDialog( const char *chapter, bool bHLS )
 {
 	if ( !m_hNewGameDialog.Get() )
 	{
-		m_hNewGameDialog = new CNewGameDialog(this, false);
+		m_hNewGameDialog = new CNewGameDialog( this, false, bHLS );
 		PositionDialog( m_hNewGameDialog );
 	}
 

@@ -61,6 +61,8 @@
 extern ConVar weapon_showproficiency;
 extern ConVar autoaim_max_dist;
 
+ConVar allow_stunstick_as_weapon("allow_stunstick_as_weapon", "0" );
+
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
 // version of the player's hull, not the hitboxes for the player's model
@@ -2630,11 +2632,14 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 bool CHL2_Player::Weapon_CanUse( CBaseCombatWeapon *pWeapon )
 {
 #ifndef HL2MP	
-	if ( pWeapon->ClassMatches( "weapon_stunstick" ) )
+	if ( !allow_stunstick_as_weapon.GetBool() )
 	{
-		if ( ApplyBattery( 0.5 ) )
-			UTIL_Remove( pWeapon );
-		return false;
+		if ( pWeapon->ClassMatches( "weapon_stunstick" ) )
+		{
+			if ( ApplyBattery( 0.5 ) )
+				UTIL_Remove( pWeapon );
+			return false;
+		}
 	}
 #endif
 

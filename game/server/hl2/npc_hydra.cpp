@@ -199,7 +199,7 @@ static ConVar	sv_hydraTestSpike( "sv_hydraTestSpike", "1", 0, "Hydra Test impali
 
 void CNPC_Hydra::Precache()
 {
-	PrecacheModel( "models/Hydra.mdl" );
+	PrecacheModel( "models/hydra.mdl" );
 	UTIL_PrecacheOther( "hydra_impale" );
 
 	PrecacheScriptSound( "NPC_Hydra.ExtendTentacle" );
@@ -239,7 +239,7 @@ void CNPC_Hydra::Spawn()
 
 	BaseClass::Spawn();
 
-	SetModel( "models/Hydra.mdl" );
+	SetModel( "models/hydra.mdl" );
 
 	SetHullType(HULL_HUMAN);
 	SetHullSizeNormal();
@@ -1639,6 +1639,9 @@ void CHydraImpale::Spawn( void )
 
 	// Disable movement on this sucker, we're going to move him manually
 	SetMoveType( MOVETYPE_FLY );
+
+	SetThink ( &CHydraImpale::ImpaleThink );
+	SetNextThink( gpGlobals->curtime + 0.5f );
 	
 	BaseClass::Spawn();
 
@@ -1700,7 +1703,7 @@ IPhysicsConstraint *CHydraImpale::CreateConstraint( CNPC_Hydra *pHydra, IPhysics
 		m_pConstraint->SetGameData( (void *)this );
 	}
 
-	SetThink( ImpaleThink );
+	SetThink( &CHydraImpale::ImpaleThink );
 	SetNextThink( gpGlobals->curtime );
 	return m_pConstraint;
 }

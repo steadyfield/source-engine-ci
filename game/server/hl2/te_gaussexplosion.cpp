@@ -6,29 +6,10 @@
 
 #include "cbase.h"
 #include "te_particlesystem.h"
+#include "weapon_gauss.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
-//=============================================================================
-// Gauss explosion
-//=============================================================================
-
-class CTEGaussExplosion : public CTEParticleSystem
-{
-public:
-	DECLARE_CLASS( CTEGaussExplosion, CTEParticleSystem );
-	DECLARE_SERVERCLASS();
-
-					CTEGaussExplosion( const char *name );
-	virtual			~CTEGaussExplosion( void );
-
-	virtual void	Test( const Vector& current_origin, const QAngle& current_angles ) { };
-
-	CNetworkVar( int, m_nType );
-	CNetworkVector( m_vecDirection );
-};
-
 
 CTEGaussExplosion::CTEGaussExplosion( const char *name ) : BaseClass( name )
 {
@@ -38,6 +19,18 @@ CTEGaussExplosion::CTEGaussExplosion( const char *name ) : BaseClass( name )
 
 CTEGaussExplosion::~CTEGaussExplosion( void )
 {
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : msg_dest - 
+//			delay - 
+//			*origin - 
+//			*recipient - 
+//-----------------------------------------------------------------------------
+void CTEGaussExplosion::Create( IRecipientFilter& filter, float delay )
+{
+	engine->PlaybackTempEntity( filter, delay, (void *)this, GetServerClass()->m_pTable, GetServerClass()->m_ClassID );
 }
 
 IMPLEMENT_SERVERCLASS_ST( CTEGaussExplosion, DT_TEGaussExplosion )
